@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cat-1",
+    "name": "Medicines",
+    "description": "Prescription and chemical pharmaceuticals",
+    "icon": "💊"
+  },
+  {
+    "id": "cat-2",
+    "name": "OTC Medicines",
+    "description": "Over-the-counter medications and general care",
+    "icon": "🧴"
+  },
+  {
+    "id": "cat-3",
+    "name": "Diabetes Care",
+    "description": "Blood glucose testing and diabetic management",
+    "icon": "🩸"
+  },
+  {
+    "id": "cat-4",
+    "name": "Heart Care",
+    "description": "Cardiac health monitoring and care supplements",
+    "icon": "❤️"
+  },
+  {
+    "id": "cat-5",
+    "name": "Personal Care",
+    "description": "Daily hygiene and sanitation essentials",
+    "icon": "🧼"
+  },
+  {
+    "id": "cat-6",
+    "name": "Baby Care",
+    "description": "Infant nutrition, diapers, and baby hygiene",
+    "icon": "🧸"
+  },
+  {
+    "id": "cat-7",
+    "name": "Ayurveda",
+    "description": "Herbal wellness and natural health remedies",
+    "icon": "🌿"
+  },
+  {
+    "id": "cat-8",
+    "name": "Vitamins",
+    "description": "Daily multivitamin capsules, minerals, and supplements",
+    "icon": "🥤"
+  },
+  {
+    "id": "cat-9",
+    "name": "Medical Devices",
+    "description": "Diagnostic and health monitoring instruments",
+    "icon": "⌚"
+  },
+  {
+    "id": "cat-10",
+    "name": "Skin Care",
+    "description": "Dermatological ointments, creams, and cosmetic care",
+    "icon": "✨"
+  }
+]
