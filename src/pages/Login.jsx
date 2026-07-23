@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
@@ -25,16 +25,23 @@ import { auth } from "../firebase/firebase";
 export default function Login() {
   const { login, loginWithGoogle, loginWithApple } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   // Helper to handle dynamic redirect after authentication
   const handleSuccessRedirect = (user, msg) => {
-    const dest = user?.role === 'admin' ? '/admin/dashboard' : (searchParams.get('redirect') === 'admin' ? '/admin' : '/');
+    const fromPath = location.state?.from 
+      ? `${location.state.from.pathname || location.state.from}${location.state.from.search || ''}`
+      : null;
+    const dest = user?.role === 'admin' 
+      ? '/admin/dashboard' 
+      : (fromPath || (searchParams.get('redirect') === 'admin' ? '/admin' : '/'));
     setSuccessMsg(msg);
     setTimeout(() => {
       navigate(dest);
     }, 1500);
   };
+
   
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -105,12 +112,8 @@ export default function Login() {
     setForgotError(null);
     setForgotSuccess(null);
     const email = data.forgotEmail.trim().toLowerCase();
-    console.log("Sending reset email:", email);
-    console.log("Firebase Auth:", auth);
     try {
-      console.log("Current Project:", auth.app.options.projectId);
       await sendPasswordResetEmail(auth, email);
-      console.log("Password reset email sent successfully");
       setForgotSuccess("Password reset link has been sent successfully.");
       setTimeout(() => {
         // Close modal and reset form
@@ -170,7 +173,7 @@ export default function Login() {
     <div className="min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-[45%_55%] items-stretch bg-[#F8FCFC] font-sans">
       
       {/* Left Column: Welcome Slogans & Animated Medical Vector */}
-      <div className="w-full bg-gradient-to-br from-[#E2F3F0] via-[#F8FCFC] to-white relative flex flex-col justify-between p-8 sm:p-12 text-dark text-left overflow-hidden border-b md:border-b-0 md:border-r border-dark/5">
+      <div className="hidden md:flex w-full bg-gradient-to-br from-[#E2F3F0] via-[#F8FCFC] to-white relative flex-col justify-between p-8 sm:p-12 text-dark text-left overflow-hidden border-b md:border-b-0 md:border-r border-dark/5">
         
         {/* Backdrop visual elements */}
         <div className="absolute top-[-5%] left-[-10%] w-[350px] h-[350px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
@@ -270,7 +273,7 @@ export default function Login() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
+          className="w-full max-w-[500px]"
         >
           {/* Main Card with rounded corners (20px) and soft shadow */}
           <div className="bg-white rounded-[20px] shadow-soft border border-dark/5 p-6 sm:p-10 select-none text-left">

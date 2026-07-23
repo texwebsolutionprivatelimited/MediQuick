@@ -1,4 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useSettings } from './SettingsContext';
+import { db, isConfigValid } from '../firebase/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 const LocationContext = createContext();
 
@@ -7,7 +11,7 @@ export function useLocation() {
 }
 
 // Default Central Pharmacy Location: Indiranagar, Bangalore, India
-const PHARMACY_COORDS = { lat: 12.9719, lng: 77.6412 };
+const DEFAULT_PHARMACY_COORDS = { lat: 12.9719, lng: 77.6412 };
 
 // Distance helper using Haversine formula (direct distance in km)
 function calculateHaversineDistance(coords1, coords2) {
@@ -29,13 +33,32 @@ function calculateHaversineDistance(coords1, coords2) {
 }
 
 export function LocationProvider({ children }) {
+  const { currentUser } = useAuth();
+  const { deliverySettings } = useSettings();
   const [userCoords, setUserCoords] = useState(null);
   const [address, setAddress] = useState("");
   const [distance, setDistance] = useState(null); // in km
-  const [deliveryType, setDeliveryType] = useState(null); // 'priority' | 'standard'
+  const [deliveryType, setDeliveryType] = useState(null); // 'priority' | 'standard' | 'unavailable'
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Sync address changes globally to the user's Firestore profile document
+  useEffect(() => {
+    if (address && currentUser?.uid) {
+      const saveLocationToFirestore = async () => {
+        try {
+          if (isConfigValid && db) {
+            const userDocRef = doc(db, "users", currentUser.uid);
+            await setDoc(userDocRef, { location: address }, { merge: true });
+          }
+        } catch (err) {
+          console.error("Failed to auto-save location to Firestore:", err);
+        }
+      };
+      saveLocationToFirestore();
+    }
+  }, [address, currentUser]);
 
   // Load from localStorage on initialization
   useEffect(() => {
@@ -52,7 +75,7 @@ export function LocationProvider({ children }) {
             if (result.state === 'granted') {
               detectLocation();
             }
-          }).catch(err => console.log("Permissions query not supported", err));
+          }).catch(() => {});
         }
       }
     } catch (e) {
@@ -60,21 +83,29 @@ export function LocationProvider({ children }) {
     }
   }, []);
 
-  // Re-calculate delivery whenever userCoords change
+  // Re-calculate delivery whenever userCoords or deliverySettings change
   useEffect(() => {
-    if (userCoords) {
-      const dist = calculateHaversineDistance(PHARMACY_COORDS, userCoords);
+    if (userCoords && deliverySettings) {
+      const hubCoords = {
+        lat: Number(deliverySettings.hubLatitude) || DEFAULT_PHARMACY_COORDS.lat,
+        lng: Number(deliverySettings.hubLongitude) || DEFAULT_PHARMACY_COORDS.lng
+      };
+
+      const dist = calculateHaversineDistance(hubCoords, userCoords);
       setDistance(dist);
-      
-      if (dist <= 5.0) {
+
+      if (!deliverySettings.deliveryEnabled) {
+        setDeliveryType('unavailable');
+        setDeliveryCharge(0);
+      } else if (dist > Number(deliverySettings.maximumServiceRadius)) {
+        setDeliveryType('unavailable');
+        setDeliveryCharge(0);
+      } else if (dist <= Number(deliverySettings.priorityRadius)) {
         setDeliveryType('priority');
-        setDeliveryCharge(0); // Priority delivery under 5km is FREE for premium feel
       } else {
         setDeliveryType('standard');
-        const calculatedCharge = 30 + Math.round((dist - 5) * 10);
-        setDeliveryCharge(calculatedCharge);
       }
-      
+
       // Save coordinates to localStorage
       localStorage.setItem('mediquick_user_coords', JSON.stringify(userCoords));
     } else {
@@ -82,7 +113,25 @@ export function LocationProvider({ children }) {
       setDeliveryType(null);
       setDeliveryCharge(0);
     }
-  }, [userCoords]);
+  }, [userCoords, deliverySettings]);
+
+  const calculateDeliveryFee = (subtotal) => {
+    if (subtotal <= 0) return 0;
+    if (!deliverySettings || !deliverySettings.deliveryEnabled) return 0;
+    if (distance === null || distance > Number(deliverySettings.maximumServiceRadius)) return 0;
+    if (subtotal >= Number(deliverySettings.freeDeliveryThreshold)) return 0;
+
+    const baseFee = Number(deliverySettings.baseDeliveryFee);
+    const priRadius = Number(deliverySettings.priorityRadius);
+
+    if (distance <= priRadius) {
+      return baseFee;
+    } else {
+      const extraDist = distance - priRadius;
+      // Progressive delivery fee: base delivery fee + additional charge per km beyond priority radius
+      return baseFee + Math.round(extraDist * 10);
+    }
+  };
 
   // Save address changes to localStorage
   useEffect(() => {
@@ -103,7 +152,7 @@ export function LocationProvider({ children }) {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         const coords = { lat, lng };
@@ -120,16 +169,50 @@ export function LocationProvider({ children }) {
             setLoading(false);
           });
         } else {
-          // Beautiful Mock Address based on proximity (Hyderabad, Gachibowli is default local)
-          setTimeout(() => {
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
+              {
+                headers: {
+                  'Accept-Language': 'en'
+                }
+              }
+            );
+            if (!response.ok) {
+              throw new Error("Nominatim API request failed");
+            }
+            const data = await response.json();
+            
+            let resolvedAddress = "";
+            if (data.address) {
+              const road = data.address.road || data.address.suburb || "";
+              const city = data.address.city || data.address.town || data.address.village || "";
+              const state = data.address.state || "";
+              const country = data.address.country || "";
+              
+              const parts = [];
+              if (road) parts.push(road);
+              if (city) parts.push(city);
+              if (state) parts.push(state);
+              if (country) parts.push(country);
+              resolvedAddress = parts.join(", ");
+            }
+
+            if (!resolvedAddress) {
+              resolvedAddress = data.display_name || `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            }
+            setAddress(resolvedAddress);
+          } catch (err) {
+            console.error("OSM geocoding failed, falling back to mock:", err);
             const dist = calculateHaversineDistance(PHARMACY_COORDS, coords);
             if (dist <= 5) {
               setAddress("Gachibowli Flyover, Gachibowli, Hyderabad, 500032");
             } else {
               setAddress("Secunderabad Junction, Hyderabad, 500003");
             }
+          } finally {
             setLoading(false);
-          }, 800);
+          }
         }
       },
       (err) => {
@@ -137,7 +220,7 @@ export function LocationProvider({ children }) {
         setError("Location permission denied. Please enter your address manually.");
         setLoading(false);
       },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 10000 }
     );
   };
 
@@ -161,11 +244,15 @@ export function LocationProvider({ children }) {
     distance,
     deliveryType,
     deliveryCharge,
+    calculateDeliveryFee,
     loading,
     error,
     detectLocation,
     manualSetLocation,
-    pharmacyCoords: PHARMACY_COORDS
+    pharmacyCoords: {
+      lat: Number(deliverySettings?.hubLatitude) || DEFAULT_PHARMACY_COORDS.lat,
+      lng: Number(deliverySettings?.hubLongitude) || DEFAULT_PHARMACY_COORDS.lng
+    }
   };
 
   return (

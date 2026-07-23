@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
+import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { db, isConfigValid } from '../firebase/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import Card from '../components/Card';
 import { 
   MdChevronRight, 
@@ -12,13 +13,15 @@ import {
   MdPayment, 
   MdReceipt,
   MdCheckCircle,
-  MdArrowBack
+  MdArrowBack,
+  MdMyLocation
 } from 'react-icons/md';
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, getSubtotal, getDiscount, clearCart, coupon } = useCart();
-  const { address } = useLocation();
+  const { address, detectLocation, loading: locLoading, error: locError, distance, deliveryType, calculateDeliveryFee } = useLocation();
+  const { systemSettings, deliverySettings } = useSettings();
   const { currentUser } = useAuth();
 
   // Local Form states
@@ -29,11 +32,31 @@ export default function Checkout() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
 
+  // Sync deliveryAddress state when address is detected/changed in context (e.g. from header selector or checkout button)
+  React.useEffect(() => {
+    if (address) {
+      setDeliveryAddress(address);
+    }
+  }, [address]);
+
+
+  const handleGetCurrentLocation = () => {
+    if (address) {
+      setDeliveryAddress(address);
+    }
+    detectLocation();
+  };
+
   const subtotal = getSubtotal();
   const discount = getDiscount();
-  const isFreeDelivery = subtotal >= 500 || (deliveryAddress && deliveryAddress.includes("Gachibowli"));
-  const deliveryFee = subtotal > 0 && !isFreeDelivery ? 40 : 0;
-  const total = subtotal - discount + deliveryFee;
+  const deliveryFee = calculateDeliveryFee(subtotal);
+  const total = Math.max(0, subtotal - discount + deliveryFee);
+
+  const isStoreClosed = systemSettings && systemSettings.storeOpen === false;
+  // Temporary bypass of delivery serviceability validation for testing/dev
+  // To re-enable serviceability check, uncomment the original line below:
+  // const isDeliveryUnavailable = deliveryType === 'unavailable' || !deliverySettings?.deliveryEnabled;
+  const isDeliveryUnavailable = false;
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
@@ -74,12 +97,40 @@ export default function Checkout() {
         // Write to user specific orders subcollection (for user-side queries)
         if (currentUser?.uid) {
           await setDoc(doc(db, 'users', currentUser.uid, 'orders', orderId), newOrder);
+          
+          // Generate notification for order placement in Firestore
+          await addDoc(collection(db, 'notifications'), {
+            userId: currentUser.uid,
+            title: 'Order Placed Successfully!',
+            message: `Your order has been placed successfully. Reference: ${orderId}`,
+            type: 'order_confirmed',
+            isRead: false,
+            createdAt: serverTimestamp(),
+            actionUrl: '/order-tracking'
+          });
         }
       } else {
         // Mock LocalStorage placement for offline mock mode
         const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
         stored.unshift(newOrder);
         localStorage.setItem('mediquick_local_orders', JSON.stringify(stored));
+
+        // Generate local mock notification
+        if (currentUser?.uid) {
+          const mockNotif = {
+            id: `local-place-${Date.now()}`,
+            userId: currentUser.uid,
+            title: 'Order Placed Successfully!',
+            message: `Your order has been placed successfully. Reference: ${orderId}`,
+            type: 'order_confirmed',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            actionUrl: '/order-tracking'
+          };
+          const savedNotifs = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
+          savedNotifs.unshift(mockNotif);
+          localStorage.setItem('mediquick_local_notifications', JSON.stringify(savedNotifs));
+        }
       }
 
       setOrderSuccess(true);
@@ -128,8 +179,30 @@ export default function Checkout() {
               </h3>
 
               <div className="space-y-4 text-xs">
-                <div className="space-y-1">
-                  <label className="font-bold text-dark/65">Full Address (Detected / Manual)</label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between pb-1">
+                    <label className="font-bold text-dark/65">Full Address (Detected / Manual)</label>
+                    <button
+                      type="button"
+                      disabled={locLoading}
+                      onClick={handleGetCurrentLocation}
+                      className="px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 text-[10px] font-black uppercase rounded-lg transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                    >
+                      {locLoading ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Locating...
+                        </>
+                      ) : (
+                        <>
+                          <MdMyLocation className="text-sm" /> Get Current Location
+                        </>
+                      )}
+                    </button>
+                  </div>
                   <textarea 
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
@@ -138,6 +211,9 @@ export default function Checkout() {
                     placeholder="Enter your street address, city, and pincode..."
                     className="w-full px-3.5 py-2.5 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background resize-none text-dark leading-relaxed"
                   />
+                  {locError && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-1">{locError}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -187,20 +263,39 @@ export default function Checkout() {
                   </div>
                 </label>
 
-                <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="upi"
-                    checked={paymentMethod === "upi"}
-                    onChange={() => setPaymentMethod("upi")}
-                    className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-bold text-dark">UPI (Google Pay, PhonePe, Paytm)</span>
-                    <p className="text-[10px] text-dark/45 mt-0.5">Instant secure payment redirect through your UPI client app.</p>
-                  </div>
-                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value="upi"
+                      checked={paymentMethod === "upi"}
+                      onChange={() => setPaymentMethod("upi")}
+                      className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-bold text-dark">UPI (Google Pay, PhonePe, Paytm)</span>
+                      <p className="text-[10px] text-dark/45 mt-0.5">Instant secure payment redirect through your UPI client app.</p>
+                    </div>
+                  </label>
+
+                  {paymentMethod === "upi" && (
+                    <div className="mx-auto sm:ml-7 p-4 border border-dashed border-dark/10 rounded-xl bg-background/30 flex flex-col items-center text-center space-y-2 w-fit">
+                      <div className="w-36 h-36 bg-white p-2.5 border border-dark/5 rounded-2xl shadow-sm flex items-center justify-center">
+                        <img 
+                          src="/images/dummy-qr.svg" 
+                          alt="Dummy UPI QR Code" 
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-dark text-[11px]">Scan the QR code using any UPI app</p>
+                        <p className="text-[10px] text-primary font-black uppercase tracking-wider">Demo Payment Only</p>
+                        <p className="text-[9px] text-dark/45">No real transaction will be processed</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
                   <input 
@@ -267,6 +362,18 @@ export default function Checkout() {
                 </div>
               </div>
 
+              {isStoreClosed && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-center font-bold text-xs select-none">
+                  ⚠️ Store is currently closed. Ordering is disabled.
+                </div>
+              )}
+
+              {isDeliveryUnavailable && (
+                <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-center font-bold text-xs select-none">
+                  ⚠️ Delivery is currently unavailable for your location.
+                </div>
+              )}
+
               <div className="border-t border-dark/5 pt-4 flex justify-between items-baseline">
                 <span className="font-bold text-dark text-sm sm:text-base">Grand Total</span>
                 <span className="font-black text-primary text-xl sm:text-2xl">₹{total}</span>
@@ -274,10 +381,14 @@ export default function Checkout() {
 
               <button 
                 type="submit"
-                disabled={orderSuccess || isPlacing}
-                className={`w-full py-4 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 select-none ${orderSuccess || isPlacing ? 'bg-primary-dark cursor-not-allowed opacity-75' : 'cursor-pointer active:scale-95'}`}
+                disabled={orderSuccess || isPlacing || isStoreClosed || isDeliveryUnavailable}
+                className={`w-full py-4 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 select-none ${
+                  orderSuccess || isPlacing || isStoreClosed || isDeliveryUnavailable 
+                    ? 'bg-dark/10 text-dark/30 border border-dark/5 cursor-not-allowed shadow-none' 
+                    : 'cursor-pointer active:scale-95'
+                }`}
               >
-                {isPlacing ? "Placing Order..." : "Place Order"}
+                {isPlacing ? "Placing Order..." : isStoreClosed ? "Store Closed" : "Place Order"}
               </button>
             </div>
 

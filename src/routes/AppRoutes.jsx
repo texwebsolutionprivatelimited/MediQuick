@@ -19,6 +19,12 @@ const AdminDashboard = lazy(() => import('../pages/AdminDashboard'));
 const AdminLogin = lazy(() => import('../pages/AdminLogin'));
 const ResetPassword = lazy(() => import('../pages/ResetPassword'));
 const AccessDenied = lazy(() => import('../pages/AccessDenied'));
+const Offers = lazy(() => import('../pages/Offers'));
+const Blogs = lazy(() => import('../pages/Blogs'));
+const Faq = lazy(() => import('../pages/Faq'));
+const RefundPolicy = lazy(() => import('../pages/RefundPolicy'));
+const Careers = lazy(() => import('../pages/Careers'));
+const Profile = lazy(() => import('../pages/Profile'));
 
 // Simple loading indicator for fallback
 const PageLoader = () => (
@@ -52,33 +58,56 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+// Protected Route Guard for Standard Users
+const ProtectedRoute = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (!currentUser) {
+    // Redirect to the login page and preserve the intended path in navigation state
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
 export default function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/medicines" element={<Medicines />} />
-        <Route path="/categories" element={<Categories />} />
-        <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/upload-prescription" element={<UploadPrescription />} />
-        <Route path="/order-tracking" element={<OrderTracking />} />
-        <Route path="/contact" element={<Contact />} />
-        
-        {/* Public Admin Login Page */}
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Protected User Routes */}
+        <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
+        <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
+        <Route path="/blogs" element={<ProtectedRoute><Blogs /></ProtectedRoute>} />
+        <Route path="/faq" element={<ProtectedRoute><Faq /></ProtectedRoute>} />
+        <Route path="/refund-policy" element={<ProtectedRoute><RefundPolicy /></ProtectedRoute>} />
+        <Route path="/careers" element={<ProtectedRoute><Careers /></ProtectedRoute>} />
+        <Route path="/medicines" element={<ProtectedRoute><Medicines /></ProtectedRoute>} />
+        <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
+        <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+        <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+        <Route path="/upload-prescription" element={<ProtectedRoute><UploadPrescription /></ProtectedRoute>} />
+        <Route path="/order-tracking" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
+        <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         
         {/* Protected Admin Routes */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/access-denied" element={<AccessDenied />} />
         
         {/* Fallback redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -86,3 +115,4 @@ export default function AppRoutes() {
     </Suspense>
   );
 }
+

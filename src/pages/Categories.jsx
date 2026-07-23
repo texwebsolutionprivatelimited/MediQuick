@@ -34,14 +34,14 @@ export default function Categories() {
 
       {/* 📦 GRID LAYOUT */}
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 min-[576px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           
           {categoriesWithCounts.map((cat, idx) => (
             <Link key={idx} to={`/medicines?category=${encodeURIComponent(cat.name)}`}>
               <Card 
                 hoverable={true} 
                 padding="p-6" 
-                className="bg-white border border-dark/5 shadow-soft flex flex-col justify-between h-48 cursor-pointer relative overflow-hidden"
+                className="bg-white border border-dark/5 shadow-soft flex flex-col justify-between h-full min-h-[12rem] cursor-pointer relative overflow-hidden"
               >
                 
                 <div className="space-y-3">

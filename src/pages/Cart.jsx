@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
+import { useSettings } from '../context/SettingsContext';
 import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
 import { 
@@ -30,7 +31,8 @@ export default function Cart() {
     prescriptionFile
   } = useCart();
 
-  const { address } = useLocation();
+  const { address, distance, deliveryType, calculateDeliveryFee } = useLocation();
+  const { systemSettings, deliverySettings } = useSettings();
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState("");
@@ -38,10 +40,12 @@ export default function Cart() {
   const subtotal = getSubtotal();
   const discount = getDiscount();
   
-  // Delivery Fee: Free if order > 500 or Deliver to Gachibowli local zone (< 5KM), otherwise ₹40
-  const isFreeDelivery = subtotal >= 500 || (address && address.includes("Gachibowli"));
-  const deliveryFee = subtotal > 0 && !isFreeDelivery ? 40 : 0;
+  const deliveryFee = calculateDeliveryFee(subtotal);
   const total = subtotal - discount + deliveryFee;
+
+  const isStoreClosed = systemSettings && systemSettings.storeOpen === false;
+  // Bypassed location-based delivery restriction to match Buy Now behavior
+  const isDeliveryUnavailable = false;
 
   const handleCouponSubmit = (e) => {
     e.preventDefault();
@@ -59,6 +63,8 @@ export default function Cart() {
   };
 
   const handleCheckout = () => {
+    if (isStoreClosed) return;
+    if (isDeliveryUnavailable) return;
     if (prescriptionRequired && !prescriptionUploaded) {
       navigate('/upload-prescription');
     } else {
@@ -84,7 +90,7 @@ export default function Cart() {
   }
 
   return (
-    <div className="bg-[#F8FCFC] min-h-screen py-10 font-sans text-dark/90 text-left">
+    <div className="bg-[#F8FCFC] min-h-screen pt-10 pb-24 lg:pb-16 font-sans text-dark/90 text-left">
       <div className="container mx-auto px-4">
         <h1 className="text-2xl font-extrabold text-[#063B44] mb-8">Shopping Cart</h1>
         
@@ -223,6 +229,27 @@ export default function Cart() {
             <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">
               <h4 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">Bill Details</h4>
               
+              {/* Delivery distance alert message */}
+              {address && deliverySettings && (
+                <div className="p-3 rounded-xl border text-[11px] font-semibold text-left">
+                  {deliveryType === 'priority' ? (
+                    <div className="text-emerald-600 border-emerald-100 bg-emerald-50/50 flex items-center gap-1.5">
+                      ⚡ Delivery within {deliverySettings.priorityDeliveryTime || "1 Hour"} (Priority Zone)
+                    </div>
+                  ) : (
+                    <div className="text-primary border-primary-light bg-primary-light/5 flex items-center gap-1.5">
+                      🚚 Standard Delivery Available ({deliverySettings.standardDeliveryTime || "24 Hours"})
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isStoreClosed && (
+                <div className="p-3.5 rounded-xl border border-red-200/60 bg-red-50 text-red-600 text-xs font-bold text-center">
+                  ⚠️ Store is currently closed. Checkout is disabled.
+                </div>
+              )}
+              
               <div className="space-y-2.5 text-xs text-dark/70">
                 <div className="flex justify-between">
                   <span>Cart Subtotal</span>
@@ -249,14 +276,14 @@ export default function Cart() {
 
               <button 
                 onClick={handleCheckout}
-                disabled={prescriptionRequired && !prescriptionUploaded}
+                disabled={(prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable}
                 className={`w-full py-4 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 select-none ${
-                  prescriptionRequired && !prescriptionUploaded
+                  (prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable
                     ? 'bg-dark/10 text-dark/30 border border-dark/5 cursor-not-allowed shadow-none'
                     : 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95'
                 }`}
               >
-                Proceed to Checkout
+                {isStoreClosed ? "Store Closed" : "Proceed to Checkout"}
                 <MdArrowForward className="text-base" />
               </button>
               
@@ -271,6 +298,28 @@ export default function Cart() {
 
         </div>
       </div>
+      
+      {/* Sticky mobile checkout button bar */}
+      {cartItems.length > 0 && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-dark/10 p-4 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] flex items-center justify-between gap-4">
+          <div>
+            <span className="text-[10px] text-dark/45 font-bold uppercase block">To Pay</span>
+            <span className="text-lg font-black text-primary">₹{total}</span>
+          </div>
+          <button 
+            onClick={handleCheckout}
+            disabled={(prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable}
+            className={`px-6 py-3 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 select-none ${
+              (prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable
+                ? 'bg-dark/10 text-dark/30 border border-dark/5 cursor-not-allowed shadow-none'
+                : 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95'
+            }`}
+          >
+            {isStoreClosed ? "Store Closed" : "Checkout"}
+            <MdArrowForward className="text-base" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,32 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
+import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import { useProducts } from '../context/ProductsContext';
 import { 
-  MdLocalPharmacy, 
   MdUploadFile, 
   MdKeyboardArrowRight, 
   MdStar, 
   MdShoppingCart,
-  MdOutlineAccessTime,
-  MdVerified,
-  MdDirectionsRun,
-  MdBiotech,
   MdMailOutline,
   MdArrowUpward,
-  MdSearch,
   MdRoom,
   MdExpandMore,
   MdCall,
-  MdCheckCircle,
-  MdErrorOutline,
-  MdCameraAlt,
-  MdCloudUpload,
-  MdClose
+  MdCheckCircle
 } from 'react-icons/md';
 import { FaWhatsapp } from 'react-icons/fa';
 import MedicineImage from '../components/MedicineImage';
@@ -34,7 +26,6 @@ import MedicineImage from '../components/MedicineImage';
 // Data sets matching the requested 10 categories
 const CATEGORIES = [
   { id: 'cat1', name: 'Medicines', icon: '💊', query: 'prescription' },
-  { id: 'cat2', name: 'Healthcare', icon: '🧴', query: 'healthcare' },
   { id: 'cat3', name: 'Personal Care', icon: '🧼', query: 'personalcare' },
   { id: 'cat4', name: 'Baby Care', icon: '🧸', query: 'babycare' },
   { id: 'cat5', name: 'Diabetes Care', icon: '🩸', query: 'diabetes' },
@@ -47,16 +38,16 @@ const CATEGORIES = [
 
 const HERO_BANNERS = [
   {
-    title: "Your Trusted Online Pharmacy",
-    description: "Order medicines, healthcare devices, and wellness essentials with priority 1-hour shipping and 24/7 support.",
-    highlight: "Online Pharmacy",
-    badge: "FLAT 20% OFF"
-  },
-  {
     title: "Genuine Medicines, Delivered Fast",
     description: "Direct from licensed pharmacies to your doorstep. Free delivery on orders above ₹500.",
     highlight: "Delivered Fast",
     badge: "1 HOUR DELIVERY"
+  },
+  {
+    title: "Your Trusted Online Pharmacy",
+    description: "Order medicines, healthcare devices, and wellness essentials with priority 1-hour shipping and 24/7 support.",
+    highlight: "Online Pharmacy",
+    badge: "FLAT 20% OFF"
   },
   {
     title: "Easy Upload Prescription & Order",
@@ -126,48 +117,52 @@ function ProductSection({ title, products, addToCart, navigate }) {
           <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
         </div>
 
-        <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-thin select-none">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4 select-none">
           {products.map((product) => (
             <div
               key={product.id}
-              className="w-56 shrink-0 relative bg-white border border-dark/5 rounded-2xl p-4 shadow-soft hover:shadow-hover flex flex-col justify-between"
+              className="w-full relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px]"
             >
               {product.prescription_required && (
-                <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10">
+                <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10 select-none">
                   Rx Required
                 </span>
               )}
 
               <div 
                 onClick={() => navigate(`/product/${product.id}`)}
-                className="cursor-pointer flex flex-col"
+                className="cursor-pointer flex flex-col flex-grow"
               >
-                <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1">
+                <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1 shrink-0">
                   <MedicineImage product={product} />
                 </div>
-                <div className="text-left">
-                  <h4 className="font-bold text-dark text-xs sm:text-sm line-clamp-1 hover:text-primary transition-colors truncate">
-                    {product.medicine_name}
-                  </h4>
-                  <p className="text-[10px] text-dark/45 font-medium mt-0.5">{product.brand}</p>
-                  <p className="text-[9px] text-dark/55 mt-0.5">{product.pack_size}</p>
+                <div className="text-left flex-grow flex flex-col justify-between">
+                  <div>
+                    <h4 className="font-bold text-dark text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors h-10 overflow-hidden leading-tight text-ellipsis">
+                      {product.medicine_name}
+                    </h4>
+                    <div className="space-y-0.5 mt-1">
+                      <p className="text-[10px] text-dark/45 font-semibold truncate leading-none">{product.brand}</p>
+                      <p className="text-[9px] text-dark/55 truncate leading-none">{product.pack_size}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-2 text-left">
-                <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="pt-2.5 mt-2.5 border-t border-dark/5 text-left shrink-0">
+                <div className="flex items-center gap-1.5 flex-wrap h-5">
                   <span className="text-sm font-extrabold text-dark">₹{product.price}</span>
                   {product.mrp > product.price && (
                     <>
                       <span className="text-[10px] text-dark/40 line-through">₹{product.mrp}</span>
-                      <span className="bg-secondary/10 text-secondary-dark px-1 py-0.5 text-[8px] font-black rounded-md">
+                      <span className="bg-secondary/10 text-secondary-dark px-1.5 py-0.5 text-[8px] font-black rounded-md leading-none animate-pulse">
                         {product.discount_percentage}% OFF
                       </span>
                     </>
                   )}
                 </div>
                 
-                <p className={`text-[9px] font-bold mt-1.5 ${product.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                <p className={`text-[9px] font-bold mt-1.5 leading-none ${product.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                   {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                 </p>
 
@@ -196,10 +191,12 @@ function ProductSection({ title, products, addToCart, navigate }) {
 }
 
 export default function Home() {
+  const { currentUser } = useAuth();
   const { addToCart } = useCart();
   const { address, detectLocation, loading: locLoading, userCoords } = useLocation();
   const navigate = useNavigate();
   const { products: productsData } = useProducts();
+  const { systemSettings } = useSettings();
 
   // Search filter
   const [searchVal, setSearchVal] = useState("");
@@ -216,7 +213,6 @@ export default function Home() {
   // Filter products by category/subcategory dynamically
   const featured = productsData.slice(0, 10);
   const bestSellers = productsData.filter(p => p.category === "Medicines" || p.category === "OTC Medicines").slice(10, 20);
-  const healthcare = productsData.filter(p => p.category === "Healthcare").slice(0, 10);
   const diabetes = productsData.filter(p => p.category === "Diabetes Care").slice(0, 10);
   const heart = productsData.filter(p => p.category === "Heart Care").slice(0, 10);
   const baby = productsData.filter(p => p.category === "Baby Care").slice(0, 10);
@@ -239,19 +235,25 @@ export default function Home() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Prescription Drag & Drop
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [filePreview, setFilePreview] = useState(null);
-  const [uploadError, setUploadError] = useState(null);
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const fileInputRef = useRef(null);
-
   // Quick Callback Form
   const [callbackName, setCallbackName] = useState("");
   const [callbackPhone, setCallbackPhone] = useState("");
   const [callbackSuccess, setCallbackSuccess] = useState(false);
 
-  const whatsappUrl = "https://wa.me/919876543210?text=Hi%20MediQuick%2C%20I%20need%20assistance%20with%20my%20order.";
+  const getWhatsappUrl = () => {
+    let targetPhone = "919876543210"; // Default support phone fallback
+    const userPhone = currentUser?.phone || currentUser?.mobileNumber;
+    if (userPhone) {
+      const cleanPhone = userPhone.replace(/[\s\-+]/g, "");
+      targetPhone = cleanPhone.length === 10 ? "91" + cleanPhone : cleanPhone;
+    }
+
+    const baseText = currentUser 
+      ? `Hi ${currentUser.displayName || currentUser.fullName || 'Customer'}, welcome to MediQuick! This is your automated prescription assistant.`
+      : "Hi, welcome to MediQuick! This is your automated prescription assistant.";
+      
+    return `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(baseText)}`;
+  };
 
   // Check and query location permission states on load
   useEffect(() => {
@@ -309,63 +311,6 @@ export default function Home() {
     }
   };
 
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    validateAndSetFile(file);
-  };
-
-  const validateAndSetFile = (file) => {
-    if (!file) return;
-    setUploadError(null);
-    setUploadSuccess(false);
-
-    // Format check
-    const acceptedTypes = ['image/png', 'image/jpeg', 'application/pdf'];
-    if (!acceptedTypes.includes(file.type)) {
-      setUploadError("Only PNG, JPEG, and PDF file formats are accepted.");
-      return;
-    }
-
-    // Size check (10MB limit)
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError("File size exceeds 10 MB maximum limit.");
-      return;
-    }
-
-    setSelectedFile(file);
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFilePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setFilePreview('pdf-icon');
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    validateAndSetFile(file);
-  };
-
-  const handleUploadPrescriptionSubmit = () => {
-    if (!selectedFile) return;
-    setUploadSuccess(true);
-    setTimeout(() => {
-      setSelectedFile(null);
-      setFilePreview(null);
-      setUploadSuccess(false);
-      navigate('/cart');
-    }, 2000);
-  };
-
   const handleCallbackSubmit = (e) => {
     e.preventDefault();
     if (callbackName.trim() && callbackPhone.trim()) {
@@ -418,15 +363,17 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+
+
       {/* 🚀 3. HERO BANNER */}
-      <section className="relative overflow-hidden py-12 md:py-16 text-left select-none border-b border-dark/5 bg-white">
+      <section className="relative overflow-hidden py-12 md:py-16 text-center md:text-left select-none border-b border-dark/5 bg-white">
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-r from-[#E2F3F0] to-[#E3F2FD] rounded-[32px] p-6 md:p-12 relative overflow-hidden min-h-[360px] flex flex-col justify-center">
             
             <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
             
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
-              <div className="lg:col-span-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center relative z-10">
+              <div className="md:col-span-8 space-y-6 flex flex-col items-center md:items-start text-center md:text-left w-full">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentBanner}
@@ -439,32 +386,42 @@ export default function Home() {
                     <span className="bg-primary/10 text-primary-dark text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider inline-block">
                       {HERO_BANNERS[currentBanner].badge}
                     </span>
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#063B44] leading-tight">
+                    <h1 className="text-[28px] sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#063B44] leading-tight text-center md:text-left">
                       {HERO_BANNERS[currentBanner].title.split(HERO_BANNERS[currentBanner].highlight)[0]}
                       <span className="text-primary">{HERO_BANNERS[currentBanner].highlight}</span>
                       {HERO_BANNERS[currentBanner].title.split(HERO_BANNERS[currentBanner].highlight)[1]}
                     </h1>
-                    <p className="text-dark/70 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-light">
-                      {HERO_BANNERS[currentBanner].description}
-                    </p>
+                    {HERO_BANNERS[currentBanner].badge === "1 HOUR DELIVERY" ? (
+                      <div className="space-y-1 select-none">
+                        <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider block">Current Delivery Zone</span>
+                        <p className="text-xs sm:text-sm font-extrabold text-primary flex items-center justify-center md:justify-start gap-1">
+                          <MdRoom className="text-base shrink-0" />
+                          {address || "Hyderabad, 500001"}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-dark/70 text-xs sm:text-sm md:text-base leading-relaxed max-w-xl font-light text-center md:text-left">
+                        {HERO_BANNERS[currentBanner].description}
+                      </p>
+                    )}
                   </motion.div>
                 </AnimatePresence>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Link to="/medicines">
-                    <Button variant="primary" icon={MdKeyboardArrowRight} iconPosition="right" className="bg-primary hover:bg-primary-dark shadow-md text-xs py-3 px-6 rounded-xl">
+ 
+                <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full justify-center md:justify-start">
+                  <Link to="/medicines" className="w-full sm:w-auto">
+                    <Button variant="primary" icon={MdKeyboardArrowRight} iconPosition="right" className="w-full bg-primary hover:bg-primary-dark shadow-md text-xs py-3 px-6 rounded-xl">
                       Shop Medicines
                     </Button>
                   </Link>
-                  <Link to="/upload-prescription">
-                    <Button variant="outline" icon={MdUploadFile} className="border-primary text-primary hover:bg-primary/5 text-xs py-3 px-6 rounded-xl">
+                  <Link to="/upload-prescription" className="w-full sm:w-auto">
+                    <Button variant="outline" icon={MdUploadFile} className="w-full border-primary text-primary hover:bg-primary/5 text-xs py-3 px-6 rounded-xl">
                       Upload Prescription
                     </Button>
                   </Link>
                 </div>
-
+ 
                 {/* Banner Dots */}
-                <div className="flex gap-1.5 pt-4">
+                <div className="flex gap-1.5 pt-4 justify-center md:justify-start">
                   {HERO_BANNERS.map((_, idx) => (
                     <button
                       key={idx}
@@ -474,13 +431,13 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-
+ 
               {/* Right Side doctor illustration */}
-              <div className="hidden lg:col-span-4 lg:flex justify-end pr-6">
+              <div className="md:col-span-4 flex justify-center md:justify-end pr-0 md:pr-6 mt-8 md:mt-0 select-none">
                 <motion.div
                   animate={{ y: [0, -10, 0] }}
                   transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                  className="w-48 drop-shadow-premium"
+                  className="w-32 sm:w-40 md:w-48 md:w-full max-w-[200px] md:max-w-none drop-shadow-premium"
                 >
                   <svg viewBox="0 0 200 250" fill="none" className="w-full h-auto">
                     <ellipse cx="100" cy="220" rx="60" ry="20" fill="rgba(6, 59, 68, 0.08)" />
@@ -502,32 +459,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🔍 4. SEARCH MEDICINES */}
-      <section className="py-8 bg-white relative z-10 border-b border-dark/5 select-none">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <Card hoverable={false} padding="p-6" className="bg-[#E2F3F0]/40 border border-primary/10 shadow-soft rounded-[24px]">
-            <form onSubmit={handleSearchSubmit} className="flex items-center bg-white border border-dark/5 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
-              <div className="pl-4 text-dark/45 shrink-0">
-                <MdSearch className="text-xl" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search medicines, healthcare products, wellness items..."
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                className="w-full px-3 py-3 text-sm bg-transparent outline-none text-dark"
-              />
-              <button
-                type="submit"
-                className="bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase px-8 py-3.5 shrink-0"
-              >
-                Search
-              </button>
-            </form>
-          </Card>
-        </div>
-      </section>
-
       {/* 📦 5. MEDICINE CATEGORIES */}
       <section className="py-12 bg-[#F8FCFC] relative z-10 select-none">
         <div className="container mx-auto px-4 text-center">
@@ -538,14 +469,14 @@ export default function Home() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 min-[576px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {CATEGORIES.map((cat) => (
-              <Link key={cat.id} to={`/medicines?category=${cat.query}`}>
+              <Link key={cat.id} to={`/medicines?category=${cat.query}`} className="w-full">
                 <motion.div whileHover={{ y: -6, scale: 1.02 }} className="cursor-pointer">
                   <Card 
                     hoverable={false}
                     padding="p-4"
-                    className="flex flex-col items-center justify-center h-28 border border-dark/5 bg-white shadow-soft text-center"
+                    className="flex flex-col items-center justify-center h-28 border border-dark/5 bg-white shadow-soft text-center animate-fade-in"
                   >
                     <div className="w-12 h-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center text-2xl mb-3 shadow-sm">
                       {cat.icon}
@@ -562,7 +493,6 @@ export default function Home() {
       {/* 💊 DYNAMIC HOMEPAGE PRODUCT SECTIONS */}
       <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} />
       <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} />
-      <ProductSection title="Healthcare Essentials" products={healthcare} addToCart={addToCart} navigate={navigate} />
       <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} />
       <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} />
       <ProductSection title="Baby Care" products={baby} addToCart={addToCart} navigate={navigate} />
@@ -576,147 +506,14 @@ export default function Home() {
       <ProductSection title="Men's Health" products={mensHealth} addToCart={addToCart} navigate={navigate} />
       <ProductSection title="Skin Care" products={skinCare} addToCart={addToCart} navigate={navigate} />
 
-      {/* 🚀 8. 1 HOUR DELIVERY BANNER */}
-      <section className="py-10 bg-white border-t border-dark/5 select-none">
-        <div className="container mx-auto px-4">
-          <div className="bg-gradient-to-r from-primary to-secondary rounded-[24px] text-white p-6 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-premium relative overflow-hidden">
-            
-            <div className="flex items-center gap-6 text-left">
-              
-              {/* Custom Delivery Bike SVG */}
-              <div className="w-20 h-20 bg-white/10 rounded-full flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 100 100" fill="currentColor" className="w-14 h-14 text-white">
-                  {/* Scooter Body */}
-                  <circle cx="30" cy="70" r="12" stroke="#FFFFFF" strokeWidth="4" fill="none" />
-                  <circle cx="75" cy="70" r="12" stroke="#FFFFFF" strokeWidth="4" fill="none" />
-                  {/* Scooter frame */}
-                  <path d="M30 70 L48 70 L60 45 L75 70" stroke="#FFFFFF" strokeWidth="4" fill="none" />
-                  <path d="M48 70 L48 40 L65 40" stroke="#FFFFFF" strokeWidth="4" fill="none" />
-                  <rect x="35" y="32" width="20" height="20" rx="3" fill="#FFFFFF" />
-                  <path d="M42 42 h6 M45 39 v6" stroke="#009688" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="60" y1="45" x2="68" y2="28" stroke="#FFFFFF" strokeWidth="4" />
-                  <line x1="68" y1="28" x2="62" y2="28" stroke="#FFFFFF" strokeWidth="4" />
-                </svg>
-              </div>
 
-              <div className="space-y-1">
-                <h3 className="text-xl md:text-3xl font-extrabold">1 Hour Medicine Delivery Within 5 KM</h3>
-                <p className="text-xs md:text-sm text-white/80 font-light max-w-xl">
-                  {address ? `Current delivery zone: ${address}` : "Detect your location to receive priority priority 1-hour shipment options."}
-                </p>
-              </div>
-            </div>
-
-            <Link to="/medicines">
-              <button className="px-8 py-3.5 bg-white hover:bg-background text-[#009688] font-extrabold text-xs uppercase rounded-xl transition-all shadow-md whitespace-nowrap active:scale-95">
-                Order Now
-              </button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 📄 9. UPLOAD PRESCRIPTION SECTION */}
-      <section className="py-12 bg-[#F8FCFC] border-t border-dark/5 select-none">
-        <div className="container mx-auto px-4 max-w-3xl">
-          <Card hoverable={false} padding="p-6 md:p-8" className="bg-white border border-dark/5 shadow-soft rounded-[24px]">
-            <div className="text-center space-y-2 mb-6">
-              <span className="bg-red-50 text-red-600 border border-red-200/50 text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider">Prescription Uploader</span>
-              <h3 className="text-2xl font-bold text-dark">Upload Prescription</h3>
-              <p className="text-xs text-dark/45 font-light">Accepted: PNG, JPEG, PDF | Size limit: 10 MB</p>
-            </div>
-
-            {/* Drag & Drop Area */}
-            <div 
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current.click()}
-              className="border-2 border-dashed border-dark/15 hover:border-primary/50 bg-[#F8FCFC] hover:bg-primary/5 rounded-2xl p-6 text-center cursor-pointer transition-colors relative"
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                accept="image/png, image/jpeg, application/pdf"
-                className="hidden" 
-              />
-              
-              <div className="flex flex-col items-center space-y-3">
-                <MdCloudUpload className="text-4xl text-dark/30 group-hover:text-primary" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-dark/75">Drag & Drop prescription file here</p>
-                  <p className="text-xs text-dark/40 font-light">or click to browse local storage / capture camera image</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {uploadError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 text-xs rounded-xl flex items-center gap-2 text-left">
-                <MdErrorOutline className="text-base shrink-0" />
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            {/* File Preview */}
-            {selectedFile && !uploadError && (
-              <div className="mt-4 p-4 bg-background rounded-xl border border-dark/5 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  {filePreview === 'pdf-icon' ? (
-                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-lg flex items-center justify-center font-bold text-xs uppercase shadow-sm">PDF</div>
-                  ) : (
-                    <img src={filePreview} alt="Prescription preview" className="w-12 h-12 object-cover rounded-lg border border-dark/5 shadow-sm" />
-                  )}
-                  <div className="overflow-hidden leading-tight text-left">
-                    <p className="text-xs font-bold text-dark truncate max-w-[180px]">{selectedFile.name}</p>
-                    <p className="text-[10px] text-dark/40">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { setSelectedFile(null); setFilePreview(null); }}
-                  className="p-1 text-dark/40 hover:text-red-500 rounded-full hover:bg-background transition-all"
-                >
-                  <MdClose className="text-lg" />
-                </button>
-              </div>
-            )}
-
-            {/* Action submit button */}
-            <div className="mt-6 flex flex-col gap-2">
-              <button
-                disabled={!selectedFile}
-                onClick={handleUploadPrescriptionSubmit}
-                className={`w-full py-3.5 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${selectedFile ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer' : 'bg-dark/10 text-dark/30 cursor-not-allowed shadow-none'}`}
-              >
-                <MdUploadFile className="text-base" />
-                Upload Prescription
-              </button>
-            </div>
-
-            {/* Success notification banner */}
-            <AnimatePresence>
-              {uploadSuccess && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="mt-4 p-3.5 bg-secondary/10 border border-secondary/20 text-secondary-dark rounded-xl text-xs text-left flex items-center gap-2"
-                >
-                  <MdCheckCircle className="text-base shrink-0" />
-                  <span>Prescription uploaded successfully! Redirecting to checkout...</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-        </div>
-      </section>
 
       {/* 🛡️ 10. WHY CHOOSE MEDIQUICK */}
       <section className="py-16 bg-white border-t border-dark/5 select-none">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold text-dark mb-10">Why Choose MediQuick?</h2>
           
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
               <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 shadow-soft flex items-center justify-center text-xl">
                 ✔️
@@ -897,11 +694,11 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-dark/70 font-medium">
                 <div className="flex items-center gap-2">
                   <MdCall className="text-primary text-base" />
-                  <span>+1 (555) 019-2834</span>
+                  <span>{systemSettings?.supportPhone || "+1 (555) 019-2834"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MdMailOutline className="text-primary text-base" />
-                  <span>support@mediquick.com</span>
+                  <span>{systemSettings?.supportEmail || "support@mediquick.com"}</span>
                 </div>
                 <div className="flex items-center gap-2 sm:col-span-2">
                   <MdRoom className="text-primary text-base" />
@@ -987,14 +784,13 @@ export default function Home() {
       </AnimatePresence>
 
       {/* WhatsApp Button (Bottom Right) */}
-      <a
-        href={whatsappUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-30 p-3.5 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-full shadow-hover hover:scale-105 active:scale-95 transition-all outline-none flex items-center justify-center"
+      <button
+        onClick={() => window.open(getWhatsappUrl(), '_blank')}
+        className="fixed bottom-6 right-6 z-30 p-3.5 bg-[#25D366] hover:bg-[#20ba5a] text-white rounded-full shadow-hover hover:scale-105 active:scale-95 transition-all outline-none flex items-center justify-center cursor-pointer border-none"
+        title="Chat on WhatsApp"
       >
         <FaWhatsapp className="text-2xl" />
-      </a>
+      </button>
 
     </div>
   );

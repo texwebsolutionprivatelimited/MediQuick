@@ -58,5 +58,11 @@
     "name": "Skin Care",
     "description": "Dermatological ointments, creams, and cosmetic care",
     "icon": "✨"
+  },
+  {
+    "id": "cat-11",
+    "name": "Lab Tests",
+    "description": "NABL accredited diagnostic blood tests and full-body screenings",
+    "icon": "🔬"
   }
 ]

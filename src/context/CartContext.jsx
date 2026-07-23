@@ -1,16 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db, isConfigValid } from '../firebase/firebase';
 
 const CartContext = createContext();
 
 export function useCart() {
   return useContext(CartContext);
 }
-
-const AVAILABLE_COUPONS = {
-  'MED10': { code: 'MED10', discount: 10, type: 'percentage', label: '10% OFF on all medicines' },
-  'QUICK20': { code: 'QUICK20', discount: 20, type: 'percentage', label: '20% OFF (First Order)' },
-  'FLAT50': { code: 'FLAT50', discount: 50, type: 'flat', label: 'Flat ₹50 OFF' }
-};
 
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
@@ -66,14 +62,77 @@ export function CartProvider({ children }) {
     setPrescriptionFile(null);
   };
 
-  const applyCoupon = (code) => {
-    const codeUpper = code.trim().toUpperCase();
-    const found = AVAILABLE_COUPONS[codeUpper];
-    if (found) {
-      setCoupon(found);
-      return { success: true, message: `Coupon ${codeUpper} applied successfully!` };
+  const [couponsList, setCouponsList] = useState([]);
+
+  // Sync Coupons from Firestore (or LocalStorage fallback)
+  useEffect(() => {
+    if (isConfigValid && db) {
+      const couponsRef = collection(db, 'coupons');
+      const unsubscribe = onSnapshot(couponsRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() });
+        });
+        setCouponsList(list);
+      }, (error) => {
+        console.error("Error listening to coupons:", error);
+      });
+      return unsubscribe;
+    } else {
+      const savedCoupons = localStorage.getItem('mediquick_local_coupons');
+      if (savedCoupons) {
+        setCouponsList(JSON.parse(savedCoupons));
+      } else {
+        const defaultCoupons = [
+          { id: 'c1', couponCode: 'MED10', discount: 10, description: '10% OFF on all medicines', status: 'active', expiryDate: '2030-12-31', minimumOrder: 0, maximumDiscount: 500 },
+          { id: 'c2', couponCode: 'QUICK20', discount: 20, description: '20% OFF (First Order)', status: 'active', expiryDate: '2030-12-31', minimumOrder: 100, maximumDiscount: 200 },
+          { id: 'c3', couponCode: 'FLAT50', discount: 50, description: 'Flat ₹50 OFF', status: 'inactive', expiryDate: '2030-12-31', minimumOrder: 200, maximumDiscount: 50 }
+        ];
+        localStorage.setItem('mediquick_local_coupons', JSON.stringify(defaultCoupons));
+        setCouponsList(defaultCoupons);
+      }
     }
-    return { success: false, message: 'Invalid coupon code.' };
+  }, []);
+
+  const applyCoupon = (code) => {
+    if (!code || !code.trim()) {
+      return { success: false, message: 'Please enter a coupon code.' };
+    }
+    const codeUpper = code.trim().toUpperCase();
+    const found = couponsList.find(c => c.couponCode.trim().toUpperCase() === codeUpper);
+
+    if (!found) {
+      return { success: false, message: 'Invalid coupon code.' };
+    }
+
+    if (found.status !== 'active') {
+      return { success: false, message: 'This coupon is inactive.' };
+    }
+
+    // Check expiry
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (found.expiryDate && found.expiryDate < todayStr) {
+      return { success: false, message: 'This coupon has expired.' };
+    }
+
+    // Check minimum order
+    const subtotal = getSubtotal();
+    if (found.minimumOrder && subtotal < Number(found.minimumOrder)) {
+      return { success: false, message: `Minimum order of ₹${found.minimumOrder} required to use this coupon.` };
+    }
+
+    const appliedCouponObj = {
+      code: found.couponCode,
+      discount: Number(found.discount),
+      type: 'percentage', // Requirement: coupons represent percentage discount (1% - 100%)
+      label: found.description || `${found.discount}% OFF`,
+      minimumOrder: found.minimumOrder ? Number(found.minimumOrder) : 0,
+      maximumDiscount: found.maximumDiscount ? Number(found.maximumDiscount) : null,
+      expiryDate: found.expiryDate
+    };
+
+    setCoupon(appliedCouponObj);
+    return { success: true, message: `Coupon ${codeUpper} applied successfully!` };
   };
 
   const removeCoupon = () => {
@@ -95,13 +154,20 @@ export function CartProvider({ children }) {
   const getDiscount = () => {
     const subtotal = getSubtotal();
     if (!coupon) return 0;
+    if (coupon.minimumOrder && subtotal < coupon.minimumOrder) return 0;
+
+    let calculated = 0;
     if (coupon.type === 'percentage') {
-      return Math.round((subtotal * coupon.discount) / 100);
+      calculated = Math.round((subtotal * coupon.discount) / 100);
+    } else if (coupon.type === 'flat') {
+      calculated = coupon.discount;
     }
-    if (coupon.type === 'flat') {
-      return Math.min(coupon.discount, subtotal);
+
+    if (coupon.maximumDiscount && calculated > coupon.maximumDiscount) {
+      return coupon.maximumDiscount;
     }
-    return 0;
+
+    return Math.min(calculated, subtotal);
   };
 
   const value = {
@@ -119,7 +185,7 @@ export function CartProvider({ children }) {
     removeCoupon,
     getSubtotal,
     getDiscount,
-    availableCoupons: Object.values(AVAILABLE_COUPONS)
+    availableCoupons: couponsList
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

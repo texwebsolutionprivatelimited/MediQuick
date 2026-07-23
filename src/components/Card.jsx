@@ -5,13 +5,13 @@ export default function Card({
   children,
   onClick,
   hoverable = true,
-  padding = 'p-6', // standard spacing
+  padding = 'p-4 md:p-6', // standard responsive spacing
   className = '',
   ...props
 }) {
   const isClickable = !!onClick;
 
-  const cardClasses = `bg-white border border-dark/5 rounded-2xl shadow-soft ${padding} ${
+  const cardClasses = `bg-white border border-dark/5 rounded-xl shadow-soft ${padding} ${
     isClickable ? 'cursor-pointer' : ''
   } ${className}`;
 

@@ -61,7 +61,6 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
           text: text,
           url: url
         });
-        console.log("Shared successfully using Web Share API");
       } catch (err) {
         console.warn("Web Share API error or cancelled:", err);
       }

@@ -315,10 +315,8 @@ export function AuthProvider({ children }) {
   // Forgot Password helper
   const sendPasswordReset = async (email) => {
     const cleanEmail = email.trim().toLowerCase();
-    console.log("[Firebase Auth] Sending password reset email to:", cleanEmail);
     try {
       await sendPasswordResetEmail(auth, cleanEmail);
-      console.log("[Firebase Auth] Firebase response: Password reset email sent successfully.");
     } catch (error) {
       console.error("[Firebase Auth] Firebase error sending password reset:", error);
       throw error;
@@ -338,7 +336,6 @@ export function AuthProvider({ children }) {
       }
       users[userIndex].password = newPassword;
       localStorage.setItem('mediquick_users', JSON.stringify(users));
-      console.info(`Mock password reset successful for user: ${emailToFind}`);
     }
   };
 

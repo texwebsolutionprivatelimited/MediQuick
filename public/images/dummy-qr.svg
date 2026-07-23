@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%" shape-rendering="crispEdges">
+  <rect width="200" height="200" fill="#ffffff" rx="16"/>
+  <!-- Finder Pattern Top-Left -->
+  <path d="M 20,20 H 60 V 60 H 20 Z M 25,25 V 55 H 55 V 25 Z M 32,32 H 48 V 48 H 32 Z" fill="#063B44"/>
+  <!-- Finder Pattern Top-Right -->
+  <path d="M 140,20 H 180 V 60 H 140 Z M 145,25 V 55 H 175 V 25 Z M 152,32 H 168 V 48 H 152 Z" fill="#063B44"/>
+  <!-- Finder Pattern Bottom-Left -->
+  <path d="M 20,140 H 60 V 180 H 20 Z M 25,145 V 175 H 55 V 145 Z M 32,152 H 48 V 168 H 32 Z" fill="#063B44"/>
+  
+  <!-- Dummy internal modules and patterns -->
+  <rect x="70" y="20" width="10" height="10" fill="#063B44"/>
+  <rect x="90" y="20" width="20" height="10" fill="#063B44"/>
+  <rect x="120" y="20" width="10" height="10" fill="#063B44"/>
+  
+  <rect x="70" y="40" width="20" height="10" fill="#063B44"/>
+  <rect x="100" y="40" width="10" height="10" fill="#063B44"/>
+  <rect x="120" y="40" width="10" height="20" fill="#063B44"/>
+  
+  <rect x="80" y="60" width="10" height="10" fill="#063B44"/>
+  <rect x="100" y="60" width="30" height="10" fill="#063B44"/>
+  
+  <rect x="20" y="70" width="10" height="20" fill="#063B44"/>
+  <rect x="40" y="70" width="20" height="10" fill="#063B44"/>
+  <rect x="70" y="70" width="10" height="30" fill="#063B44"/>
+  <rect x="90" y="70" width="20" height="10" fill="#063B44"/>
+  <rect x="120" y="70" width="20" height="20" fill="#063B44"/>
+  <rect x="150" y="70" width="30" height="10" fill="#063B44"/>
+  
+  <rect x="20" y="90" width="20" height="10" fill="#063B44"/>
+  <rect x="50" y="90" width="10" height="10" fill="#063B44"/>
+  <rect x="90" y="90" width="20" height="10" fill="#063B44"/>
+  <rect x="150" y="90" width="10" height="20" fill="#063B44"/>
+  <rect x="170" y="90" width="10" height="10" fill="#063B44"/>
+  
+  <rect x="20" y="110" width="30" height="10" fill="#063B44"/>
+  <rect x="60" y="110" width="10" height="20" fill="#063B44"/>
+  <rect x="80" y="110" width="20" height="10" fill="#063B44"/>
+  <rect x="110" y="110" width="20" height="20" fill="#063B44"/>
+  <rect x="140" y="110" width="20" height="10" fill="#063B44"/>
+  <rect x="170" y="110" width="10" height="20" fill="#063B44"/>
+  
+  <rect x="40" y="130" width="10" height="10" fill="#063B44"/>
+  <rect x="80" y="130" width="10" height="25" fill="#063B44"/>
+  <rect x="100" y="130" width="20" height="10" fill="#063B44"/>
+  <rect x="130" y="130" width="30" height="10" fill="#063B44"/>
+  
+  <rect x="70" y="150" width="10" height="10" fill="#063B44"/>
+  <rect x="100" y="150" width="10" height="20" fill="#063B44"/>
+  <rect x="120" y="150" width="20" height="10" fill="#063B44"/>
+  <rect x="150" y="150" width="20" height="20" fill="#063B44"/>
+  
+  <rect x="70" y="170" width="20" height="10" fill="#063B44"/>
+  <rect x="120" y="170" width="10" height="10" fill="#063B44"/>
+  <rect x="140" y="170" width="10" height="10" fill="#063B44"/>
+  
+  <!-- Center Logo Placeholder / Label -->
+  <rect x="80" y="80" width="40" height="40" fill="#009688" rx="8"/>
+  <text x="100" y="104" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="900" fill="#ffffff" text-anchor="middle">UPI</text>
+</svg>

@@ -3,25 +3,68 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import { motion } from 'framer-motion';
 import { 
-  MdSearch, 
   MdShoppingCart, 
   MdFilterList, 
   MdClose,
-  MdSort,
-  MdClear
+  MdSort
 } from 'react-icons/md';
 import { useProducts } from '../context/ProductsContext';
+
+function Highlight({ text, search }) {
+  if (!search || !search.trim()) return <span>{text}</span>;
+  const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <span>
+      {parts.map((part, i) => 
+        regex.test(part) 
+          ? <mark key={i} className="bg-yellow-100 text-dark font-medium rounded-sm px-0.5">{part}</mark> 
+          : part
+      )}
+    </span>
+  );
+}
+
+const QUERY_TO_CATEGORY_MAP = {
+  "prescription": "Medicines",
+  "healthcare": "OTC Medicines",
+  "personalcare": "Personal Care",
+  "babycare": "Baby Care",
+  "diabetes": "Diabetes Care",
+  "heart": "Heart Care",
+  "ayurvedic": "Ayurveda",
+  "labtests": "Lab Tests",
+  "devices": "Medical Devices",
+  "supplements": "Vitamins",
+  "medicines": "Medicines",
+  "otc medicines": "OTC Medicines",
+  "personal care": "Personal Care",
+  "baby care": "Baby Care",
+  "diabetes care": "Diabetes Care",
+  "heart care": "Heart Care",
+  "ayurveda": "Ayurveda",
+  "lab tests": "Lab Tests",
+  "medical devices": "Medical Devices",
+  "vitamins": "Vitamins"
+};
 
 export default function Medicines() {
   const { addToCart } = useCart();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { products: productsData } = useProducts();
+  const { products: productsData, categories, loading } = useProducts();
 
   // Fetch distinct categories and brands from data for dynamic filtering checklists
-  const CATEGORIES_LIST = useMemo(() => Array.from(new Set(productsData.map(p => p.category))).sort(), [productsData]);
-  const BRANDS_LIST = useMemo(() => Array.from(new Set(productsData.map(p => p.brand))).sort(), [productsData]);
+  const CATEGORIES_LIST = useMemo(() => {
+    if (categories && categories.length > 0) {
+      return categories.filter(c => c.status !== 'inactive').map(c => c.name).sort();
+    }
+    return Array.from(new Set(productsData.map(p => p.category))).sort();
+  }, [productsData, categories]);
 
   // Search parameters from URL
   const urlSearch = searchParams.get("search") || "";
@@ -33,52 +76,228 @@ export default function Medicines() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   // Filters state
-  const [selectedCategories, setSelectedCategories] = useState(
-    urlCategory ? [urlCategory] : []
-  );
+  const [selectedCategories, setSelectedCategories] = useState(() => {
+    if (urlCategory) {
+      const normalized = urlCategory.toLowerCase().trim();
+      return [QUERY_TO_CATEGORY_MAP[normalized] || urlCategory];
+    }
+    return [];
+  });
+  const [selectedSubcategories, setSelectedSubcategories] = useState(() => {
+    const subcat = searchParams.get("subcategory") || "";
+    if (subcat) return [subcat];
+    return [];
+  });
   const [selectedBrands, setSelectedBrands] = useState([]);
-  const [maxPrice, setMaxPrice] = useState(500);
+  const [maxPrice, setMaxPrice] = useState(3000);
   const [rxOption, setRxOption] = useState("all"); // "all", "rx", "non-rx"
   const [stockOption, setStockOption] = useState("all"); // "all", "in-stock", "out-of-stock"
 
-  // Synchronize input text with URL search parameters
-  React.useEffect(() => {
-    setSearchQuery(urlSearch);
-  }, [urlSearch]);
+  const activeCategory = selectedCategories.length === 1 ? selectedCategories[0] : null;
 
-  // Synchronize category selection with URL category parameters
-  React.useEffect(() => {
-    if (urlCategory) {
-      setSelectedCategories([urlCategory]);
+  const SUBCATEGORIES_LIST = useMemo(() => {
+    if (!activeCategory) return [];
+    const catObj = categories.find(c => c.name.toLowerCase() === activeCategory.toLowerCase());
+    if (catObj && catObj.subcategories && catObj.subcategories.length > 0) {
+      return catObj.subcategories;
     }
-  }, [urlCategory]);
+    const filtered = productsData.filter(p => p.category === activeCategory);
+    return Array.from(new Set(filtered.map(p => p.subcategory || p.category))).sort();
+  }, [productsData, activeCategory, categories]);
+
+  const BRANDS_LIST = useMemo(() => {
+    const filtered = activeCategory 
+      ? productsData.filter(p => p.category === activeCategory)
+      : productsData;
+    return Array.from(new Set(filtered.map(p => p.brand))).sort();
+  }, [productsData, activeCategory]);
+
+  // 1. Parse URL search parameters on mount or when URL changes (popstate)
+  React.useEffect(() => {
+    const urlSearchVal = searchParams.get("search") || "";
+    const urlCategoryVal = searchParams.get("category") || "";
+    const urlSubcategoryVal = searchParams.get("subcategory") || "";
+    const urlBrandVal = searchParams.get("brand") || "";
+    const urlMaxPriceVal = searchParams.get("maxPrice") || "3000";
+    const urlRxVal = searchParams.get("rx") || "all";
+    const urlStockVal = searchParams.get("stock") || "all";
+    const urlSortVal = searchParams.get("sort") || "Popularity";
+
+    // Synchronize Search query
+    if (urlSearchVal !== searchQuery) {
+      setSearchQuery(urlSearchVal);
+    }
+
+    // Synchronize Categories
+    const parsedCats = urlCategoryVal ? urlCategoryVal.split(",").map(c => {
+      const normalized = c.toLowerCase().trim();
+      return QUERY_TO_CATEGORY_MAP[normalized] || c;
+    }) : [];
+    if (JSON.stringify(parsedCats) !== JSON.stringify(selectedCategories)) {
+      setSelectedCategories(parsedCats);
+    }
+
+    // Synchronize Subcategories
+    const parsedSubcats = urlSubcategoryVal ? urlSubcategoryVal.split(",") : [];
+    if (JSON.stringify(parsedSubcats) !== JSON.stringify(selectedSubcategories)) {
+      setSelectedSubcategories(parsedSubcats);
+    }
+
+    // Synchronize Brands
+    const parsedBrands = urlBrandVal ? urlBrandVal.split(",") : [];
+    if (JSON.stringify(parsedBrands) !== JSON.stringify(selectedBrands)) {
+      setSelectedBrands(parsedBrands);
+    }
+
+    // Synchronize Max Price
+    const parsedMaxPrice = parseInt(urlMaxPriceVal, 10);
+    if (!isNaN(parsedMaxPrice) && parsedMaxPrice !== maxPrice) {
+      setMaxPrice(parsedMaxPrice);
+    }
+
+    // Synchronize Rx Option
+    if (urlRxVal !== rxOption) {
+      setRxOption(urlRxVal);
+    }
+
+    // Synchronize Stock Option
+    if (urlStockVal !== stockOption) {
+      setStockOption(urlStockVal);
+    }
+
+    // Synchronize Sort By
+    if (urlSortVal !== sortBy) {
+      setSortBy(urlSortVal);
+    }
+  }, [searchParams]);
+
+  // 2. Update URL search parameters when filters change (debounced for search query)
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      const params = new URLSearchParams();
+      
+      if (searchQuery.trim()) {
+        params.set("search", searchQuery.trim());
+      }
+      
+      if (selectedCategories.length > 0) {
+        params.set("category", selectedCategories.join(","));
+      }
+      
+      if (selectedSubcategories.length > 0) {
+        params.set("subcategory", selectedSubcategories.join(","));
+      }
+      
+      if (selectedBrands.length > 0) {
+        params.set("brand", selectedBrands.join(","));
+      }
+      
+      if (maxPrice !== 3000) {
+        params.set("maxPrice", maxPrice.toString());
+      }
+      
+      if (rxOption !== "all") {
+        params.set("rx", rxOption);
+      }
+      
+      if (stockOption !== "all") {
+        params.set("stock", stockOption);
+      }
+      
+      if (sortBy !== "Popularity") {
+        params.set("sort", sortBy);
+      }
+      
+      const currentString = searchParams.toString();
+      const newString = params.toString();
+      if (currentString !== newString) {
+        setSearchParams(params, { replace: true });
+      }
+    }, 300); // 300ms debounce applies to all filter-to-URL sync to buffer fast clicks/slides
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, selectedCategories, selectedSubcategories, selectedBrands, maxPrice, rxOption, stockOption, sortBy, setSearchParams]);
+
+  // Firestore Data Validation & Normalization
+  React.useEffect(() => {
+    if (!productsData || productsData.length === 0) return;
+
+    const invalidProducts = [];
+    productsData.forEach(p => {
+      const issues = [];
+      if (!p.category || typeof p.category !== "string" || !p.category.trim()) {
+        issues.push("missing/invalid category");
+      }
+      if (!p.brand || typeof p.brand !== "string" || !p.brand.trim()) {
+        issues.push("missing/invalid brand");
+      }
+      if (p.price === undefined || p.price === null || isNaN(Number(p.price)) || Number(p.price) < 0) {
+        issues.push("missing/invalid price");
+      }
+      if (p.stock === undefined || p.stock === null || isNaN(Number(p.stock)) || Number(p.stock) < 0) {
+        issues.push("missing/invalid stock");
+      }
+
+      if (issues.length > 0) {
+        invalidProducts.push({
+          id: p.id,
+          name: p.medicine_name || "Unnamed Product",
+          issues
+        });
+      }
+    });
+
+    if (invalidProducts.length > 0) {
+      console.warn("--- FIRESTORE DATA VALIDATION REPORT ---");
+      console.warn(`Found ${invalidProducts.length} products with invalid or missing fields:`);
+      invalidProducts.forEach(ip => {
+        console.warn(`Product ID: ${ip.id} | Name: "${ip.name}" | Issues: ${ip.issues.join(", ")}`);
+      });
+      console.warn("----------------------------------------");
+    }
+  }, [productsData]);
 
   // Filter and Sort logic
   const filteredProducts = useMemo(() => {
     let result = [...productsData];
+    const initialCount = result.length;
 
     // Search query match (Matches name, brand, generic name, category)
-    if (urlSearch.trim()) {
-      const q = urlSearch.toLowerCase();
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
       result = result.filter(p => 
-        p.medicine_name.toLowerCase().includes(q) ||
-        p.generic_name.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q)
+        (p.medicine_name && p.medicine_name.toLowerCase().includes(q)) ||
+        (p.generic_name && p.generic_name.toLowerCase().includes(q)) ||
+        (p.brand && p.brand.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q))
       );
     }
 
-    // Category filter
+    // Category filter - Exact trimmed case-insensitive match
     if (selectedCategories.length > 0) {
-      result = result.filter(p => selectedCategories.includes(p.category));
+      const normalizedSelected = selectedCategories.map(c => c.trim().toLowerCase());
+      result = result.filter(p => p.category && normalizedSelected.includes(p.category.trim().toLowerCase()));
+    } else if (!searchQuery.trim()) {
+      // By default, exclude "Lab Tests" from the general catalog browsing to ensure only medicines are displayed
+      result = result.filter(p => p.category && p.category.trim().toLowerCase() !== "lab tests");
     }
 
-    // Brand filter
+    // Subcategory filter (if active category is set and subcategories are selected) - Exact trimmed case-insensitive match
+    if (activeCategory && selectedSubcategories.length > 0) {
+      const normalizedSubcats = selectedSubcategories.map(s => s.trim().toLowerCase());
+      result = result.filter(p => {
+        const sub = (p.subcategory || p.category || "").trim().toLowerCase();
+        return normalizedSubcats.includes(sub);
+      });
+    }
+
+    // Brand filter - Exact trimmed case-insensitive match (OR logic for multiple selected brands)
     if (selectedBrands.length > 0) {
-      result = result.filter(p => selectedBrands.includes(p.brand));
+      const normalizedBrands = selectedBrands.map(b => b.trim().toLowerCase());
+      result = result.filter(p => p.brand && normalizedBrands.includes(p.brand.trim().toLowerCase()));
     }
 
-    // Price filter (Max price)
+    // Price filter (Max price range check)
     result = result.filter(p => p.price <= maxPrice);
 
     // Prescription required filter
@@ -119,16 +338,21 @@ export default function Medicines() {
     }
 
     return result;
-  }, [urlSearch, selectedCategories, selectedBrands, maxPrice, rxOption, stockOption, sortBy]);
+  }, [searchQuery, selectedCategories, selectedSubcategories, selectedBrands, maxPrice, rxOption, stockOption, sortBy, activeCategory, productsData]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setSearchParams({ search: searchQuery.trim() });
-  };
+
 
   const handleCategoryToggle = (cat) => {
-    setSelectedCategories(prev => 
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    setSelectedCategories(prev => {
+      const updated = prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat];
+      setSelectedSubcategories([]);
+      return updated;
+    });
+  };
+
+  const handleSubcategoryToggle = (subcat) => {
+    setSelectedSubcategories(prev => 
+      prev.includes(subcat) ? prev.filter(s => s !== subcat) : [...prev, subcat]
     );
   };
 
@@ -140,8 +364,9 @@ export default function Medicines() {
 
   const resetFilters = () => {
     setSelectedCategories([]);
+    setSelectedSubcategories([]);
     setSelectedBrands([]);
-    setMaxPrice(500);
+    setMaxPrice(3000);
     setRxOption("all");
     setStockOption("all");
     setSortBy("Popularity");
@@ -151,38 +376,7 @@ export default function Medicines() {
   return (
     <div className="bg-[#F8FCFC] min-h-screen pb-16 font-sans text-dark/90">
       
-      {/* 🔍 TOP SEARCH AREA */}
-      <section className="bg-white py-6 border-b border-dark/5 shadow-soft">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <form onSubmit={handleSearchSubmit} className="flex items-center bg-background border border-dark/5 rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
-            <div className="pl-4 text-dark/45 shrink-0">
-              <MdSearch className="text-xl" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search medicine name, generic formula, brand or category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-3 text-sm bg-transparent outline-none text-dark"
-            />
-            {searchQuery && (
-              <button 
-                type="button" 
-                onClick={() => { setSearchQuery(""); setSearchParams({}); }}
-                className="pr-2 text-dark/40 hover:text-dark"
-              >
-                <MdClear className="text-lg" />
-              </button>
-            )}
-            <button
-              type="submit"
-              className="bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase px-8 py-3.5"
-            >
-              Search
-            </button>
-          </form>
-        </div>
-      </section>
+
 
       {/* 📦 CATALOG CONTAINER */}
       <div className="container mx-auto px-4 py-8">
@@ -200,26 +394,53 @@ export default function Medicines() {
               >
                 Clear All
               </button>
-            </div>
-
-            {/* Category Filter */}
+            </div>            {/* Category or Subcategory Filter */}
             <div className="space-y-2">
-              <h4 className="font-bold text-xs text-dark uppercase tracking-wider">Categories</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-xs text-dark uppercase tracking-wider">
+                  {activeCategory ? `${activeCategory} Types` : "Categories"}
+                </h4>
+                {activeCategory && (
+                  <button 
+                    onClick={() => {
+                      setSelectedCategories([]);
+                      setSelectedSubcategories([]);
+                      setSearchParams({});
+                    }}
+                    className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider"
+                  >
+                    All Categories
+                  </button>
+                )}
+              </div>
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
-                {CATEGORIES_LIST.map((cat) => (
-                  <label key={cat} className="flex items-center gap-2 text-xs text-dark/75 hover:text-primary cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={selectedCategories.includes(cat)}
-                      onChange={() => handleCategoryToggle(cat)}
-                      className="rounded text-primary focus:ring-primary/20 border-dark/15 w-4 h-4 cursor-pointer"
-                    />
-                    <span>{cat}</span>
-                  </label>
-                ))}
+                {activeCategory ? (
+                  SUBCATEGORIES_LIST.map((subcat) => (
+                    <label key={subcat} className="flex items-center gap-2 text-xs text-dark/75 hover:text-primary cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedSubcategories.includes(subcat)}
+                        onChange={() => handleSubcategoryToggle(subcat)}
+                        className="rounded text-primary focus:ring-primary/20 border-dark/15 w-4 h-4 cursor-pointer"
+                      />
+                      <span>{subcat}</span>
+                    </label>
+                  ))
+                ) : (
+                  CATEGORIES_LIST.map((cat) => (
+                    <label key={cat} className="flex items-center gap-2 text-xs text-dark/75 hover:text-primary cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCategories.includes(cat)}
+                        onChange={() => handleCategoryToggle(cat)}
+                        className="rounded text-primary focus:ring-primary/20 border-dark/15 w-4 h-4 cursor-pointer"
+                      />
+                      <span>{cat}</span>
+                    </label>
+                  ))
+                )}
               </div>
             </div>
-
             {/* Brand Filter */}
             <div className="space-y-2">
               <h4 className="font-bold text-xs text-dark uppercase tracking-wider">Brands</h4>
@@ -247,7 +468,7 @@ export default function Medicines() {
               <input 
                 type="range" 
                 min="40" 
-                max="500" 
+                max="3000" 
                 value={maxPrice} 
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
                 className="w-full accent-primary h-1.5 bg-background rounded-lg appearance-none cursor-pointer"
@@ -297,8 +518,44 @@ export default function Medicines() {
           {/* 🧪 PRODUCT LIST SECTION */}
           <main className="lg:col-span-3 space-y-6">
             
+            {/* 🏷️ HORIZONTAL CATEGORY QUICK-NAV */}
+            <div className="flex gap-2 overflow-x-auto pb-2.5 scrollbar-none select-none -mx-4 px-4 sm:mx-0 sm:px-0">
+              <button
+                onClick={() => {
+                  setSelectedCategories([]);
+                  setSelectedSubcategories([]);
+                  setSearchParams({});
+                }}
+                className={`shrink-0 px-4 h-[42px] flex items-center justify-center rounded-full text-xs font-bold transition-all border gap-1.5 shadow-sm active:scale-95 cursor-pointer leading-none ${
+                  selectedCategories.length === 0
+                    ? 'bg-primary text-white border-primary shadow-md'
+                    : 'bg-white text-dark/70 border-dark/10 hover:bg-background'
+                }`}
+              >
+                <span>📦</span> All
+              </button>
+              {CATEGORIES_LIST.map((cat) => {
+                const isSelected = selectedCategories.includes(cat);
+                const catObj = categories.find(c => c.name.toLowerCase() === cat.toLowerCase());
+                const icon = catObj?.icon || '💊';
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => handleCategoryToggle(cat)}
+                    className={`shrink-0 px-4 h-[42px] flex items-center justify-center rounded-full text-xs font-bold transition-all border gap-1.5 shadow-sm active:scale-95 cursor-pointer leading-none ${
+                      isSelected
+                        ? 'bg-primary text-white border-primary shadow-md'
+                        : 'bg-white text-dark/70 border-dark/10 hover:bg-background'
+                    }`}
+                  >
+                    <span>{icon}</span> {cat}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Header controls bar */}
-            <div className="bg-white border border-dark/5 px-6 py-4 rounded-[20px] shadow-soft flex items-center justify-between gap-4">
+            <div className="bg-white border border-dark/5 px-4 sm:px-6 py-4 rounded-[20px] shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="text-left leading-none">
                 <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider">Catalog search</span>
                 <h2 className="text-base sm:text-lg font-extrabold text-dark mt-1">
@@ -307,11 +564,11 @@ export default function Medicines() {
                 <span className="text-xs text-dark/50 font-light mt-0.5 block">{filteredProducts.length} items found</span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-start sm:justify-end">
                 {/* Mobile Filters trigger button */}
                 <button 
                   onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden flex items-center gap-1.5 px-4 py-2 border border-dark/10 rounded-xl hover:bg-background text-xs font-bold text-dark/70"
+                  className="lg:hidden flex items-center gap-1.5 px-4 py-2 border border-dark/10 rounded-xl hover:bg-background text-xs font-bold text-dark/70 cursor-pointer"
                 >
                   <MdFilterList className="text-base" /> Filters
                 </button>
@@ -333,16 +590,20 @@ export default function Medicines() {
             </div>
 
             {/* Cards Grid */}
-            {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+            {loading && filteredProducts.length === 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                <LoadingSkeleton type="card" count={6} />
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
-                    className="relative bg-white border border-dark/5 rounded-[22px] p-4 shadow-soft hover:shadow-hover flex flex-col justify-between"
+                    className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px] w-full"
                   >
                     {/* Prescription Required Tag */}
                     {product.prescription_required && (
-                      <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10">
+                      <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10 select-none">
                         Rx Required
                       </span>
                     )}
@@ -350,39 +611,50 @@ export default function Medicines() {
                     {/* Clickable Image & Details */}
                     <div 
                       onClick={() => navigate(`/product/${product.id}`)}
-                      className="cursor-pointer flex flex-col"
+                      className="cursor-pointer flex flex-col flex-grow"
                     >
-                      <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1">
+                      <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1 shrink-0">
                         <MedicineImage product={product} />
                       </div>
-                      <div className="text-left">
-                        <h4 className="font-bold text-dark text-xs sm:text-sm line-clamp-1 hover:text-primary transition-colors truncate">
-                          {product.medicine_name}
-                        </h4>
-                        <p className="text-[10px] text-dark/45 font-medium mt-0.5">{product.brand}</p>
-                        <p className="text-[9px] text-dark/55 mt-0.5">{product.pack_size}</p>
+                      <div className="text-left flex-grow flex flex-col justify-between">
+                        <div>
+                          <h4 className="font-bold text-dark text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors h-10 overflow-hidden leading-tight text-ellipsis">
+                            <Highlight text={product.medicine_name} search={urlSearch} />
+                          </h4>
+                          <div className="space-y-0.5 mt-1">
+                            <p className="text-[10px] text-dark/45 font-semibold truncate leading-none">
+                              <Highlight text={product.brand} search={urlSearch} />
+                            </p>
+                            <p className="text-[9px] text-dark/55 truncate leading-none">
+                              {product.pack_size}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="pt-2 text-left">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="pt-2.5 mt-2.5 border-t border-dark/5 text-left shrink-0">
+                      <div className="flex items-center gap-1.5 flex-wrap h-5">
                         <span className="text-sm font-extrabold text-dark">₹{product.price}</span>
                         {product.mrp > product.price && (
                           <>
                             <span className="text-[10px] text-dark/40 line-through">₹{product.mrp}</span>
-                            <span className="bg-secondary/10 text-secondary-dark px-1 py-0.5 text-[8px] font-black rounded-md">
+                            <span className="bg-secondary/10 text-secondary-dark px-1.5 py-0.5 text-[8px] font-black rounded-md leading-none animate-pulse">
                               {product.discount_percentage}% OFF
                             </span>
                           </>
                         )}
                       </div>
                       
-                      <p className={`text-[9px] font-bold mt-1.5 ${product.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <p className={`text-[9px] font-bold mt-1.5 leading-none ${product.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                         {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                       </p>
 
                       <button
-                        onClick={() => addToCart(product, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart(product, 1);
+                        }}
                         disabled={product.stock <= 0}
                         className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
                           product.stock > 0 
@@ -437,21 +709,51 @@ export default function Medicines() {
                 </button>
               </div>
 
-              {/* Category Filter */}
+              {/* Category or Subcategory Filter */}
               <div className="space-y-2">
-                <h4 className="font-bold text-xs text-dark uppercase tracking-wider">Categories</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-dark uppercase tracking-wider">
+                    {activeCategory ? `${activeCategory} Types` : "Categories"}
+                  </h4>
+                  {activeCategory && (
+                    <button 
+                      onClick={() => {
+                        setSelectedCategories([]);
+                        setSelectedSubcategories([]);
+                        setSearchParams({});
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider"
+                    >
+                      All Categories
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-1.5 max-h-40 overflow-y-auto pr-2 scrollbar-thin">
-                  {CATEGORIES_LIST.map((cat) => (
-                    <label key={cat} className="flex items-center gap-2 text-xs text-dark/75 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={selectedCategories.includes(cat)}
-                        onChange={() => handleCategoryToggle(cat)}
-                        className="rounded text-primary border-dark/15 w-4 h-4 cursor-pointer"
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
+                  {activeCategory ? (
+                    SUBCATEGORIES_LIST.map((subcat) => (
+                      <label key={subcat} className="flex items-center gap-2 text-xs text-dark/75 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedSubcategories.includes(subcat)}
+                          onChange={() => handleSubcategoryToggle(subcat)}
+                          className="rounded text-primary border-dark/15 w-4 h-4 cursor-pointer"
+                        />
+                        <span>{subcat}</span>
+                      </label>
+                    ))
+                  ) : (
+                    CATEGORIES_LIST.map((cat) => (
+                      <label key={cat} className="flex items-center gap-2 text-xs text-dark/75 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedCategories.includes(cat)}
+                          onChange={() => handleCategoryToggle(cat)}
+                          className="rounded text-primary border-dark/15 w-4 h-4 cursor-pointer"
+                        />
+                        <span>{cat}</span>
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -482,7 +784,7 @@ export default function Medicines() {
                 <input 
                   type="range" 
                   min="40" 
-                  max="500" 
+                  max="3000" 
                   value={maxPrice} 
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full accent-primary h-1.5 bg-background rounded-lg appearance-none cursor-pointer"
