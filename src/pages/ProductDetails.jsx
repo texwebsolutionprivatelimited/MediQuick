@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,24 +16,315 @@ import {
   MdInfoOutline,
   MdShare,
   MdContentCopy,
-  MdEmail
+  MdEmail,
+  MdStar,
+  MdStarHalf,
+  MdStarBorder,
+  MdDelete,
+  MdEdit,
+  MdRateReview,
+  MdPercent
 } from 'react-icons/md';
 import { FaWhatsapp, FaTelegramPlane, FaFacebookF } from 'react-icons/fa';
 import { useProducts } from '../context/ProductsContext';
+import { db, isConfigValid } from '../firebase/firebase';
+import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { getCouponForProduct } from '../utils/couponMatcher';
 
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart, prescriptionUploaded, setPrescriptionFile } = useCart();
-  const { products: productsData } = useProducts();
+  const location = useLocation();
+  const { currentUser } = useAuth();
+  const { addToCart, prescriptionUploaded, setPrescriptionFile, availableCoupons } = useCart();
+  const { products: productsData, updateProductStats } = useProducts();
   const [quantity, setQuantity] = useState(1);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Reviews states
+  const [reviews, setReviews] = useState([]);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewText, setReviewText] = useState('');
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState(true);
+
   // Find product in dataset
   const product = productsData.find(p => p.id === id);
+
+  // Find matching coupon for this product's discount percentage
+  const matchingCoupon = useMemo(() => {
+    if (!product) return null;
+    const discountVal = product.discountPercentage !== undefined ? product.discountPercentage : product.discount_percentage;
+    return getCouponForProduct(discountVal, availableCoupons);
+  }, [product, availableCoupons]);
+
+  // Check purchase status of the current product
+  useEffect(() => {
+    if (!currentUser) {
+      setHasPurchased(false);
+      setPurchaseLoading(false);
+      return;
+    }
+
+    setPurchaseLoading(true);
+    if (isConfigValid && db) {
+      const ordersRef = collection(db, 'orders');
+      const q = query(ordersRef, where('userId', '==', currentUser.uid));
+      
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        let purchased = false;
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.status === 'Delivered' && Array.isArray(data.items)) {
+            const hasItem = data.items.some(item => String(item.id) === String(id));
+            if (hasItem) {
+              purchased = true;
+            }
+          }
+        });
+        setHasPurchased(purchased);
+        setPurchaseLoading(false);
+      }, (error) => {
+        console.error("Error checking user purchases from Firestore:", error);
+        setHasPurchased(false);
+        setPurchaseLoading(false);
+      });
+      return () => unsubscribe();
+    } else {
+      const checkLocalPurchases = () => {
+        try {
+          const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+          const userOrders = stored.filter(o => o.userId === currentUser.uid);
+          const purchased = userOrders.some(order => 
+            order.status === 'Delivered' && 
+            Array.isArray(order.items) && 
+            order.items.some(item => String(item.id) === String(id))
+          );
+          setHasPurchased(purchased);
+        } catch (e) {
+          console.error("Error checking local purchases:", e);
+          setHasPurchased(false);
+        }
+        setPurchaseLoading(false);
+      };
+
+      checkLocalPurchases();
+
+      const handleStorageChange = (e) => {
+        if (e.key === 'mediquick_local_orders') {
+          checkLocalPurchases();
+        }
+      };
+      window.addEventListener('storage', handleStorageChange);
+      
+      const interval = setInterval(checkLocalPurchases, 1000);
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        clearInterval(interval);
+      };
+    }
+  }, [currentUser, id]);
+
+  // Load reviews from Firestore or LocalStorage
+  useEffect(() => {
+    if (!id) return;
+
+    if (isConfigValid && db) {
+      const reviewsRef = collection(db, 'products', id, 'reviews');
+      const unsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() });
+        });
+        
+        // Sort newest first
+        list.sort((a, b) => {
+          const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+          const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        });
+        setReviews(list);
+      }, (error) => {
+        console.error("Error fetching reviews from Firestore:", error);
+      });
+      return unsubscribe;
+    } else {
+      const local = localStorage.getItem(`mediquick_reviews_${id}`);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          parsed.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setReviews(parsed);
+        } catch (e) {
+          console.error("Error parsing local reviews:", e);
+        }
+      }
+    }
+  }, [id]);
+
+  const recalculateStatsAndSave = async (updatedList) => {
+    const visibleList = updatedList.filter(r => r.status !== 'hidden');
+    const count = visibleList.length;
+    let avg = 0;
+    if (count > 0) {
+      const sum = visibleList.reduce((acc, r) => acc + Number(r.rating), 0);
+      avg = Math.round((sum / count) * 10) / 10;
+    }
+    await updateProductStats(id, avg, count);
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      navigate('/login', { state: { from: location } });
+      return;
+    }
+
+    if (reviewRating < 1 || !reviewText.trim()) return;
+
+    // Double check purchase permission directly on submit to prevent API/Firestore bypass
+    let isPurchased = false;
+    if (isConfigValid && db) {
+      try {
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, where('userId', '==', currentUser.uid));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.status === 'Delivered' && Array.isArray(data.items)) {
+            const hasItem = data.items.some(item => String(item.id) === String(id));
+            if (hasItem) {
+              isPurchased = true;
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Error verifying purchase on submit:", err);
+      }
+    } else {
+      try {
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const userOrders = stored.filter(o => o.userId === currentUser.uid);
+        isPurchased = userOrders.some(order => 
+          order.status === 'Delivered' && 
+          Array.isArray(order.items) && 
+          order.items.some(item => String(item.id) === String(id))
+        );
+      } catch (e) {
+        console.error("Error verifying local purchase on submit:", e);
+      }
+    }
+
+    if (!isPurchased) {
+      alert("You can only write or edit reviews for products you have purchased and had delivered.");
+      return;
+    }
+
+    const existing = reviews.find(r => r.id === editingReviewId);
+    const reviewData = {
+      userId: currentUser.uid,
+      userName: currentUser.displayName || currentUser.fullName || 'Verified Customer',
+      rating: Number(reviewRating),
+      title: reviewTitle.trim(),
+      review: reviewText.trim(),
+      status: existing ? (existing.status || 'visible') : 'visible',
+      createdAt: isConfigValid && db ? new Date() : new Date().toISOString()
+    };
+
+    let newReviewsList = [];
+
+    if (editingReviewId) {
+      if (isConfigValid && db) {
+        const reviewDocRef = doc(db, 'products', id, 'reviews', editingReviewId);
+        await updateDoc(reviewDocRef, {
+          rating: Number(reviewRating),
+          title: reviewTitle.trim(),
+          review: reviewText.trim(),
+          createdAt: new Date()
+        });
+        newReviewsList = reviews.map(r => r.id === editingReviewId ? { ...r, ...reviewData } : r);
+      } else {
+        newReviewsList = reviews.map(r => r.id === editingReviewId ? { ...r, ...reviewData } : r);
+        localStorage.setItem(`mediquick_reviews_${id}`, JSON.stringify(newReviewsList));
+        setReviews(newReviewsList);
+      }
+    } else {
+      if (isConfigValid && db) {
+        const reviewsRef = collection(db, 'products', id, 'reviews');
+        const docRef = await addDoc(reviewsRef, reviewData);
+        newReviewsList = [{ id: docRef.id, ...reviewData }, ...reviews];
+      } else {
+        const newId = `rev-${Date.now()}`;
+        const newReview = { id: newId, ...reviewData };
+        newReviewsList = [newReview, ...reviews];
+        localStorage.setItem(`mediquick_reviews_${id}`, JSON.stringify(newReviewsList));
+        setReviews(newReviewsList);
+      }
+    }
+
+    await recalculateStatsAndSave(newReviewsList);
+
+    setReviewRating(0);
+    setReviewTitle('');
+    setReviewText('');
+    setEditingReviewId(null);
+    setShowReviewModal(false);
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) return;
+
+    let newReviewsList = [];
+
+    if (isConfigValid && db) {
+      try {
+        const reviewDocRef = doc(db, 'products', id, 'reviews', reviewId);
+        await deleteDoc(reviewDocRef);
+        newReviewsList = reviews.filter(r => r.id !== reviewId);
+      } catch (err) {
+        console.error("Failed to delete review from Firestore:", err);
+        return;
+      }
+    } else {
+      newReviewsList = reviews.filter(r => r.id !== reviewId);
+      localStorage.setItem(`mediquick_reviews_${id}`, JSON.stringify(newReviewsList));
+      setReviews(newReviewsList);
+    }
+
+    await recalculateStatsAndSave(newReviewsList);
+  };
+
+  const userExistingReview = useMemo(() => {
+    if (!currentUser) return null;
+    return reviews.find(r => r.userId === currentUser.uid);
+  }, [reviews, currentUser]);
+
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.25 && rating % 1 < 0.75;
+    const adjustFull = rating % 1 >= 0.75 ? 1 : 0;
+    const totalFull = fullStars + adjustFull;
+
+    for (let i = 1; i <= 5; i++) {
+      if (i <= totalFull) {
+        stars.push(<MdStar key={i} className="text-amber-400 text-sm sm:text-base shrink-0" />);
+      } else if (i === totalFull + 1 && hasHalf) {
+        stars.push(<MdStarHalf key={i} className="text-amber-400 text-sm sm:text-base shrink-0" />);
+      } else {
+        stars.push(<MdStarBorder key={i} className="text-amber-400 text-sm sm:text-base shrink-0" />);
+      }
+    }
+    return <div className="flex items-center">{stars}</div>;
+  };
 
   const getShareContent = () => {
     const title = `Check out ${product?.medicine_name} on MediQuick`;
@@ -118,7 +410,7 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       setShowPrescriptionModal(true);
     } else {
       addToCart(product, quantity);
-      navigate('/checkout'); // Proceed straight to checkout
+      navigate('/checkout', { state: { buyNowProduct: product } }); // Proceed straight to checkout with state
     }
   };
 
@@ -138,7 +430,7 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       setPrescriptionFile(selectedFile);
       setShowPrescriptionModal(false);
       addToCart(product, quantity);
-      navigate('/checkout');
+      navigate('/checkout', { state: { buyNowProduct: product } });
     }
   };
 
@@ -160,8 +452,8 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 bg-white p-6 md:p-10 rounded-[28px] border border-dark/5 shadow-soft">
           
           {/* Left: Product Image Frame */}
-          <div className="md:col-span-5 flex items-center justify-center bg-white border border-dark/5 p-4 rounded-2xl min-h-[300px] overflow-hidden select-none">
-            <div className="w-full max-w-[280px] drop-shadow-premium">
+          <div className="product-detail-image-frame md:col-span-5 flex items-center justify-center bg-white border border-dark/5 p-4 rounded-2xl min-h-[300px] overflow-hidden select-none">
+            <div className="product-image-container product-detail-image-container drop-shadow-premium">
               <MedicineImage product={product} />
             </div>
           </div>
@@ -185,6 +477,24 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
               <h1 className="text-2xl md:text-3xl font-extrabold text-dark leading-snug">
                 {product.medicine_name}
               </h1>
+
+              {/* Dynamic Ratings Summary */}
+              <div className="flex items-center gap-2 mt-1 select-none">
+                {renderStars(product.averageRating || 0)}
+                <span className="text-xs font-bold text-dark/70 mt-0.5">
+                  {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"}
+                </span>
+                <span className="text-xs text-dark/45 font-medium mt-0.5">•</span>
+                <span 
+                  className="text-xs text-primary font-bold hover:underline cursor-pointer mt-0.5" 
+                  onClick={() => {
+                    const el = document.getElementById('reviews-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  {product.reviewCount || 0} {product.reviewCount === 1 ? 'Review' : 'Reviews'}
+                </span>
+              </div>
               
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-dark/50 font-medium">
                 <p>Brand: <span className="font-bold text-dark/80">{product.brand}</span></p>
@@ -209,6 +519,26 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
               </div>
               <p className="text-[10px] text-dark/45 font-light">Inclusive of all local pharmacy taxes.</p>
             </div>
+
+            {matchingCoupon ? (
+              <div className="bg-emerald-50/50 border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+                  <MdPercent />
+                </div>
+                <p className="text-xs font-bold text-emerald-800 leading-tight">
+                  Coupon Available: <span className="font-extrabold select-all">{matchingCoupon.couponCode || matchingCoupon.code}</span> – Apply to get {matchingCoupon.discountPercentage !== undefined ? matchingCoupon.discountPercentage : matchingCoupon.discount}% OFF.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-dark/5 border border-dark/10 p-4 rounded-2xl flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-dark/10 text-dark/45 flex items-center justify-center text-lg shrink-0">
+                  <MdPercent />
+                </div>
+                <p className="text-xs font-bold text-dark/45 leading-tight">
+                  No promo available.
+                </p>
+              </div>
+            )}
 
             {/* Stock Availability */}
             <div className="flex items-center gap-1.5 text-xs">
@@ -413,6 +743,223 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
         )}
       </AnimatePresence>
       </div>
+
+      {/* 📊 REVIEWS SECTION */}
+      <div id="reviews-section" className="container mx-auto px-4 mt-8">
+        <div className="bg-white p-6 md:p-10 rounded-[28px] border border-dark/5 shadow-soft space-y-8">
+          
+          {/* Header row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark/5 pb-5">
+            <div className="text-left">
+              <h2 className="text-xl sm:text-2xl font-black text-dark tracking-tight">Customer Reviews</h2>
+              <div className="flex items-center gap-2 mt-1">
+                {renderStars(product.averageRating || 0)}
+                <span className="text-sm font-bold text-dark/70">
+                  {product.averageRating ? Number(product.averageRating).toFixed(1) : "0.0"} out of 5
+                </span>
+                <span className="text-xs text-dark/45">({product.reviewCount || 0} reviews)</span>
+              </div>
+            </div>
+
+            {currentUser && hasPurchased && (
+              <button
+                onClick={() => {
+                  if (userExistingReview) {
+                    setReviewRating(userExistingReview.rating);
+                    setReviewTitle(userExistingReview.title || '');
+                    setReviewText(userExistingReview.review);
+                    setEditingReviewId(userExistingReview.id);
+                  } else {
+                    setReviewRating(0);
+                    setReviewTitle('');
+                    setReviewText('');
+                    setEditingReviewId(null);
+                  }
+                  setShowReviewModal(true);
+                }}
+                className="px-5 py-3 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <MdRateReview className="text-base" />
+                {userExistingReview ? "Edit My Review" : "Write a Review"}
+              </button>
+            )}
+          </div>
+
+          {/* Reviews list */}
+          <div className="space-y-4 text-left">
+            {reviews.filter(rev => rev.status !== 'hidden').length === 0 ? (
+              <div className="py-12 text-center text-dark/40 italic text-xs">
+                No reviews yet for this product. Be the first to write a review!
+              </div>
+            ) : (
+              reviews.filter(rev => rev.status !== 'hidden').map((rev) => {
+                const isOwner = currentUser && rev.userId === currentUser.uid;
+                const isAdmin = currentUser && currentUser.role === 'admin';
+                
+                // Format Date
+                let formattedDate = 'Recent';
+                if (rev.createdAt) {
+                  const dateObj = rev.createdAt.toDate ? rev.createdAt.toDate() : new Date(rev.createdAt);
+                  if (!isNaN(dateObj.getTime())) {
+                    formattedDate = dateObj.toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric'
+                    });
+                  }
+                }
+
+                return (
+                  <div key={rev.id} className="p-5 border border-dark/5 rounded-2xl bg-[#F8FCFC]/40 hover:bg-white transition-all shadow-sm space-y-2 relative">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary-dark flex items-center justify-center font-bold text-xs">
+                          {rev.userName ? rev.userName.charAt(0).toUpperCase() : 'C'}
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs text-dark block leading-tight">{rev.userName}</span>
+                          <span className="text-[10px] text-dark/45 font-medium">{formattedDate}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {renderStars(rev.rating)}
+                        <span className="text-xs font-bold text-dark/60">{rev.rating}/5</span>
+                      </div>
+                    </div>
+
+                    {rev.title && (
+                      <h4 className="font-extrabold text-dark text-xs sm:text-sm pt-1">{rev.title}</h4>
+                    )}
+
+                    <p className="text-xs text-dark/70 font-light leading-relaxed whitespace-pre-line">{rev.review}</p>
+
+                    {(isOwner || isAdmin) && (
+                      <div className="flex items-center gap-3 justify-end pt-2 border-t border-dark/5 mt-2">
+                        {isOwner && hasPurchased && (
+                          <button
+                            onClick={() => {
+                              setReviewRating(rev.rating);
+                              setReviewTitle(rev.title || '');
+                              setReviewText(rev.review);
+                              setEditingReviewId(rev.id);
+                              setShowReviewModal(true);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline uppercase tracking-wider cursor-pointer bg-transparent border-none outline-none"
+                          >
+                            <MdEdit className="text-xs" /> Edit
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteReview(rev.id)}
+                          className="flex items-center gap-1 text-[10px] font-bold text-red-500 hover:underline uppercase tracking-wider cursor-pointer bg-transparent border-none outline-none"
+                        >
+                          <MdDelete className="text-xs" /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 🚀 REVIEW FORM MODAL POPUP */}
+      <AnimatePresence>
+        {showReviewModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 space-y-5 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-dark/5 pb-3">
+                <h3 className="font-bold text-dark flex items-center gap-1.5 text-sm uppercase tracking-wider">
+                  <MdRateReview className="text-primary text-xl" /> 
+                  {editingReviewId ? "Edit My Review" : "Write a Review"}
+                </h3>
+                <button 
+                  onClick={() => setShowReviewModal(false)}
+                  className="text-dark/50 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors cursor-pointer"
+                >
+                  <MdClose className="text-xl" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Your Rating *</label>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const isHighlighted = hoveredRating >= star || (!hoveredRating && reviewRating >= star);
+                      return (
+                        <button
+                          key={star}
+                          type="button"
+                          onMouseEnter={() => setHoveredRating(star)}
+                          onMouseLeave={() => setHoveredRating(0)}
+                          onClick={() => setReviewRating(star)}
+                          className="text-2xl transition-all duration-150 transform hover:scale-110 cursor-pointer text-amber-400 p-0.5 bg-transparent border-0"
+                        >
+                          {isHighlighted ? <MdStar /> : <MdStarBorder />}
+                        </button>
+                      );
+                    })}
+                    {reviewRating > 0 && (
+                      <span className="text-xs font-bold text-dark/50 ml-2">
+                        {reviewRating === 5 ? "Excellent" : reviewRating === 4 ? "Good" : reviewRating === 3 ? "Average" : reviewRating === 2 ? "Below Average" : "Poor"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Title (Optional)</label>
+                  <input
+                    type="text"
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    placeholder="e.g. Excellent medicine, highly recommend"
+                    className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Text *</label>
+                  <textarea
+                    rows={4}
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                    placeholder="Write your review here. What did you like or dislike?"
+                    className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium resize-none leading-relaxed"
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-4 border-t border-dark/5">
+                  <button 
+                    type="button"
+                    onClick={() => setShowReviewModal(false)}
+                    className="w-1/2 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={reviewRating < 1 || !reviewText.trim()}
+                    className={`w-1/2 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md ${reviewRating >= 1 && reviewText.trim() ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95' : 'bg-dark/10 text-dark/35 cursor-not-allowed shadow-none'}`}
+                  >
+                    {editingReviewId ? "Update Review" : "Submit Review"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

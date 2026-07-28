@@ -8,7 +8,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import MedicineImage from '../components/MedicineImage';
 import { db, isConfigValid } from '../firebase/firebase';
-import { collection, doc, query, orderBy, onSnapshot, updateDoc, setDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, orderBy, onSnapshot, updateDoc, setDoc, deleteDoc, addDoc, serverTimestamp, collectionGroup, getDocs } from 'firebase/firestore';
 import { 
   MdAddCircleOutline, 
   MdCheckCircle, 
@@ -34,11 +34,59 @@ import {
   MdLocalShipping,
   MdSettings,
   MdBook,
-  MdMenu
+  MdMenu,
+  MdRateReview,
+  MdStar,
+  MdStarHalf,
+  MdStarBorder,
+  MdVisibility,
+  MdVisibilityOff
 } from 'react-icons/md';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getTabFromPathname = (pathname) => {
+    const path = pathname.toLowerCase().replace(/\/$/, "");
+    if (path.endsWith('/dashboard') || path.endsWith('/overview') || path === '/admin') {
+      return 'overview';
+    }
+    if (path.endsWith('/medicines')) {
+      return 'medicines';
+    }
+    if (path.endsWith('/categories')) {
+      return 'categories';
+    }
+    if (path.endsWith('/orders')) {
+      return 'orders';
+    }
+    if (path.endsWith('/prescriptions')) {
+      return 'prescriptions';
+    }
+    if (path.endsWith('/customers') || path.endsWith('/users')) {
+      return 'customers';
+    }
+    if (path.endsWith('/coupons') || path.endsWith('/offers')) {
+      return 'coupons';
+    }
+    if (path.endsWith('/blogs') || path.endsWith('/health-blogs')) {
+      return 'blogs';
+    }
+    if (path.endsWith('/delivery')) {
+      return 'delivery';
+    }
+    if (path.endsWith('/system')) {
+      return 'system';
+    }
+    if (path.endsWith('/reviews') || path.endsWith('/product-reviews')) {
+      return 'reviews';
+    }
+    return 'overview';
+  };
+
+  const activeTab = getTabFromPathname(location.pathname);
+
   const { currentUser, logout } = useAuth();
   const { 
     products, 
@@ -48,10 +96,179 @@ export default function AdminDashboard() {
     deleteMedicine,
     addCategory,
     updateCategory,
-    deleteCategory 
+    deleteCategory,
+    updateProductStats
   } = useProducts();
 
   const { systemSettings, deliverySettings, saveSystemSettings, saveDeliverySettings } = useSettings();
+
+  // --- PRODUCT REVIEWS TAB STATES & ACTIONS ---
+  const [adminReviews, setAdminReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewSearchVal, setReviewSearchVal] = useState("");
+  const [reviewRatingFilter, setReviewRatingFilter] = useState("All");
+  const [reviewCategoryFilter, setReviewCategoryFilter] = useState("All");
+  const [reviewSortOption, setReviewSortOption] = useState("newest");
+
+  useEffect(() => {
+    if (activeTab !== 'reviews') return;
+
+    let unsubscribe = null;
+    setReviewsLoading(true);
+
+    if (isConfigValid && db) {
+      try {
+        const reviewsQuery = collectionGroup(db, 'reviews');
+        unsubscribe = onSnapshot(reviewsQuery, (snapshot) => {
+          const list = [];
+          snapshot.forEach((docSnap) => {
+            const pathSegments = docSnap.ref.path.split('/');
+            const productId = pathSegments[1];
+            list.push({ id: docSnap.id, productId, ...docSnap.data() });
+          });
+          setAdminReviews(list);
+          setReviewsLoading(false);
+        }, (err) => {
+          console.error("Error subscribing to collectionGroup reviews:", err);
+          loadLocalReviews();
+        });
+      } catch (e) {
+        console.error("Error setting up collectionGroup reviews listener:", e);
+        loadLocalReviews();
+      }
+    } else {
+      loadLocalReviews();
+    }
+
+    function loadLocalReviews() {
+      const list = [];
+      products.forEach((prod) => {
+        const local = localStorage.getItem(`mediquick_reviews_${prod.id}`);
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            parsed.forEach((rev) => {
+              list.push({ ...rev, productId: prod.id });
+            });
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      });
+      setAdminReviews(list);
+      setReviewsLoading(false);
+    }
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [activeTab, products]);
+
+  const updateProductAggregateStats = async (productId, currentReviewsList) => {
+    const visibleReviews = currentReviewsList.filter(r => r.productId === productId && r.status !== 'hidden');
+    const count = visibleReviews.length;
+    let avg = 0;
+    if (count > 0) {
+      const sum = visibleReviews.reduce((acc, r) => acc + Number(r.rating), 0);
+      avg = Math.round((sum / count) * 10) / 10;
+    }
+    await updateProductStats(productId, avg, count);
+  };
+
+  const handleToggleReviewVisibility = async (review) => {
+    const newStatus = review.status === 'hidden' ? 'visible' : 'hidden';
+    const updatedReviews = adminReviews.map(r => r.id === review.id ? { ...r, status: newStatus } : r);
+    
+    if (isConfigValid && db) {
+      try {
+        const docRef = doc(db, 'products', review.productId, 'reviews', review.id);
+        await updateDoc(docRef, { status: newStatus });
+        showToast(`Review status updated to ${newStatus}.`, 'success');
+      } catch (err) {
+        console.error("Error updating review visibility:", err);
+        showToast("Failed to update review status.", 'error');
+        return;
+      }
+    } else {
+      const productLocalReviews = updatedReviews.filter(r => r.productId === review.productId);
+      localStorage.setItem(`mediquick_reviews_${review.productId}`, JSON.stringify(productLocalReviews));
+      setAdminReviews(updatedReviews);
+      showToast(`Review status updated to ${newStatus}.`, 'success');
+    }
+
+    await updateProductAggregateStats(review.productId, updatedReviews);
+  };
+
+  const handleDeleteAdminReview = async (review) => {
+    if (!window.confirm("Are you sure you want to permanently delete this review?")) return;
+
+    const updatedReviews = adminReviews.filter(r => r.id !== review.id);
+
+    if (isConfigValid && db) {
+      try {
+        const docRef = doc(db, 'products', review.productId, 'reviews', review.id);
+        await deleteDoc(docRef);
+        showToast("Review deleted successfully.", 'success');
+      } catch (err) {
+        console.error("Error deleting review:", err);
+        showToast("Failed to delete review.", 'error');
+        return;
+      }
+    } else {
+      const productLocalReviews = updatedReviews.filter(r => r.productId === review.productId);
+      localStorage.setItem(`mediquick_reviews_${review.productId}`, JSON.stringify(productLocalReviews));
+      setAdminReviews(updatedReviews);
+      showToast("Review deleted successfully.", 'success');
+    }
+
+    await updateProductAggregateStats(review.productId, updatedReviews);
+  };
+
+  const renderAdminReviewStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.25 && rating % 1 < 0.75;
+    const adjustFull = rating % 1 >= 0.75 ? 1 : 0;
+    const totalFull = fullStars + adjustFull;
+
+    for (let i = 1; i <= 5; i++) {
+      if (i <= totalFull) {
+        stars.push(<MdStar key={i} className="text-amber-400 text-xs shrink-0" />);
+      } else if (i === totalFull + 1 && hasHalf) {
+        stars.push(<MdStarHalf key={i} className="text-amber-400 text-xs shrink-0" />);
+      } else {
+        stars.push(<MdStarBorder key={i} className="text-amber-400 text-xs shrink-0" />);
+      }
+    }
+    return <div className="flex items-center">{stars}</div>;
+  };
+
+  const filteredReviews = adminReviews
+    .filter((rev) => {
+      const prod = products.find((p) => p.id === rev.productId);
+      if (!prod) return false;
+
+      const queryStr = reviewSearchVal.toLowerCase();
+      const matchProduct = prod.medicine_name.toLowerCase().includes(queryStr);
+      const matchUser = rev.userName.toLowerCase().includes(queryStr);
+      const matchesSearch = !reviewSearchVal || matchProduct || matchUser;
+
+      const matchesRating = reviewRatingFilter === "All" || Number(rev.rating) === Number(reviewRatingFilter);
+
+      const matchesCategory = reviewCategoryFilter === "All" || prod.category === reviewCategoryFilter;
+
+      return matchesSearch && matchesRating && matchesCategory;
+    })
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+      const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+
+      if (reviewSortOption === "newest") return bTime - aTime;
+      if (reviewSortOption === "oldest") return aTime - bTime;
+      if (reviewSortOption === "highest") return Number(b.rating) - Number(a.rating);
+      if (reviewSortOption === "lowest") return Number(a.rating) - Number(b.rating);
+      return 0;
+    });
 
   // Custom Toast Notification State
   const [toast, setToast] = useState(null);
@@ -459,7 +676,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
             type: 'offers',
             isRead: false,
             createdAt: serverTimestamp(),
-            actionUrl: '/offers'
+            actionUrl: '/medicines'
           });
         }
       } else {
@@ -484,7 +701,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
             type: 'offers',
             isRead: false,
             createdAt: new Date().toISOString(),
-            actionUrl: '/offers'
+            actionUrl: '/medicines'
           };
           const savedNotifs = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
           savedNotifs.unshift(mockNotif);
@@ -700,45 +917,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
 
 
 
-  // Navigation Module Tab derived from URL route
-  const location = useLocation();
 
-  const getTabFromPathname = (pathname) => {
-    const path = pathname.toLowerCase().replace(/\/$/, "");
-    if (path.endsWith('/dashboard') || path.endsWith('/overview') || path === '/admin') {
-      return 'overview';
-    }
-    if (path.endsWith('/medicines')) {
-      return 'medicines';
-    }
-    if (path.endsWith('/categories')) {
-      return 'categories';
-    }
-    if (path.endsWith('/orders')) {
-      return 'orders';
-    }
-    if (path.endsWith('/prescriptions')) {
-      return 'prescriptions';
-    }
-    if (path.endsWith('/customers') || path.endsWith('/users')) {
-      return 'customers';
-    }
-    if (path.endsWith('/coupons') || path.endsWith('/offers')) {
-      return 'coupons';
-    }
-    if (path.endsWith('/blogs') || path.endsWith('/health-blogs')) {
-      return 'blogs';
-    }
-    if (path.endsWith('/delivery')) {
-      return 'delivery';
-    }
-    if (path.endsWith('/system')) {
-      return 'system';
-    }
-    return 'overview';
-  };
-
-  const activeTab = getTabFromPathname(location.pathname);
 
   // Responsive Sidebar States
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -1869,6 +2048,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
             { id: 'prescriptions', label: 'Verify Prescriptions', path: '/admin/prescriptions', icon: MdLocalPharmacy },
             { id: 'customers', label: 'Manage Customers', path: '/admin/customers', icon: MdPeople, onTabClick: () => setCustomerCurrentPage(1) },
             { id: 'coupons', label: 'Coupons & Offers', path: '/admin/coupons', icon: MdConfirmationNumber },
+            { id: 'reviews', label: 'Product Reviews', path: '/admin/reviews', icon: MdRateReview },
             { id: 'blogs', label: 'Health Blogs', path: '/admin/blogs', icon: MdBook },
             { id: 'delivery', label: 'Delivery Settings', path: '/admin/delivery', icon: MdLocalShipping },
             { id: 'system', label: 'System Settings', path: '/admin/system', icon: MdSettings }
@@ -1969,9 +2149,11 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                       activeTab === 'orders' ? 'Order Management & Fulfillment' : (
                         activeTab === 'customers' ? 'Customers' : (
                           activeTab === 'coupons' ? 'Coupons & Offers' : (
-                            activeTab === 'blogs' ? 'Health Blogs & Guides Management' : (
-                              activeTab === 'delivery' ? 'Delivery Configuration' : (
-                                activeTab === 'system' ? 'System Configuration' : 'Control Panel'
+                            activeTab === 'reviews' ? 'Product Reviews Moderation' : (
+                              activeTab === 'blogs' ? 'Health Blogs & Guides Management' : (
+                                activeTab === 'delivery' ? 'Delivery Configuration' : (
+                                  activeTab === 'system' ? 'System Configuration' : 'Control Panel'
+                                )
                               )
                             )
                           )
@@ -1987,9 +2169,11 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                 activeTab === 'prescriptions' ? 'Review and verify customer prescription documents for Rx orders.' : (
                   activeTab === 'customers' ? 'See who is ordering, their contact info, and lifetime value.' : (
                     activeTab === 'coupons' ? 'Manage customer discounts, promotions, and active offers.' : (
-                      activeTab === 'blogs' ? 'Publish, edit, and remove medical wellness articles.' : (
-                        activeTab === 'delivery' ? 'Configure service radii, delivery times, and base charges.' : (
-                          activeTab === 'system' ? 'Manage store status, maintenance mode, and support coordinates.' : 'Control panel database console'
+                      activeTab === 'reviews' ? 'Moderate and manage user product ratings and reviews.' : (
+                        activeTab === 'blogs' ? 'Publish, edit, and remove medical wellness articles.' : (
+                          activeTab === 'delivery' ? 'Configure service radii, delivery times, and base charges.' : (
+                            activeTab === 'system' ? 'Manage store status, maintenance mode, and support coordinates.' : 'Control panel database console'
+                          )
                         )
                       )
                     )
@@ -3854,6 +4038,226 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
               </Card>
             </div>
           )}
+
+          {/* ================== TAB: PRODUCT REVIEWS ================== */}
+          {activeTab === 'reviews' && (
+            <div className="space-y-6 text-left animate-fadeIn">
+              
+              {/* Controls bar */}
+              <div className="bg-white p-5 rounded-[24px] border border-dark/5 shadow-soft flex flex-wrap gap-4 items-center justify-between">
+                
+                {/* Search */}
+                <div className="relative flex-1 min-w-[240px]">
+                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-dark/35">
+                    <MdSearch className="text-lg" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by product name or user name..."
+                    value={reviewSearchVal}
+                    onChange={(e) => setReviewSearchVal(e.target.value)}
+                    className="w-full text-xs pl-10 pr-4 py-3 bg-[#F8FCFC] border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium"
+                  />
+                </div>
+
+                {/* Filters & Sorting */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  
+                  {/* Category Filter */}
+                  <div className="flex items-center gap-1.5 bg-[#F8FCFC] px-3.5 py-1.5 rounded-xl border border-dark/5">
+                    <span className="text-[10px] font-bold text-dark/45 uppercase tracking-wider">Category:</span>
+                    <select
+                      value={reviewCategoryFilter}
+                      onChange={(e) => setReviewCategoryFilter(e.target.value)}
+                      className="text-xs font-bold text-[#063B44] bg-transparent border-0 outline-none cursor-pointer"
+                    >
+                      <option value="All">All Categories</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Rating Filter */}
+                  <div className="flex items-center gap-1.5 bg-[#F8FCFC] px-3.5 py-1.5 rounded-xl border border-dark/5">
+                    <span className="text-[10px] font-bold text-dark/45 uppercase tracking-wider">Rating:</span>
+                    <select
+                      value={reviewRatingFilter}
+                      onChange={(e) => setReviewRatingFilter(e.target.value)}
+                      className="text-xs font-bold text-[#063B44] bg-transparent border-0 outline-none cursor-pointer"
+                    >
+                      <option value="All">All Stars</option>
+                      <option value="5">5 Stars</option>
+                      <option value="4">4 Stars</option>
+                      <option value="3">3 Stars</option>
+                      <option value="2">2 Stars</option>
+                      <option value="1">1 Star</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Option */}
+                  <div className="flex items-center gap-1.5 bg-[#F8FCFC] px-3.5 py-1.5 rounded-xl border border-dark/5">
+                    <span className="text-[10px] font-bold text-dark/45 uppercase tracking-wider">Sort:</span>
+                    <select
+                      value={reviewSortOption}
+                      onChange={(e) => setReviewSortOption(e.target.value)}
+                      className="text-xs font-bold text-[#063B44] bg-transparent border-0 outline-none cursor-pointer"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="highest">Highest Rating</option>
+                      <option value="lowest">Lowest Rating</option>
+                    </select>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Reviews Table / Grid */}
+              <div className="bg-white border border-dark/5 shadow-premium rounded-[24px] overflow-hidden">
+                {reviewsLoading ? (
+                  <div className="flex justify-center items-center py-20">
+                    <div className="relative w-10 h-10">
+                      <div className="absolute top-0 left-0 w-full h-full border-4 border-primary/20 rounded-full"></div>
+                      <div className="absolute top-0 left-0 w-full h-full border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  </div>
+                ) : filteredReviews.length === 0 ? (
+                  <div className="py-20 text-center text-dark/40 font-bold text-xs italic">
+                    No matching reviews found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse table-responsive-container">
+                      <thead>
+                        <tr className="bg-[#F8FCFC] border-b border-dark/5 text-[10px] font-black uppercase tracking-wider text-dark/45 select-none">
+                          <th className="py-4 px-6">Product</th>
+                          <th className="py-4 px-6">User</th>
+                          <th className="py-4 px-6">Rating</th>
+                          <th className="py-4 px-6">Review details</th>
+                          <th className="py-4 px-6">Date</th>
+                          <th className="py-4 px-6">Status</th>
+                          <th className="py-4 px-6 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-dark/5">
+                        {filteredReviews.map((rev) => {
+                          const prod = products.find((p) => p.id === rev.productId);
+                          if (!prod) return null;
+
+                          let formattedDate = 'Recent';
+                          if (rev.createdAt) {
+                            const dateObj = rev.createdAt.toDate ? rev.createdAt.toDate() : new Date(rev.createdAt);
+                            if (!isNaN(dateObj.getTime())) {
+                              formattedDate = dateObj.toLocaleString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit'
+                              });
+                            }
+                          }
+
+                          return (
+                            <tr key={rev.id} className="hover:bg-[#F8FCFC]/30 transition-colors text-xs">
+                              
+                              {/* Product Info */}
+                              <td className="py-4 px-6 min-w-[200px]">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-background rounded-lg border border-dark/5 overflow-hidden shrink-0 flex items-center justify-center">
+                                    <MedicineImage medicine={prod} className="w-full h-full object-contain" />
+                                  </div>
+                                  <div className="min-w-0 text-left">
+                                    <span className="font-bold text-dark block truncate max-w-[150px]" title={prod.medicine_name}>
+                                      {prod.medicine_name}
+                                    </span>
+                                    <span className="text-[9px] font-black uppercase text-primary bg-primary/5 border border-primary/10 px-1.5 py-0.5 rounded mt-0.5 inline-block">
+                                      {prod.category}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* User Info */}
+                              <td className="py-4 px-6">
+                                <div className="text-left">
+                                  <span className="font-bold text-dark block">{rev.userName}</span>
+                                  <span className="text-[10px] text-dark/45 block mt-0.5">{rev.userEmail || '—'}</span>
+                                </div>
+                              </td>
+
+                              {/* Rating Stars */}
+                              <td className="py-4 px-6">
+                                <div className="flex flex-col items-start gap-1">
+                                  {renderAdminReviewStars(rev.rating)}
+                                  <span className="text-[10px] font-extrabold text-dark/50">{rev.rating} / 5</span>
+                                </div>
+                              </td>
+
+                              {/* Review Text */}
+                              <td className="py-4 px-6 max-w-[280px]">
+                                <div className="text-left space-y-1">
+                                  {rev.title && (
+                                    <h4 className="font-bold text-dark truncate" title={rev.title}>{rev.title}</h4>
+                                  )}
+                                  <p className="text-dark/70 font-light leading-relaxed break-words line-clamp-2" title={rev.review}>
+                                    {rev.review}
+                                  </p>
+                                </div>
+                              </td>
+
+                              {/* Review Date */}
+                              <td className="py-4 px-6 text-dark/50 font-medium whitespace-nowrap">
+                                {formattedDate}
+                              </td>
+
+                              {/* Review Status */}
+                              <td className="py-4 px-6">
+                                <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full select-none ${
+                                  rev.status === 'hidden' 
+                                    ? 'bg-red-50 text-red-600 border border-red-100' 
+                                    : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                }`}>
+                                  {rev.status === 'hidden' ? 'Hidden' : 'Visible'}
+                                </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-4 px-6">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    onClick={() => handleToggleReviewVisibility(rev)}
+                                    title={rev.status === 'hidden' ? "Unhide Review" : "Hide Review"}
+                                    className={`p-2 rounded-lg border transition-colors cursor-pointer ${
+                                      rev.status === 'hidden'
+                                        ? 'bg-emerald-50 border-emerald-100 hover:bg-emerald-100 text-emerald-600'
+                                        : 'bg-amber-50 border-amber-100 hover:bg-amber-100 text-amber-600'
+                                    }`}
+                                  >
+                                    {rev.status === 'hidden' ? <MdVisibility className="text-base" /> : <MdVisibilityOff className="text-base" />}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteAdminReview(rev)}
+                                    title="Delete Review"
+                                    className="p-2 bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    <MdDelete className="text-base" />
+                                  </button>
+                                </div>
+                              </td>
+
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
           
         </div>
       </main>
@@ -4134,7 +4538,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                 {addMedImagePreview || addMedData.image_url ? (
                   <div className="space-y-2 w-full flex flex-col items-center select-none">
                     <span className="text-[9px] text-dark/45 uppercase tracking-wider font-bold">Image Preview</span>
-                    <div className="w-24 h-24 overflow-hidden bg-white border border-dark/5 rounded-xl flex items-center justify-center p-1 shadow-sm">
+                    <div className="product-image-container shadow-sm">
                       <img 
                         src={addMedImagePreview || addMedData.image_url} 
                         alt="Packaging Preview" 
@@ -4451,7 +4855,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                 {editMedImagePreview || editMedData.image_url ? (
                   <div className="space-y-2 w-full flex flex-col items-center select-none">
                     <span className="text-[9px] text-dark/45 uppercase tracking-wider font-bold">Image Preview</span>
-                    <div className="w-24 h-24 overflow-hidden bg-white border border-dark/5 rounded-xl flex items-center justify-center p-1 shadow-sm">
+                    <div className="product-image-container shadow-sm">
                       <img 
                         src={editMedImagePreview || editMedData.image_url} 
                         alt="Packaging Preview" 

@@ -19,12 +19,12 @@ const AdminDashboard = lazy(() => import('../pages/AdminDashboard'));
 const AdminLogin = lazy(() => import('../pages/AdminLogin'));
 const ResetPassword = lazy(() => import('../pages/ResetPassword'));
 const AccessDenied = lazy(() => import('../pages/AccessDenied'));
-const Offers = lazy(() => import('../pages/Offers'));
 const Blogs = lazy(() => import('../pages/Blogs'));
 const Faq = lazy(() => import('../pages/Faq'));
 const RefundPolicy = lazy(() => import('../pages/RefundPolicy'));
 const Careers = lazy(() => import('../pages/Careers'));
 const Profile = lazy(() => import('../pages/Profile'));
+const Wishlist = lazy(() => import('../pages/Wishlist'));
 
 // Simple loading indicator for fallback
 const PageLoader = () => (
@@ -89,7 +89,6 @@ export default function AppRoutes() {
 
         {/* Protected User Routes */}
         <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-        <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
         <Route path="/blogs" element={<ProtectedRoute><Blogs /></ProtectedRoute>} />
         <Route path="/faq" element={<ProtectedRoute><Faq /></ProtectedRoute>} />
         <Route path="/refund-policy" element={<ProtectedRoute><RefundPolicy /></ProtectedRoute>} />
@@ -98,6 +97,7 @@ export default function AppRoutes() {
         <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
         <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+        <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/upload-prescription" element={<ProtectedRoute><UploadPrescription /></ProtectedRoute>} />
         <Route path="/order-tracking" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />

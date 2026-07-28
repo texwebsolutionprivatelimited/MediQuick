@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, isConfigValid } from '../firebase/firebase';
+import { isCouponApplicableToCart, calculateEligibleDiscount } from '../utils/couponMatcher';
 
 const CartContext = createContext();
 
@@ -121,6 +122,11 @@ export function CartProvider({ children }) {
       return { success: false, message: `Minimum order of ₹${found.minimumOrder} required to use this coupon.` };
     }
 
+    // Validate that the coupon matches the discount percentage of any item in the cart
+    if (!isCouponApplicableToCart(found, cartItems)) {
+      return { success: false, message: 'This coupon is not valid for this product.' };
+    }
+
     const appliedCouponObj = {
       code: found.couponCode,
       discount: Number(found.discount),
@@ -156,16 +162,7 @@ export function CartProvider({ children }) {
     if (!coupon) return 0;
     if (coupon.minimumOrder && subtotal < coupon.minimumOrder) return 0;
 
-    let calculated = 0;
-    if (coupon.type === 'percentage') {
-      calculated = Math.round((subtotal * coupon.discount) / 100);
-    } else if (coupon.type === 'flat') {
-      calculated = coupon.discount;
-    }
-
-    if (coupon.maximumDiscount && calculated > coupon.maximumDiscount) {
-      return coupon.maximumDiscount;
-    }
+    const calculated = calculateEligibleDiscount(coupon, cartItems);
 
     return Math.min(calculated, subtotal);
   };

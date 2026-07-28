@@ -35,7 +35,7 @@ const DUMMY_NOTIFICATIONS = [
     type: "offers",
     isRead: false,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    actionUrl: "/offers"
+    actionUrl: "/medicines"
   },
   {
     id: "dummy-4",

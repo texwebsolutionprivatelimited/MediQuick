@@ -14,10 +14,12 @@ import {
   MdReceipt,
   MdSettings,
   MdMenu,
-  MdClose
+  MdClose,
+  MdFavoriteBorder
 } from 'react-icons/md';
 import { useProducts } from '../context/ProductsContext';
 import { useNotifications } from '../context/NotificationContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export default function Navigation() {
   const navigate = useNavigate();
@@ -26,6 +28,8 @@ export default function Navigation() {
   const { address, detectLocation, loading: locLoading } = useLocation();
   const { products: productsData, categories } = useProducts();
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
+  const { wishlistIds } = useWishlist();
+  const wishlistCount = wishlistIds.length;
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,7 +111,6 @@ export default function Navigation() {
      decodeURIComponent(routeLocation.search).toLowerCase().includes('category=lab tests'));
   const isMedicinesActive = routeLocation.pathname === '/medicines' && 
     !isLabTestsActive;
-  const isOffersActive = routeLocation.pathname === '/offers';
   const isBlogsActive = routeLocation.pathname === '/blogs' || routeLocation.pathname === '/health-blogs';
   const isContactActive = routeLocation.pathname === '/contact';
 
@@ -246,11 +249,6 @@ export default function Navigation() {
                   <svg className="w-[22px] h-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white animate-pulse shadow-sm">
-                      {unreadCount}
-                    </span>
-                  )}
                 </div>
                 <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Alerts</span>
               </button>
@@ -472,6 +470,17 @@ export default function Navigation() {
               )}
             </div>
 
+            {/* Wishlist Link */}
+            <Link 
+              to="/wishlist"
+              className="flex flex-col items-center justify-center min-w-[44px] min-h-[44px] p-1.5 rounded-xl group hover:bg-primary/5 transition-all duration-200 cursor-pointer relative text-center text-dark/75"
+            >
+              <div className="relative transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary">
+                <MdFavoriteBorder className="text-[22px]" />
+              </div>
+              <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Wishlist</span>
+            </Link>
+
             {/* Shopping Cart */}
             <Link 
               to="/cart"
@@ -479,11 +488,6 @@ export default function Navigation() {
             >
               <div className="relative transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary">
                 <MdShoppingCart className="text-[22px]" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-2 w-4.5 h-4.5 bg-secondary text-white text-[9px] font-black flex items-center justify-center rounded-full border border-white animate-pulse shadow-sm">
-                    {cartCount}
-                  </span>
-                )}
               </div>
               <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Cart</span>
             </Link>
@@ -508,37 +512,36 @@ export default function Navigation() {
             </div>
 
           </div>
-
         </div>
       </div>
-
+      
       {/* 📱 MOBILE HEADER (Visible only on mobile below md) */}
       <div className="md:hidden w-full bg-white/95 border-b border-dark/5 flex flex-col relative z-10">
         {/* Top row: Hamburger Menu, Logo, Profile, Cart */}
-        <div className="flex items-center justify-between px-4 h-[54px] w-full border-b border-dark/5">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between px-4 max-[320px]:px-2 h-[54px] w-full border-b border-dark/5 mobile-header-row">
+          <div className="flex items-center gap-3 max-[320px]:gap-1 mobile-header-left">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="text-dark/75 hover:text-primary transition-colors focus:outline-none p-1 -ml-1 cursor-pointer"
+              className="text-dark/75 hover:text-primary transition-colors focus:outline-none p-1 max-[320px]:p-0 -ml-1 cursor-pointer mobile-header-menu-btn"
             >
               <MdMenu className="text-2xl" />
             </button>
-            <Link to="/" className="flex items-center gap-1.5 shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg">
+            <Link to="/" className="flex items-center gap-1.5 max-[320px]:gap-1 shrink-0">
+              <div className="w-8 h-8 max-[320px]:w-5.5 max-[320px]:h-5.5 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg max-[320px]:text-xs mobile-header-logo-badge">
                 +
               </div>
-              <span className="text-lg font-black tracking-tight text-primary">
+              <span className="text-lg max-[320px]:text-[12px] font-black tracking-tight text-primary mobile-header-logo-text">
                 MediQuick
               </span>
             </Link>
           </div>
           
-          <div className="flex items-center gap-4 text-dark/75">
+          <div className="flex items-center gap-4 max-[320px]:gap-3 text-dark/75 shrink-0 mobile-header-right">
             {/* Account/Profile Dropdown Trigger */}
-            <div className="relative" ref={mobileProfileRef}>
+            <div className="relative shrink-0 flex items-center" ref={mobileProfileRef}>
               <button 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="p-1 cursor-pointer"
+                className="flex items-center justify-center p-1 max-[320px]:p-0 max-[320px]:min-w-0 max-[320px]:min-h-0 cursor-pointer mobile-header-icon-btn"
               >
                 <MdAccountCircle className="text-2xl" />
               </button>
@@ -615,14 +618,14 @@ export default function Navigation() {
               )}
             </div>
 
+            {/* Wishlist */}
+            <Link to="/wishlist" className="relative flex items-center justify-center p-1 max-[320px]:p-0 shrink-0 mobile-header-icon-btn">
+              <MdFavoriteBorder className="text-2xl" />
+            </Link>
+
             {/* Shopping Cart */}
-            <Link to="/cart" className="relative p-1">
+            <Link to="/cart" className="relative flex items-center justify-center p-1 max-[320px]:p-0 shrink-0 mobile-header-icon-btn">
               <MdShoppingCart className="text-2xl" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-4 h-4 bg-secondary text-white text-[8px] font-black flex items-center justify-center rounded-full border border-white animate-pulse">
-                  {cartCount}
-                </span>
-              )}
             </Link>
           </div>
         </div>
@@ -733,8 +736,8 @@ export default function Navigation() {
                   <span className="text-[10px] font-bold text-dark/40 uppercase tracking-wider px-3 mb-1">Quick Links</span>
                   <Link to="/" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Home</Link>
                   <Link to="/medicines" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Medicines</Link>
+                  <Link to="/wishlist" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Wishlist</Link>
                   <Link to="/medicines?category=Lab%20Tests" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Lab Tests</Link>
-                  <Link to="/offers" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Offers</Link>
                   <Link to="/blogs" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Health Blogs</Link>
                   <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="px-3 py-2 text-xs font-bold text-dark/75 hover:bg-background hover:text-primary rounded-lg transition-colors">Contact</Link>
                   <button 
@@ -747,11 +750,6 @@ export default function Navigation() {
                     <span className="flex items-center gap-1.5">
                       <span className="text-sm">🔔</span> Notifications
                     </span>
-                    {unreadCount > 0 && (
-                      <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
                   </button>
                 </nav>
               </div>
@@ -983,14 +981,13 @@ export default function Navigation() {
             </div>
           )}
 
-          <div className="flex items-center gap-1 sm:gap-4 lg:gap-6 overflow-visible h-full flex-grow">
-            <Link to="/" className={isHomeActive ? "bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Home</Link>
-            <Link to="/medicines" className={isMedicinesActive ? "bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Medicines</Link>
-            <Link to="/medicines?category=Lab%20Tests" className={isLabTestsActive ? "bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Lab Tests</Link>
-            <Link to="/offers" className={isOffersActive ? "bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Offers</Link>
+          <div className="flex items-center gap-1 sm:gap-2.5 lg:gap-3 overflow-visible h-full flex-grow">
+            <Link to="/" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isHomeActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Home</Link>
+            <Link to="/medicines" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isMedicinesActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Medicines</Link>
+            <Link to="/medicines?category=Lab%20Tests" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isLabTestsActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Lab Tests</Link>
             
-            <Link to="/blogs" className={isBlogsActive ? "hidden lg:flex bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "hidden lg:flex text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Health Blogs</Link>
-            <Link to="/contact" className={isContactActive ? "hidden lg:flex bg-[#00695C] text-white font-bold rounded-lg px-3 py-1.5 transition-colors shrink-0" : "hidden lg:flex text-white/85 hover:text-white hover:bg-[#00796B]/50 transition-colors rounded-lg px-3 py-1.5 shrink-0"}>Contact</Link>
+            <Link to="/blogs" className={`w-28 h-8.5 hidden lg:inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isBlogsActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Health Blogs</Link>
+            <Link to="/contact" className={`w-28 h-8.5 hidden lg:inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isContactActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Contact</Link>
  
             {/* Tablet "More" Dropdown Menu */}
             <div ref={moreMenuRef} className="lg:hidden relative shrink-0">

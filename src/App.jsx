@@ -6,6 +6,7 @@ import { LocationProvider } from './context/LocationContext';
 import { ProductsProvider } from './context/ProductsContext';
 import { CartProvider } from './context/CartContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { WishlistProvider } from './context/WishlistContext';
 import AppRoutes from './routes/AppRoutes';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
@@ -89,7 +90,9 @@ function App() {
             <ProductsProvider>
               <CartProvider>
                 <NotificationProvider>
-                  <AppContent />
+                  <WishlistProvider>
+                    <AppContent />
+                  </WishlistProvider>
                 </NotificationProvider>
               </CartProvider>
             </ProductsProvider>

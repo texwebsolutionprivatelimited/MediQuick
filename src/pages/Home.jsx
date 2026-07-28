@@ -18,10 +18,13 @@ import {
   MdRoom,
   MdExpandMore,
   MdCall,
-  MdCheckCircle
+  MdCheckCircle,
+  MdFavorite,
+  MdFavoriteBorder
 } from 'react-icons/md';
 import { FaWhatsapp } from 'react-icons/fa';
 import MedicineImage from '../components/MedicineImage';
+import { useWishlist } from '../context/WishlistContext';
 
 // Data sets matching the requested 10 categories
 const CATEGORIES = [
@@ -108,6 +111,7 @@ const FAQS = [
 ];
 
 function ProductSection({ title, products, addToCart, navigate }) {
+  const { toggleWishlist, isInWishlist } = useWishlist();
   if (!products || products.length === 0) return null;
   return (
     <section className="py-12 bg-white border-t border-dark/5">
@@ -117,11 +121,11 @@ function ProductSection({ title, products, addToCart, navigate }) {
           <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4 select-none">
+        <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4 select-none">
           {products.map((product) => (
             <div
               key={product.id}
-              className="w-full relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px]"
+              className="w-full relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft premium-card-hover flex flex-col justify-between h-full min-h-[340px]"
             >
               {product.prescription_required && (
                 <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10 select-none">
@@ -129,11 +133,26 @@ function ProductSection({ title, products, addToCart, navigate }) {
                 </span>
               )}
 
+              {/* Wishlist Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWishlist(product);
+                }}
+                className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white border border-dark/5 shadow-sm flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 cursor-pointer text-dark/45 hover:text-red-500"
+              >
+                {isInWishlist(product.id) ? (
+                  <MdFavorite className="text-lg text-red-500" />
+                ) : (
+                  <MdFavoriteBorder className="text-lg" />
+                )}
+              </button>
+
               <div 
                 onClick={() => navigate(`/product/${product.id}`)}
-                className="cursor-pointer flex flex-col flex-grow"
+                className="cursor-pointer flex flex-col flex-grow animate-fadeIn"
               >
-                <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1 shrink-0">
+                <div className="product-image-container max-[320px]:w-[120px] max-[320px]:h-[120px] max-[320px]:p-2.5 mb-3">
                   <MedicineImage product={product} />
                 </div>
                 <div className="text-left flex-grow flex flex-col justify-between">
@@ -367,7 +386,7 @@ export default function Home() {
 
       {/* 🚀 3. HERO BANNER */}
       <section className="relative overflow-hidden py-12 md:py-16 text-center md:text-left select-none border-b border-dark/5 bg-white">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 lg:px-6 w-full hero-banner-container">
           <div className="bg-gradient-to-r from-[#E2F3F0] to-[#E3F2FD] rounded-[32px] p-6 md:p-12 relative overflow-hidden min-h-[360px] flex flex-col justify-center">
             
             <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />

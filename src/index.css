@@ -137,3 +137,156 @@ html, body {
     padding-top: 12px !important;
   }
 }
+
+/* Premium Product Card Hover Animation */
+.premium-card-hover {
+  transition: transform 250ms ease-in-out, box-shadow 250ms ease-in-out;
+  will-change: transform, box-shadow;
+}
+
+@media (hover: hover) {
+  .premium-card-hover:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 10px 25px -5px rgba(6, 59, 68, 0.1), 0 8px 16px -4px rgba(6, 59, 68, 0.05);
+  }
+}
+
+/* Standardized Product Image Container */
+.product-image-container {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-width: 300px;
+  max-height: 300px;
+  background-color: #ffffff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(6, 59, 68, 0.05);
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 640px) {
+  .product-image-container {
+    padding: 24px;
+  }
+}
+
+.product-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(1.05); /* Slightly scale up to reduce excessive transparent margins/edges */
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  .premium-card-hover:hover .product-image-container img {
+    transform: scale(1.08); /* Zoom only the product image slightly (3%) on card hover */
+  }
+}
+
+/* Samsung Galaxy S8+ (360px width) navbar overrides */
+@media (width: 360px) {
+  .mobile-header-row {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .mobile-header-left {
+    gap: 8px !important;
+  }
+  .mobile-header-menu-btn {
+    padding: 2px !important;
+  }
+  .mobile-header-logo-badge {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 14px !important;
+  }
+  .mobile-header-logo-text {
+    font-size: 14px !important;
+  }
+  .mobile-header-right {
+    gap: 10px !important;
+  }
+  .mobile-header-icon-btn {
+    padding: 2px !important;
+    min-width: 0px !important;
+    min-height: 0px !important;
+  }
+}
+
+/* Galaxy Z Fold 5 (344px width) navbar overrides */
+@media (width: 344px) {
+  .mobile-header-row {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .mobile-header-left {
+    gap: 6px !important;
+  }
+  .mobile-header-menu-btn {
+    padding: 1px !important;
+  }
+  .mobile-header-logo-badge {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 13px !important;
+  }
+  .mobile-header-logo-text {
+    font-size: 13px !important;
+  }
+  .mobile-header-right {
+    gap: 10px !important;
+  }
+  .mobile-header-icon-btn {
+    padding: 1px !important;
+    min-width: 0px !important;
+    min-height: 0px !important;
+  }
+}
+
+/* Desktop (1440px width) hero/banner container overrides */
+@media (width: 1440px) {
+  .hero-banner-container {
+    max-width: 1360px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+/* Card Product Image overrides for 344px and 360px viewport widths */
+@media (width: 344px), (width: 360px) {
+  .product-image-container {
+    max-width: 115px !important;
+    max-height: 115px !important;
+    padding: 8px !important;
+  }
+  .product-image-container img {
+    width: 85% !important;
+    height: 85% !important;
+    transform: scale(1) !important;
+    object-fit: contain !important;
+  }
+}
+
+/* Responsive Product Image Frame Scaling for 344px and 360px on Product Details page */
+@media (width: 344px), (width: 360px) {
+  .product-detail-image-frame {
+    min-height: 200px !important;
+    padding: 8px !important;
+  }
+  .product-image-container.product-detail-image-container {
+    max-width: 160px !important;
+    max-height: 160px !important;
+    padding: 16px !important;
+  }
+}
+
+
+

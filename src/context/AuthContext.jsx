@@ -339,6 +339,21 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateUserProfile = (updatedFields) => {
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...updatedFields };
+      const storedUser = localStorage.getItem('mediquick_current_user');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          localStorage.setItem('mediquick_current_user', JSON.stringify({ ...parsed, ...updatedFields }));
+        } catch (_e) {}
+      }
+      return updated;
+    });
+  };
+
   const value = {
     currentUser,
     loading,
@@ -348,7 +363,8 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     loginWithApple,
     sendPasswordReset,
-    resetPassword
+    resetPassword,
+    updateUserProfile
   };
 
   return (

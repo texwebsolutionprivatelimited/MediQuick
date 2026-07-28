@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation as useRouterLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
@@ -14,12 +14,15 @@ import {
   MdReceipt,
   MdCheckCircle,
   MdArrowBack,
-  MdMyLocation
+  MdMyLocation,
+  MdPercent
 } from 'react-icons/md';
+import { isCouponApplicableToCart, getCouponForProduct } from '../utils/couponMatcher';
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { cartItems, getSubtotal, getDiscount, clearCart, coupon } = useCart();
+  const routerLocation = useRouterLocation();
+  const { cartItems, getSubtotal, getDiscount, clearCart, coupon, applyCoupon, removeCoupon, availableCoupons } = useCart();
   const { address, detectLocation, loading: locLoading, error: locError, distance, deliveryType, calculateDeliveryFee } = useLocation();
   const { systemSettings, deliverySettings } = useSettings();
   const { currentUser } = useAuth();
@@ -31,6 +34,119 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState("cod"); // "cod", "upi", "card"
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
+
+  // Promo code states
+  const [promoInput, setPromoInput] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoSuccess, setPromoSuccess] = useState("");
+  const [copiedPromo, setCopiedPromo] = useState("");
+
+  const handleCopyPromo = (code) => {
+    navigator.clipboard.writeText(code);
+    setCopiedPromo(code);
+    setTimeout(() => setCopiedPromo(""), 2000);
+  };
+
+  const handleApplyPromo = (code) => {
+    setPromoError("");
+    setPromoSuccess("");
+    if (!code || !code.trim()) {
+      setPromoError("Please enter a promo code.");
+      return;
+    }
+
+    const codeUpper = code.trim().toUpperCase();
+    // Check if the code is in the available coupons from Firestore
+    let found = availableCoupons.find(c => {
+      const cCode = c.couponCode || c.code;
+      return cCode && cCode.trim().toUpperCase() === codeUpper;
+    });
+
+    // If not found in Firestore availableCoupons, check if it's on any of the cart items!
+    if (!found) {
+      const itemWithCoupon = cartItems.find(item => {
+        const itemCouponCode = item.couponCode || item.coupon_code;
+        return itemCouponCode && itemCouponCode.trim().toUpperCase() === codeUpper;
+      });
+      if (itemWithCoupon) {
+        const itemDiscount = itemWithCoupon.discountPercentage !== undefined ? itemWithCoupon.discountPercentage : itemWithCoupon.discount_percentage || 0;
+        found = {
+          id: `cp-${itemWithCoupon.id}`,
+          couponCode: itemWithCoupon.couponCode || itemWithCoupon.coupon_code,
+          discount: itemDiscount,
+          discountPercentage: itemDiscount,
+          status: 'active'
+        };
+      }
+    }
+
+    if (!found) {
+      setPromoError("Invalid promo code.");
+      return;
+    }
+
+    if (found.status !== 'active') {
+      setPromoError("This promo code is inactive.");
+      return;
+    }
+
+    // Expiry check
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (found.expiryDate && found.expiryDate < todayStr) {
+      setPromoError("This promo code has expired.");
+      return;
+    }
+
+    // Check minimum order
+    if (found.minimumOrder && subtotal < Number(found.minimumOrder)) {
+      setPromoError(`Minimum order of ₹${found.minimumOrder} required.`);
+      return;
+    }
+
+    // Check discount percentage match (all eligible products must have the same discount percentage)
+    const buyNowProduct = routerLocation.state?.buyNowProduct;
+    if (buyNowProduct) {
+      const buyNowDiscount = Number(buyNowProduct.discountPercentage !== undefined ? buyNowProduct.discountPercentage : buyNowProduct.discount_percentage) || 0;
+      const couponDiscount = Number(found.discountPercentage !== undefined ? found.discountPercentage : found.discount);
+      if (buyNowDiscount !== couponDiscount) {
+        setPromoError("This promo code is not applicable to your cart.");
+        return;
+      }
+    } else {
+      const activeDiscounts = cartItems
+        .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
+        .filter(d => d > 0);
+      const uniqueDiscounts = [...new Set(activeDiscounts)];
+
+      if (uniqueDiscounts.length > 1) {
+        setPromoError("This promo code is not applicable to your cart.");
+        return;
+      }
+
+      if (uniqueDiscounts.length === 1) {
+        const couponDiscount = Number(found.discountPercentage !== undefined ? found.discountPercentage : found.discount);
+        if (uniqueDiscounts[0] !== couponDiscount) {
+          setPromoError("This promo code is not applicable to your cart.");
+          return;
+        }
+      }
+    }
+
+    // Apply the coupon
+    const res = applyCoupon(codeUpper);
+    if (res.success) {
+      setPromoSuccess(res.message);
+      setPromoInput("");
+    } else {
+      setPromoError(res.message);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    removeCoupon();
+    setPromoSuccess("");
+    setPromoError("");
+  };
 
   // Sync deliveryAddress state when address is detected/changed in context (e.g. from header selector or checkout button)
   React.useEffect(() => {
@@ -48,6 +164,108 @@ export default function Checkout() {
   };
 
   const subtotal = getSubtotal();
+  const uniqueCartDiscounts = React.useMemo(() => {
+    const discounts = cartItems
+      .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
+      .filter(d => d > 0);
+    return [...new Set(discounts)];
+  }, [cartItems]);
+
+  const applicableCoupons = React.useMemo(() => {
+    // Check if the route contains buyNowProduct (Buy Now flow)
+    const buyNowProduct = routerLocation.state?.buyNowProduct;
+    if (buyNowProduct) {
+      const itemCouponCode = buyNowProduct.couponCode || buyNowProduct.coupon_code;
+      if (itemCouponCode) {
+        const match = availableCoupons.find(c => {
+          const cCode = c.couponCode || c.code;
+          return cCode && cCode.trim().toUpperCase() === itemCouponCode.trim().toUpperCase();
+        });
+        if (match) return [match];
+        
+        const itemDiscount = buyNowProduct.discountPercentage !== undefined ? buyNowProduct.discountPercentage : buyNowProduct.discount_percentage || 0;
+        return [{
+          id: `cp-${buyNowProduct.id}`,
+          couponCode: itemCouponCode,
+          discount: itemDiscount,
+          discountPercentage: itemDiscount,
+          description: `Applicable for this order`,
+          status: 'active'
+        }];
+      } else {
+        const discountVal = buyNowProduct.discountPercentage !== undefined ? buyNowProduct.discountPercentage : buyNowProduct.discount_percentage;
+        if (discountVal && Number(discountVal) > 0) {
+          const match = getCouponForProduct(discountVal, availableCoupons);
+          if (match) return [match];
+        }
+      }
+      return [];
+    }
+
+    if (!cartItems || cartItems.length === 0) {
+      return [];
+    }
+
+    const activeDiscounts = cartItems
+      .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
+      .filter(d => d > 0);
+    const uniqueDiscounts = [...new Set(activeDiscounts)];
+
+    if (uniqueDiscounts.length > 1) {
+      return [];
+    }
+
+    const coupons = [];
+    
+    cartItems.forEach(item => {
+      const itemCouponCode = item.couponCode || item.coupon_code;
+      if (itemCouponCode) {
+        const match = availableCoupons.find(c => {
+          const cCode = c.couponCode || c.code;
+          return cCode && cCode.trim().toUpperCase() === itemCouponCode.trim().toUpperCase();
+        });
+        if (match) {
+          const exists = coupons.some(c => (c.couponCode || c.code) === (match.couponCode || match.code));
+          if (!exists) {
+            coupons.push(match);
+          }
+        } else {
+          const itemDiscount = item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage || 0;
+          const exists = coupons.some(c => c.couponCode === itemCouponCode);
+          if (!exists) {
+            coupons.push({
+              id: `cp-${item.id}`,
+              couponCode: itemCouponCode,
+              discount: itemDiscount,
+              discountPercentage: itemDiscount,
+              description: `Applicable for this order`,
+              status: 'active'
+            });
+          }
+        }
+      } else {
+        const discountVal = item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage;
+        if (discountVal && Number(discountVal) > 0) {
+          const match = getCouponForProduct(discountVal, availableCoupons);
+          if (match) {
+            const exists = coupons.some(c => {
+              const codeName = match.couponCode || match.code;
+              return (c.couponCode || c.code) === codeName;
+            });
+            if (!exists) {
+              coupons.push(match);
+            }
+          }
+        }
+      }
+    });
+
+    return coupons;
+  }, [cartItems, availableCoupons, routerLocation.state]);
+
+  const totalMSRP = cartItems.reduce((sum, item) => sum + (item.mrp || item.price || 0) * item.quantity, 0);
+  const productDiscount = Math.max(0, totalMSRP - subtotal);
+
   const discount = getDiscount();
   const deliveryFee = calculateDeliveryFee(subtotal);
   const total = Math.max(0, subtotal - discount + deliveryFee);
@@ -339,20 +557,128 @@ export default function Checkout() {
               </div>
             </div>
 
+            {/* PROMO CODE SECTION */}
+            <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">
+              <h3 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">PROMO CODE</h3>
+              
+              {/* Display available applicable coupon(s) */}
+              {applicableCoupons.length > 0 ? (
+                <div className="space-y-3">
+                  {applicableCoupons.map((cp) => {
+                    const cpCodeName = cp.couponCode || cp.code;
+                    const cpDiscountValue = cp.discountPercentage !== undefined ? cp.discountPercentage : cp.discount;
+                    const isApplied = coupon && (coupon.code === cpCodeName || coupon.couponCode === cpCodeName);
+                    return (
+                      <div key={cp.id} className="p-3 bg-primary/5 rounded-xl border border-primary/10 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-primary text-xs tracking-wide">{cpCodeName}</span>
+                          <span className="text-[10px] font-black text-secondary-dark bg-secondary/15 px-2 py-0.5 rounded-full">{cpDiscountValue}% OFF</span>
+                        </div>
+                        <p className="text-[10px] text-dark/65 font-medium leading-normal">{cp.description || 'Applicable for this order'}</p>
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleCopyPromo(cpCodeName)}
+                            className="flex-grow py-1.5 bg-white border border-dark/10 hover:border-dark/20 text-dark/70 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                          >
+                            {copiedPromo === cpCodeName ? "Copied!" : "Copy Code"}
+                          </button>
+                          {!isApplied ? (
+                            <button
+                              type="button"
+                              onClick={() => handleApplyPromo(cpCodeName)}
+                              className="flex-grow py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors"
+                            >
+                              Apply
+                            </button>
+                          ) : (
+                            <span className="flex-grow py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1">
+                              Applied ✓
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[10px] text-dark/45 font-medium">No promo code available for this order.</p>
+              )}
+
+              {/* Coupon Input Form */}
+              <div className="space-y-2 pt-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter promo code"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value)}
+                    className="flex-grow px-3 py-2 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background text-xs uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPromo(promoInput)}
+                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoError && (
+                  <p className="text-[10px] text-red-500 font-semibold mt-1">{promoError}</p>
+                )}
+                {promoSuccess && (
+                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">{promoSuccess}</p>
+                )}
+              </div>
+
+              {/* After Successful Application Details */}
+              {coupon && (
+                <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl flex items-center justify-between gap-3 text-xs text-left">
+                  <div className="leading-tight">
+                    <p className="font-bold text-emerald-800 flex items-center gap-1">
+                      Coupon Applied <span className="text-emerald-600">✓</span>
+                    </p>
+                    <p className="text-[10px] font-extrabold text-emerald-700 mt-0.5">{coupon.couponCode || coupon.code}</p>
+                    <p className="text-[10px] text-emerald-600/80 font-medium mt-1">You saved ₹{discount}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemovePromo}
+                    className="text-[10px] text-red-500 hover:text-red-700 font-bold hover:underline cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Calculations and submit Button */}
             <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">
               <h3 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">Price Summary</h3>
               
               <div className="space-y-2.5 text-xs text-dark/70">
-                <div className="flex justify-between">
-                  <span>Cart Subtotal</span>
-                  <span className="font-bold text-dark">₹{subtotal}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-secondary-dark">
-                    <span>Coupon Discount</span>
-                    <span className="font-bold">-₹{discount}</span>
-                  </div>
+                {coupon ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Cart Subtotal (MSRP)</span>
+                      <span className="font-bold text-dark">₹{totalMSRP}</span>
+                    </div>
+                    <div className="flex justify-between text-dark/60">
+                      <span>Discount</span>
+                      <span className="font-bold text-secondary-dark">-₹{productDiscount}</span>
+                    </div>
+                    <div className="flex justify-between text-secondary-dark">
+                      <span>Promo Savings</span>
+                      <span className="font-bold">-₹{discount}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Cart Subtotal</span>
+                      <span className="font-bold text-dark">₹{subtotal}</span>
+                    </div>
+                  </>
                 )}
                 <div className="flex justify-between">
                   <span>Delivery Charges</span>
@@ -375,7 +701,9 @@ export default function Checkout() {
               )}
 
               <div className="border-t border-dark/5 pt-4 flex justify-between items-baseline">
-                <span className="font-bold text-dark text-sm sm:text-base">Grand Total</span>
+                <span className="font-bold text-dark text-sm sm:text-base">
+                  {coupon ? "Final Total" : "Grand Total"}
+                </span>
                 <span className="font-black text-primary text-xl sm:text-2xl">₹{total}</span>
               </div>
 

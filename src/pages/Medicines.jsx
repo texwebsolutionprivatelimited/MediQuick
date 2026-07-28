@@ -9,9 +9,12 @@ import {
   MdShoppingCart, 
   MdFilterList, 
   MdClose,
-  MdSort
+  MdSort,
+  MdFavorite,
+  MdFavoriteBorder
 } from 'react-icons/md';
 import { useProducts } from '../context/ProductsContext';
+import { useWishlist } from '../context/WishlistContext';
 
 function Highlight({ text, search }) {
   if (!search || !search.trim()) return <span>{text}</span>;
@@ -54,6 +57,7 @@ const QUERY_TO_CATEGORY_MAP = {
 
 export default function Medicines() {
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { products: productsData, categories, loading } = useProducts();
@@ -129,10 +133,10 @@ export default function Medicines() {
     }
 
     // Synchronize Categories
-    const parsedCats = urlCategoryVal ? urlCategoryVal.split(",").map(c => {
+    const parsedCats = urlCategoryVal ? [urlCategoryVal.split(",").map(c => {
       const normalized = c.toLowerCase().trim();
       return QUERY_TO_CATEGORY_MAP[normalized] || c;
-    }) : [];
+    })[0]] : [];
     if (JSON.stringify(parsedCats) !== JSON.stringify(selectedCategories)) {
       setSelectedCategories(parsedCats);
     }
@@ -344,7 +348,7 @@ export default function Medicines() {
 
   const handleCategoryToggle = (cat) => {
     setSelectedCategories(prev => {
-      const updated = prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat];
+      const updated = prev.includes(cat) ? [] : [cat];
       setSelectedSubcategories([]);
       return updated;
     });
@@ -379,12 +383,12 @@ export default function Medicines() {
 
 
       {/* 📦 CATALOG CONTAINER */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-2.5 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* 🛡️ SIDEBAR FILTERS (DESKTOP) */}
-          <aside className="hidden lg:block bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-6 h-fit sticky top-24 select-none">
-            <div className="flex items-center justify-between border-b border-dark/5 pb-4">
+          <aside className="hidden lg:block bg-white border border-dark/5 px-6 py-4 rounded-[24px] shadow-soft space-y-4 h-fit sticky top-24 select-none">
+            <div className="flex items-center justify-between border-b border-dark/5 pb-2">
               <h3 className="font-bold text-dark flex items-center gap-1.5">
                 <MdFilterList className="text-primary text-xl" /> Filters
               </h3>
@@ -394,8 +398,9 @@ export default function Medicines() {
               >
                 Clear All
               </button>
-            </div>            {/* Category or Subcategory Filter */}
-            <div className="space-y-2">
+            </div>
+            {/* Category or Subcategory Filter */}
+            <div className="space-y-2 mt-2.5">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-xs text-dark uppercase tracking-wider">
                   {activeCategory ? `${activeCategory} Types` : "Categories"}
@@ -516,10 +521,10 @@ export default function Medicines() {
           </aside>
 
           {/* 🧪 PRODUCT LIST SECTION */}
-          <main className="lg:col-span-3 space-y-6">
+          <main className="lg:col-span-3">
             
             {/* 🏷️ HORIZONTAL CATEGORY QUICK-NAV */}
-            <div className="flex gap-2 overflow-x-auto pb-2.5 scrollbar-none select-none -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none select-none -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => {
                   setSelectedCategories([]);
@@ -555,7 +560,7 @@ export default function Medicines() {
             </div>
 
             {/* Header controls bar */}
-            <div className="bg-white border border-dark/5 px-4 sm:px-6 py-4 rounded-[20px] shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white border border-dark/5 px-4 sm:px-6 py-4 rounded-[20px] shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-1">
               <div className="text-left leading-none">
                 <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider">Catalog search</span>
                 <h2 className="text-base sm:text-lg font-extrabold text-dark mt-1">
@@ -591,15 +596,15 @@ export default function Medicines() {
 
             {/* Cards Grid */}
             {loading && filteredProducts.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 mt-4">
                 <LoadingSkeleton type="card" count={6} />
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 mt-4">
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
-                    className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px] w-full"
+                    className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft premium-card-hover flex flex-col justify-between h-full min-h-[340px] w-full"
                   >
                     {/* Prescription Required Tag */}
                     {product.prescription_required && (
@@ -608,12 +613,26 @@ export default function Medicines() {
                       </span>
                     )}
 
-                    {/* Clickable Image & Details */}
+                    {/* Wishlist Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(product);
+                      }}
+                      className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white border border-dark/5 shadow-sm flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 cursor-pointer text-dark/45 hover:text-red-500"
+                    >
+                      {isInWishlist(product.id) ? (
+                        <MdFavorite className="text-lg text-red-500" />
+                      ) : (
+                        <MdFavoriteBorder className="text-lg" />
+                      )}
+                    </button>
+
                     <div 
                       onClick={() => navigate(`/product/${product.id}`)}
                       className="cursor-pointer flex flex-col flex-grow"
                     >
-                      <div className="w-full h-28 flex items-center justify-center mb-3 overflow-hidden rounded-xl bg-white border border-dark/5 p-1 shrink-0">
+                      <div className="product-image-container max-[320px]:w-[120px] max-[320px]:h-[120px] max-[320px]:p-2.5 mb-3">
                         <MedicineImage product={product} />
                       </div>
                       <div className="text-left flex-grow flex flex-col justify-between">
@@ -670,7 +689,7 @@ export default function Medicines() {
                 ))}
               </div>
             ) : (
-              <Card hoverable={false} className="py-16 text-center bg-white border border-dark/5 rounded-[24px]">
+              <Card hoverable={false} className="py-16 text-center bg-white border border-dark/5 rounded-[24px] mt-4">
                 <div className="text-4xl text-dark/30 mb-4">🔍</div>
                 <h3 className="text-lg font-bold text-dark">No Products Found</h3>
                 <p className="text-xs text-dark/50 mt-1 max-w-xs mx-auto">We couldn't find any products matching your active search filters. Try adjusting your checkboxes or min-max range.</p>
@@ -694,10 +713,10 @@ export default function Medicines() {
           <motion.div 
             initial={{ x: 300, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            className="w-full max-w-xs bg-white h-full p-6 shadow-premium overflow-y-auto space-y-6 flex flex-col justify-between"
+            className="w-full max-w-xs bg-white h-full px-6 py-4 shadow-premium overflow-y-auto space-y-4 flex flex-col justify-between"
           >
-            <div className="space-y-6">
-              <div className="flex items-center justify-between border-b border-dark/5 pb-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-dark/5 pb-2">
                 <h3 className="font-bold text-dark flex items-center gap-1.5">
                   <MdFilterList className="text-primary text-xl" /> Filters
                 </h3>
@@ -710,7 +729,7 @@ export default function Medicines() {
               </div>
 
               {/* Category or Subcategory Filter */}
-              <div className="space-y-2">
+              <div className="space-y-2 mt-2.5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-xs text-dark uppercase tracking-wider">
                     {activeCategory ? `${activeCategory} Types` : "Categories"}

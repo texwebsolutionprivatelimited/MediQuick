@@ -476,6 +476,26 @@ export function ProductsProvider({ children }) {
     }
   };
 
+  const updateProductStats = async (productId, averageRating, reviewCount) => {
+    if (isConfigValid && db) {
+      try {
+        await updateDoc(doc(db, 'products', productId), {
+          averageRating: Number(averageRating),
+          reviewCount: Number(reviewCount)
+        });
+      } catch (err) {
+        console.warn("Failed to update product stats in Firestore:", err);
+      }
+    }
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId
+          ? { ...p, averageRating: Number(averageRating), reviewCount: Number(reviewCount) }
+          : p
+      )
+    );
+  };
+
   const value = {
     products,
     categories,
@@ -486,6 +506,7 @@ export function ProductsProvider({ children }) {
     addCategory,
     updateCategory,
     deleteCategory,
+    updateProductStats,
     isFirebaseConnected: !!(isConfigValid && db)
   };
 
