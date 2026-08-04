@@ -488,6 +488,11 @@ export default function Navigation() {
             >
               <div className="relative transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary">
                 <MdShoppingCart className="text-[22px]" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+                    {cartItems.length}
+                  </span>
+                )}
               </div>
               <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Cart</span>
             </Link>
@@ -625,7 +630,14 @@ export default function Navigation() {
 
             {/* Shopping Cart */}
             <Link to="/cart" className="relative flex items-center justify-center p-1 max-[320px]:p-0 shrink-0 mobile-header-icon-btn">
-              <MdShoppingCart className="text-2xl" />
+              <div className="relative">
+                <MdShoppingCart className="text-2xl" />
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+                    {cartItems.length}
+                  </span>
+                )}
+              </div>
             </Link>
           </div>
         </div>
@@ -981,7 +993,7 @@ export default function Navigation() {
             </div>
           )}
 
-          <div className="flex items-center gap-1 sm:gap-2.5 lg:gap-3 overflow-visible h-full flex-grow">
+          <div className="flex items-center justify-between overflow-visible h-full flex-grow pl-6 lg:pl-12">
             <Link to="/" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isHomeActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Home</Link>
             <Link to="/medicines" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isMedicinesActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Medicines</Link>
             <Link to="/medicines?category=Lab%20Tests" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isLabTestsActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Lab Tests</Link>
