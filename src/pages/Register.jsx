@@ -113,7 +113,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-[#F8FCFC] px-4 py-12 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FCFC] px-4 py-12 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -189,6 +189,7 @@ export default function Register() {
                     message: 'Invalid email address'
                   }
                 })}
+                rightElement={<MdMailOutline className="text-dark/35 text-lg" />}
               />
             </div>
 
@@ -208,7 +209,7 @@ export default function Register() {
                 })}
               />
 
-              <div className="relative">
+              <div>
                 <Input
                   label="Password"
                   type={showPassword ? 'text' : 'password'}
@@ -219,15 +220,16 @@ export default function Register() {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Password must be at least 6 characters' }
                   })}
+                  rightElement={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
+                    >
+                      {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                    </button>
+                  }
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-[38px] text-dark/35 hover:text-dark/75 focus:outline-none"
-                >
-                  {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-                </button>
-
                 {/* Password Strength Indicator */}
                 {passwordVal && (
                   <div className="mt-1.5 text-left">
@@ -244,26 +246,26 @@ export default function Register() {
 
             {/* Row 3: Confirm Password & Gender */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="relative">
-                <Input
-                  label="Confirm Password"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm your password"
-                  required
-                  error={errors.confirmPassword}
-                  {...register('confirmPassword', {
-                    required: 'Please confirm your password',
-                    validate: (value) => value === passwordVal || 'Passwords do not match'
-                  })}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-4 top-[38px] text-dark/35 hover:text-dark/75 focus:outline-none"
-                >
-                  {showConfirmPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-                </button>
-              </div>
+              <Input
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="Confirm your password"
+                required
+                error={errors.confirmPassword}
+                {...register('confirmPassword', {
+                  required: 'Please confirm your password',
+                  validate: (value) => value === passwordVal || 'Passwords do not match'
+                })}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
+                  >
+                    {showConfirmPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                  </button>
+                }
+              />
 
               <div className="flex flex-col text-left gap-1.5">
                 <label htmlFor="gender" className="text-xs font-semibold text-dark/70 tracking-wider uppercase select-none">

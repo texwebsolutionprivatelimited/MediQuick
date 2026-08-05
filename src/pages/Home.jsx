@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import QuantityStepper from '../components/QuantityStepper';
 import { useProducts } from '../context/ProductsContext';
 import { 
   MdUploadFile, 
@@ -110,8 +111,9 @@ const FAQS = [
   }
 ];
 
-function ProductSection({ title, products, addToCart, navigate }) {
+function ProductSection({ title, products, addToCart: propAddToCart, navigate }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { cartItems, addToCart, updateQuantity } = useCart();
   if (!products || products.length === 0) return null;
   return (
     <section className="py-12 bg-white border-t border-dark/5">
@@ -185,21 +187,37 @@ function ProductSection({ title, products, addToCart, navigate }) {
                   {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                 </p>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(product, 1);
-                  }}
-                  disabled={product.stock <= 0}
-                  className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
-                    product.stock > 0 
-                      ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
-                      : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
-                  }`}
-                >
-                  <MdShoppingCart className="text-xs" />
-                  Add to Cart
-                </button>
+                {(() => {
+                  const cartItem = cartItems.find((item) => item.id === product.id);
+                  const cartQty = cartItem ? cartItem.quantity : 0;
+                  if (cartQty > 0) {
+                    return (
+                      <QuantityStepper
+                        quantity={cartQty}
+                        onIncrease={() => updateQuantity(product.id, cartQty + 1)}
+                        onDecrease={() => updateQuantity(product.id, cartQty - 1)}
+                        className="w-full mt-2.5"
+                      />
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product, 1);
+                      }}
+                      disabled={product.stock <= 0}
+                      className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
+                        product.stock > 0 
+                          ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
+                          : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
+                      }`}
+                    >
+                      <MdShoppingCart className="text-xs" />
+                      Add to Cart
+                    </button>
+                  );
+                })()}
               </div>
             </div>
           ))}
@@ -211,7 +229,7 @@ function ProductSection({ title, products, addToCart, navigate }) {
 
 export default function Home() {
   const { currentUser } = useAuth();
-  const { addToCart } = useCart();
+  const { cartItems, addToCart, updateQuantity } = useCart();
   const { address, detectLocation, loading: locLoading, userCoords } = useLocation();
   const navigate = useNavigate();
   const { products: productsData } = useProducts();

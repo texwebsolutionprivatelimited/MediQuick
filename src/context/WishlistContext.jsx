@@ -75,6 +75,10 @@ export function WishlistProvider({ children }) {
 
   const toggleWishlist = async (product) => {
     if (!currentUser) {
+      localStorage.setItem('mediquick_pending_action', JSON.stringify({
+        type: 'TOGGLE_WISHLIST',
+        payload: { product }
+      }));
       // Redirect to login page and preserve redirect path
       showToast("Please login to manage wishlist");
       navigate('/login', { state: { from: location } });

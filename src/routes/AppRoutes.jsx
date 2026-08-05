@@ -80,7 +80,7 @@ export default function AppRoutes() {
     <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -88,20 +88,20 @@ export default function AppRoutes() {
         <Route path="/admin/login" element={<AdminLogin />} />
 
         {/* Protected User Routes */}
-        <Route path="/about" element={<ProtectedRoute><About /></ProtectedRoute>} />
-        <Route path="/blogs" element={<ProtectedRoute><Blogs /></ProtectedRoute>} />
-        <Route path="/faq" element={<ProtectedRoute><Faq /></ProtectedRoute>} />
-        <Route path="/refund-policy" element={<ProtectedRoute><RefundPolicy /></ProtectedRoute>} />
-        <Route path="/careers" element={<ProtectedRoute><Careers /></ProtectedRoute>} />
-        <Route path="/medicines" element={<ProtectedRoute><Medicines /></ProtectedRoute>} />
-        <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-        <Route path="/product/:id" element={<ProtectedRoute><ProductDetails /></ProtectedRoute>} />
+        <Route path="/about" element={<About />} />
+        <Route path="/blogs" element={<Blogs />} />
+        <Route path="/faq" element={<Faq />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/medicines" element={<Medicines />} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/upload-prescription" element={<ProtectedRoute><UploadPrescription /></ProtectedRoute>} />
         <Route path="/order-tracking" element={<ProtectedRoute><OrderTracking /></ProtectedRoute>} />
-        <Route path="/contact" element={<ProtectedRoute><Contact /></ProtectedRoute>} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         
         {/* Protected Admin Routes */}

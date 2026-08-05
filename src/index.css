@@ -67,6 +67,18 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
+/* Hide browser-specific password reveal button to prevent duplicates */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+
 /* Custom Sticky Table Headers & Responsive Container */
 .table-responsive-container {
   width: 100%;

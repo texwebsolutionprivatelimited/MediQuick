@@ -92,6 +92,7 @@ export default function Navigation() {
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   const routeLocation = useRouteLocation();
+  const isAuthPage = ['/login', '/register', '/forgot-password'].includes(routeLocation.pathname);
 
   useEffect(() => {
     if (routeLocation.pathname !== '/medicines') {
@@ -151,6 +152,10 @@ export default function Navigation() {
       console.error("Failed to log out:", err);
     }
   };
+
+  if (isAuthPage) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full flex flex-col shadow-soft select-none font-sans bg-white">
@@ -477,6 +482,11 @@ export default function Navigation() {
             >
               <div className="relative transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary">
                 <MdFavoriteBorder className="text-[22px]" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+                    {wishlistCount}
+                  </span>
+                )}
               </div>
               <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Wishlist</span>
             </Link>
@@ -625,7 +635,14 @@ export default function Navigation() {
 
             {/* Wishlist */}
             <Link to="/wishlist" className="relative flex items-center justify-center p-1 max-[320px]:p-0 shrink-0 mobile-header-icon-btn">
-              <MdFavoriteBorder className="text-2xl" />
+              <div className="relative">
+                <MdFavoriteBorder className="text-2xl" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+                    {wishlistCount}
+                  </span>
+                )}
+              </div>
             </Link>
 
             {/* Shopping Cart */}
@@ -767,8 +784,7 @@ export default function Navigation() {
               </div>
 
               {/* Categories collapsible/accordion list */}
-              {currentUser && (
-                <div className="space-y-2 text-left border-t border-dark/5 pt-4">
+              <div className="space-y-2 text-left border-t border-dark/5 pt-4">
                   <span className="text-[10px] font-bold text-dark/40 uppercase tracking-wider px-3 block mb-1.5">Shop by Category</span>
                   <div className="space-y-2 px-1">
                     <Link 
@@ -827,7 +843,6 @@ export default function Navigation() {
                     })}
                   </div>
                 </div>
-              )}
 
               {/* Action buttons inside drawer */}
               {currentUser && (
@@ -915,83 +930,81 @@ export default function Navigation() {
         <div className="container mx-auto px-4 flex items-center gap-4 h-11 text-xs sm:text-sm font-semibold">
           
           {/* Categories dropdown tab (Fixed, no overflow clipping) */}
-          {currentUser && (
-            <div 
-              className="relative h-full shrink-0"
-              onMouseEnter={() => setCategoriesDropdownOpen(true)}
-              onMouseLeave={() => setCategoriesDropdownOpen(false)}
+          <div 
+            className="relative h-full shrink-0"
+            onMouseEnter={() => setCategoriesDropdownOpen(true)}
+            onMouseLeave={() => setCategoriesDropdownOpen(false)}
+          >
+            <button 
+              type="button"
+              onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
+              className="flex items-center gap-1 px-4 bg-[#00695C] hover:bg-[#004D40] h-full text-xs font-bold uppercase transition-colors outline-none cursor-pointer select-none"
             >
-              <button 
-                type="button"
-                onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
-                className="flex items-center gap-1 px-4 bg-[#00695C] hover:bg-[#004D40] h-full text-xs font-bold uppercase transition-colors outline-none cursor-pointer select-none"
-              >
-                <MdMenu className="text-base" />
-                All Categories
-                <MdKeyboardArrowDown className="text-base" />
-              </button>
+              <MdMenu className="text-base" />
+              All Categories
+              <MdKeyboardArrowDown className="text-base" />
+            </button>
 
-              {categoriesDropdownOpen && (
-                <>
-                  <div onClick={() => setCategoriesDropdownOpen(false)} className="fixed inset-0 z-30" />
-                  <div className="absolute left-0 mt-0.5 w-[768px] bg-white border border-dark/5 shadow-premium rounded-b-[24px] p-6 z-40 text-sm text-left max-h-[480px] overflow-y-auto scrollbar-thin">
-                    <div className="flex items-center justify-between border-b border-dark/5 pb-3 mb-4 select-none">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">🗂️</span>
-                        <span className="font-extrabold text-dark text-sm sm:text-base">Browse All Categories</span>
-                      </div>
-                      <Link 
-                        to="/categories" 
-                        onClick={() => setCategoriesDropdownOpen(false)} 
-                        className="text-xs font-bold text-primary hover:underline"
-                      >
-                        View Catalog Catalog →
-                      </Link>
+            {categoriesDropdownOpen && (
+              <>
+                <div onClick={() => setCategoriesDropdownOpen(false)} className="fixed inset-0 z-30" />
+                <div className="absolute left-0 mt-0.5 w-[768px] bg-white border border-dark/5 shadow-premium rounded-b-[24px] p-6 z-40 text-sm text-left max-h-[480px] overflow-y-auto scrollbar-thin">
+                  <div className="flex items-center justify-between border-b border-dark/5 pb-3 mb-4 select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🗂️</span>
+                      <span className="font-extrabold text-dark text-sm sm:text-base">Browse All Categories</span>
                     </div>
-                    
-                    <div className="grid grid-cols-3 gap-6">
-                      {categories && categories.filter(cat => cat.status !== 'inactive').length > 0 ? (
-                        categories.filter(cat => cat.status !== 'inactive').map((cat) => (
-                          <div key={cat.id || cat.name} className="space-y-2 text-left">
-                            {/* Category Header Link */}
-                            <Link 
-                              to={`/medicines?category=${encodeURIComponent(cat.name)}`} 
-                              onClick={() => setCategoriesDropdownOpen(false)} 
-                              className="flex items-center gap-2 text-dark font-black hover:text-primary transition-colors pb-1 border-b border-dark/5"
-                            >
-                              <span className="text-sm select-none">{cat.icon || '📦'}</span>
-                              <span className="truncate">{cat.name}</span>
-                            </Link>
-                            
-                            {/* Subcategories List */}
-                            {cat.subcategories && cat.subcategories.length > 0 ? (
-                              <div className="space-y-1.5 pl-1">
-                                {cat.subcategories.map((subcat) => (
-                                  <Link
+                    <Link 
+                      to="/categories" 
+                      onClick={() => setCategoriesDropdownOpen(false)} 
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      View Catalog Catalog →
+                    </Link>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-6">
+                    {categories && categories.filter(cat => cat.status !== 'inactive').length > 0 ? (
+                      categories.filter(cat => cat.status !== 'inactive').map((cat) => (
+                        <div key={cat.id || cat.name} className="space-y-2 text-left">
+                          {/* Category Header Link */}
+                          <Link 
+                            to={`/medicines?category=${encodeURIComponent(cat.name)}`} 
+                            onClick={() => setCategoriesDropdownOpen(false)} 
+                            className="flex items-center gap-2 text-dark font-black hover:text-primary transition-colors pb-1 border-b border-dark/5"
+                          >
+                            <span className="text-sm select-none">{cat.icon || '📦'}</span>
+                            <span className="truncate">{cat.name}</span>
+                          </Link>
+                          
+                          {/* Subcategories List */}
+                          {cat.subcategories && cat.subcategories.length > 0 ? (
+                            <div className="space-y-1.5 pl-1">
+                              {cat.subcategories.map((subcat) => (
+                                <Link
                                     key={subcat}
                                     to={`/medicines?category=${encodeURIComponent(cat.name)}&subcategory=${encodeURIComponent(subcat)}`}
                                     onClick={() => setCategoriesDropdownOpen(false)}
                                     className="flex items-center text-xs text-dark/65 hover:text-primary transition-all hover:pl-1"
-                                  >
-                                    <span className="text-[9px] mr-1 text-primary-dark/60">▶</span>
-                                    <span className="truncate">{subcat}</span>
-                                  </Link>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-[10px] text-dark/30 italic pl-1">No subcategories</p>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <span className="col-span-3 text-center py-4 text-xs text-dark/40 italic">No categories loaded</span>
-                      )}
-                    </div>
+                                >
+                                  <span className="text-[9px] mr-1 text-primary-dark/60">▶</span>
+                                  <span className="truncate">{subcat}</span>
+                                </Link>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-dark/30 italic pl-1">No subcategories</p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <span className="col-span-3 text-center py-4 text-xs text-dark/40 italic">No categories loaded</span>
+                    )}
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="flex items-center justify-between overflow-visible h-full flex-grow pl-6 lg:pl-12">
             <Link to="/" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isHomeActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Home</Link>

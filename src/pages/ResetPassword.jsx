@@ -56,7 +56,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center bg-[#F8FCFC] px-4 py-12 font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FCFC] px-4 py-12 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -106,53 +106,53 @@ export default function ResetPassword() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
             {/* New Password */}
-            <div className="relative">
-              <Input
-                label="New Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter new password"
-                required
-                error={errors.newPassword}
-                {...register('newPassword', {
-                  required: 'New password is required',
-                  minLength: { value: 8, message: 'Password must be at least 8 characters' },
-                  validate: {
-                    hasUppercase: (v) => /[A-Z]/.test(v) || 'Must contain at least one uppercase letter',
-                    hasLowercase: (v) => /[a-z]/.test(v) || 'Must contain at least one lowercase letter',
-                    hasDigit: (v) => /[0-9]/.test(v) || 'Must contain at least one number'
-                  }
-                })}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-[38px] text-dark/35 hover:text-dark/75 focus:outline-none"
-              >
-                {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-              </button>
-            </div>
+            <Input
+              label="New Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Enter new password"
+              required
+              error={errors.newPassword}
+              {...register('newPassword', {
+                required: 'New password is required',
+                minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                validate: {
+                  hasUppercase: (v) => /[A-Z]/.test(v) || 'Must contain at least one uppercase letter',
+                  hasLowercase: (v) => /[a-z]/.test(v) || 'Must contain at least one lowercase letter',
+                  hasDigit: (v) => /[0-9]/.test(v) || 'Must contain at least one number'
+                }
+              })}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
+                >
+                  {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                </button>
+              }
+            />
 
             {/* Confirm New Password */}
-            <div className="relative">
-              <Input
-                label="Confirm New Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="Confirm new password"
-                required
-                error={errors.confirmNewPassword}
-                {...register('confirmNewPassword', {
-                  required: 'Please confirm your new password',
-                  validate: (value) => value === passwordVal || 'Passwords do not match'
-                })}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-4 top-[38px] text-dark/35 hover:text-dark/75 focus:outline-none"
-              >
-                {showConfirmPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-              </button>
-            </div>
+            <Input
+              label="Confirm New Password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Confirm new password"
+              required
+              error={errors.confirmNewPassword}
+              {...register('confirmNewPassword', {
+                required: 'Please confirm your new password',
+                validate: (value) => value === passwordVal || 'Passwords do not match'
+              })}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
+                >
+                  {showConfirmPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                </button>
+              }
+            />
 
             {/* Submit Button */}
             <Button

@@ -114,7 +114,7 @@ export default function Footer() {
               <li>
                 <button
                   onClick={() => window.open(getDoctorConsultUrl(), '_blank')}
-                  className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent p-0 font-light text-xs inline leading-normal"
+                  className="hover:text-primary transition-colors cursor-pointer border-none bg-transparent p-0 font-light text-xs inline leading-normal !min-h-0 !min-w-0"
                 >
                   Consult Doctor
                 </button>

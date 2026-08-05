@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, isConfigValid } from '../firebase/firebase';
 import { isCouponApplicableToCart, calculateEligibleDiscount } from '../utils/couponMatcher';
+import { useAuth } from './AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const CartContext = createContext();
 
@@ -10,28 +12,72 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([]);
+  const { currentUser, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [cartItems, setCartItems] = useState(() => {
+    const storedUser = localStorage.getItem('mediquick_current_user');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        if (user && user.uid) {
+          const savedCart = localStorage.getItem(`mediquick_cart_${user.uid}`);
+          if (savedCart) {
+            return JSON.parse(savedCart);
+          }
+        }
+      } catch (e) {
+        console.error("Error initializing user cart:", e);
+      }
+    }
+    return [];
+  });
   const [coupon, setCoupon] = useState(null);
   const [prescriptionFile, setPrescriptionFile] = useState(null); // stores { name, size, type, dataUrl or firebaseStorageUrl }
 
-  // Load cart from LocalStorage on load
+  // Load user-specific cart from LocalStorage when currentUser changes
   useEffect(() => {
-    const savedCart = localStorage.getItem('mediquick_cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Error loading cart:", e);
-      }
-    }
-  }, []);
+    if (loading) return;
 
-  // Save cart to LocalStorage when changed
+    if (currentUser) {
+      const userCartKey = `mediquick_cart_${currentUser.uid}`;
+      const savedCart = localStorage.getItem(userCartKey);
+      if (savedCart) {
+        try {
+          setCartItems(JSON.parse(savedCart));
+        } catch (e) {
+          console.error("Error loading user cart:", e);
+          setCartItems([]);
+        }
+      } else {
+        setCartItems([]);
+      }
+    } else {
+      setCartItems([]);
+      setCoupon(null);
+      setPrescriptionFile(null);
+    }
+  }, [currentUser, loading]);
+
+  // Save user-specific cart to LocalStorage when changed
   useEffect(() => {
-    localStorage.setItem('mediquick_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (loading) return;
+    if (currentUser) {
+      const userCartKey = `mediquick_cart_${currentUser.uid}`;
+      localStorage.setItem(userCartKey, JSON.stringify(cartItems));
+    }
+  }, [cartItems, currentUser, loading]);
 
   const addToCart = (item, qty = 1) => {
+    if (!currentUser) {
+      localStorage.setItem('mediquick_pending_action', JSON.stringify({
+        type: 'ADD_TO_CART',
+        payload: { item, qty }
+      }));
+      navigate('/login', { state: { from: location } });
+      return;
+    }
     setCartItems((prevItems) => {
       const existing = prevItems.find((i) => i.id === item.id);
       if (existing) {

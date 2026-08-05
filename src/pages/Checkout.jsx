@@ -558,11 +558,11 @@ export default function Checkout() {
             </div>
 
             {/* PROMO CODE SECTION */}
-            <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">
-              <h3 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">PROMO CODE</h3>
-              
-              {/* Display available applicable coupon(s) */}
-              {applicableCoupons.length > 0 ? (
+            {applicableCoupons.length > 0 && (
+              <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">
+                <h3 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">PROMO CODE</h3>
+                
+                {/* Display available applicable coupon(s) */}
                 <div className="space-y-3">
                   {applicableCoupons.map((cp) => {
                     const cpCodeName = cp.couponCode || cp.code;
@@ -601,56 +601,54 @@ export default function Checkout() {
                     );
                   })}
                 </div>
-              ) : (
-                <p className="text-[10px] text-dark/45 font-medium">No promo code available for this order.</p>
-              )}
 
-              {/* Coupon Input Form */}
-              <div className="space-y-2 pt-2">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Enter promo code"
-                    value={promoInput}
-                    onChange={(e) => setPromoInput(e.target.value)}
-                    className="flex-grow px-3 py-2 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background text-xs uppercase"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleApplyPromo(promoInput)}
-                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    Apply
-                  </button>
+                {/* Coupon Input Form */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter promo code"
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value)}
+                      className="flex-grow px-3 py-2 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background text-xs uppercase"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPromo(promoInput)}
+                      className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {promoError && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-1">{promoError}</p>
+                  )}
+                  {promoSuccess && (
+                    <p className="text-[10px] text-emerald-600 font-semibold mt-1">{promoSuccess}</p>
+                  )}
                 </div>
-                {promoError && (
-                  <p className="text-[10px] text-red-500 font-semibold mt-1">{promoError}</p>
-                )}
-                {promoSuccess && (
-                  <p className="text-[10px] text-emerald-600 font-semibold mt-1">{promoSuccess}</p>
+
+                {/* After Successful Application Details */}
+                {coupon && (
+                  <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl flex items-center justify-between gap-3 text-xs text-left">
+                    <div className="leading-tight">
+                      <p className="font-bold text-emerald-800 flex items-center gap-1">
+                        Coupon Applied <span className="text-emerald-600">✓</span>
+                      </p>
+                      <p className="text-[10px] font-extrabold text-emerald-700 mt-0.5">{coupon.couponCode || coupon.code}</p>
+                      <p className="text-[10px] text-emerald-600/80 font-medium mt-1">You saved ₹{discount}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      className="text-[10px] text-red-500 hover:text-red-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* After Successful Application Details */}
-              {coupon && (
-                <div className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-xl flex items-center justify-between gap-3 text-xs text-left">
-                  <div className="leading-tight">
-                    <p className="font-bold text-emerald-800 flex items-center gap-1">
-                      Coupon Applied <span className="text-emerald-600">✓</span>
-                    </p>
-                    <p className="text-[10px] font-extrabold text-emerald-700 mt-0.5">{coupon.couponCode || coupon.code}</p>
-                    <p className="text-[10px] text-emerald-600/80 font-medium mt-1">You saved ₹{discount}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemovePromo}
-                    className="text-[10px] text-red-500 hover:text-red-700 font-bold hover:underline cursor-pointer"
-                  >
-                    Remove
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Calculations and submit Button */}
             <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft space-y-4">

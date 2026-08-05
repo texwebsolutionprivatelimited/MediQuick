@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import QuantityStepper from '../components/QuantityStepper';
 import { motion } from 'framer-motion';
 import { 
   MdShoppingCart, 
@@ -56,7 +57,7 @@ const QUERY_TO_CATEGORY_MAP = {
 };
 
 export default function Medicines() {
-  const { addToCart } = useCart();
+  const { cartItems, addToCart, updateQuantity } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -669,21 +670,37 @@ export default function Medicines() {
                         {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                       </p>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          addToCart(product, 1);
-                        }}
-                        disabled={product.stock <= 0}
-                        className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
-                          product.stock > 0 
-                            ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
-                            : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
-                        }`}
-                      >
-                        <MdShoppingCart className="text-xs" />
-                        Add to Cart
-                      </button>
+                      {(() => {
+                        const cartItem = cartItems.find((item) => item.id === product.id);
+                        const cartQty = cartItem ? cartItem.quantity : 0;
+                        if (cartQty > 0) {
+                          return (
+                            <QuantityStepper
+                              quantity={cartQty}
+                              onIncrease={() => updateQuantity(product.id, cartQty + 1)}
+                              onDecrease={() => updateQuantity(product.id, cartQty - 1)}
+                              className="w-full mt-2.5"
+                            />
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(product, 1);
+                            }}
+                            disabled={product.stock <= 0}
+                            className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
+                              product.stock > 0 
+                                ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
+                                : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
+                            }`}
+                          >
+                            <MdShoppingCart className="text-xs" />
+                            Add to Cart
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))}

@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
+import QuantityStepper from '../components/QuantityStepper';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MdShoppingCart, 
@@ -36,7 +37,7 @@ export default function ProductDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
-  const { addToCart, prescriptionUploaded, setPrescriptionFile, availableCoupons } = useCart();
+  const { cartItems, addToCart, updateQuantity, prescriptionUploaded, setPrescriptionFile, availableCoupons } = useCart();
   const { products: productsData, updateProductStats } = useProducts();
   const [quantity, setQuantity] = useState(1);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
@@ -405,7 +406,43 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
     );
   }
 
+  // Handle automatic action recovery for guest users after login
+  useEffect(() => {
+    if (currentUser && product) {
+      const pendingStr = localStorage.getItem('mediquick_pending_action');
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          if (pending.type === 'BUY_NOW' && pending.payload.product?.id === product.id) {
+            localStorage.removeItem('mediquick_pending_action');
+            const targetQty = pending.payload.quantity || quantity;
+            if (product.prescription_required && !prescriptionUploaded) {
+              setShowPrescriptionModal(true);
+            } else {
+              addToCart(product, targetQty);
+              navigate('/checkout', { state: { buyNowProduct: product } });
+            }
+          } else if (pending.type === 'ADD_TO_CART' && pending.payload.item?.id === product.id) {
+            localStorage.removeItem('mediquick_pending_action');
+            const targetQty = pending.payload.qty || quantity;
+            addToCart(product, targetQty);
+          }
+        } catch (e) {
+          console.error("Error executing pending action in ProductDetails:", e);
+        }
+      }
+    }
+  }, [currentUser, product, prescriptionUploaded, addToCart, navigate, quantity]);
+
   const handleBuyNow = () => {
+    if (!currentUser) {
+      localStorage.setItem('mediquick_pending_action', JSON.stringify({
+        type: 'BUY_NOW',
+        payload: { product, quantity }
+      }));
+      navigate('/login', { state: { from: location } });
+      return;
+    }
     if (product.prescription_required && !prescriptionUploaded) {
       setShowPrescriptionModal(true);
     } else {
@@ -520,22 +557,13 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
               <p className="text-[10px] text-dark/45 font-light">Inclusive of all local pharmacy taxes.</p>
             </div>
 
-            {matchingCoupon ? (
+            {matchingCoupon && (
               <div className="bg-emerald-50/50 border border-emerald-500/10 p-4 rounded-2xl flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-lg shrink-0">
                   <MdPercent />
                 </div>
                 <p className="text-xs font-bold text-emerald-800 leading-tight">
                   Coupon Available: <span className="font-extrabold select-all">{matchingCoupon.couponCode || matchingCoupon.code}</span> – Apply to get {matchingCoupon.discountPercentage !== undefined ? matchingCoupon.discountPercentage : matchingCoupon.discount}% OFF.
-                </p>
-              </div>
-            ) : (
-              <div className="bg-dark/5 border border-dark/10 p-4 rounded-2xl flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-dark/10 text-dark/45 flex items-center justify-center text-lg shrink-0">
-                  <MdPercent />
-                </div>
-                <p className="text-xs font-bold text-dark/45 leading-tight">
-                  No promo available.
                 </p>
               </div>
             )}
@@ -573,14 +601,31 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
             {/* Action buttons */}
             <div className="space-y-4 pt-4">
               <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => addToCart(product, quantity)}
-                  disabled={product.stock <= 0}
-                  className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all select-none border ${product.stock > 0 ? 'bg-white hover:bg-background border-primary/20 text-primary cursor-pointer active:scale-95' : 'bg-dark/5 text-dark/30 border-dark/5 cursor-not-allowed shadow-none'}`}
-                >
-                  <MdShoppingCart className="text-base" />
-                  Add to Cart
-                </button>
+                {(() => {
+                  const cartItem = cartItems.find((item) => item.id === product?.id);
+                  const cartQty = cartItem ? cartItem.quantity : 0;
+                  if (cartQty > 0) {
+                    return (
+                      <QuantityStepper
+                        quantity={cartQty}
+                        onIncrease={() => updateQuantity(product.id, cartQty + 1)}
+                        onDecrease={() => updateQuantity(product.id, cartQty - 1)}
+                        className="flex-1"
+                        isLarge={true}
+                      />
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={() => addToCart(product, quantity)}
+                      disabled={product.stock <= 0}
+                      className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all select-none border ${product.stock > 0 ? 'bg-white hover:bg-background border-primary/20 text-primary cursor-pointer active:scale-95' : 'bg-dark/5 text-dark/30 border-dark/5 cursor-not-allowed shadow-none'}`}
+                    >
+                      <MdShoppingCart className="text-base" />
+                      Add to Cart
+                    </button>
+                  );
+                })()}
                 
                 <button
                   onClick={handleBuyNow}

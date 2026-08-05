@@ -170,7 +170,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-[45%_55%] items-stretch bg-[#F8FCFC] font-sans">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[45%_55%] items-stretch bg-[#F8FCFC] font-sans">
       
       {/* Left Column: Welcome Slogans & Animated Medical Vector */}
       <div className="hidden md:flex w-full bg-gradient-to-br from-[#E2F3F0] via-[#F8FCFC] to-white relative flex-col justify-between p-8 sm:p-12 text-dark text-left overflow-hidden border-b md:border-b-0 md:border-r border-dark/5">
@@ -311,45 +311,43 @@ export default function Login() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               
               {/* Username / Email Address Input */}
-              <div className="relative">
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="Enter your email address"
-                  required
-                  error={errors.email}
-                  defaultValue={localStorage.getItem('mediquick_remembered_email') || ''}
-                  {...register('email', {
-                    required: 'Email address is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address'
-                    }
-                  })}
-                />
-                <MdMailOutline className="absolute right-4 top-[38px] text-dark/35 text-lg" />
-              </div>
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="Enter your email address"
+                required
+                error={errors.email}
+                defaultValue={localStorage.getItem('mediquick_remembered_email') || ''}
+                {...register('email', {
+                  required: 'Email address is required',
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: 'Invalid email address'
+                  }
+                })}
+                rightElement={<MdMailOutline className="text-dark/35 text-lg" />}
+              />
 
               {/* Password Input */}
-              <div className="relative">
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  required
-                  error={errors.password}
-                  {...register('password', {
-                    required: 'Password is required'
-                  })}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-[38px] text-dark/35 hover:text-dark/75 focus:outline-none"
-                >
-                  {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-                </button>
-              </div>
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                required
+                error={errors.password}
+                {...register('password', {
+                  required: 'Password is required'
+                })}
+                rightElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
+                  >
+                    {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                  </button>
+                }
+              />
 
               {/* Remember Me and Forgot Password row */}
               <div className="flex items-center justify-between text-xs pt-1">
@@ -467,6 +465,7 @@ export default function Login() {
                   message: 'Invalid email address'
                 }
               })}
+              rightElement={<MdMailOutline className="text-dark/35 text-lg" />}
             />
 
             <div className="flex items-center justify-end gap-3.5 pt-2">

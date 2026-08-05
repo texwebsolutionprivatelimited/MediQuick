@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, useLocation } from 'react-router-dom';
+import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { LocationProvider } from './context/LocationContext';
 import { ProductsProvider } from './context/ProductsContext';
-import { CartProvider } from './context/CartContext';
+import { CartProvider, useCart } from './context/CartContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { WishlistProvider } from './context/WishlistContext';
+import { WishlistProvider, useWishlist } from './context/WishlistContext';
 import AppRoutes from './routes/AppRoutes';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
@@ -24,6 +24,30 @@ function ScrollToTop() {
 function AppContent() {
   const { systemSettings } = useSettings();
   const { currentUser } = useAuth();
+  const { addToCart } = useCart();
+  const { toggleWishlist } = useWishlist();
+  const navigate = useNavigate();
+
+  // Recovery effect for global guest actions after logging in
+  useEffect(() => {
+    if (currentUser) {
+      const pendingStr = localStorage.getItem('mediquick_pending_action');
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          if (pending.type === 'ADD_TO_CART') {
+            localStorage.removeItem('mediquick_pending_action');
+            addToCart(pending.payload.item, pending.payload.qty);
+          } else if (pending.type === 'TOGGLE_WISHLIST') {
+            localStorage.removeItem('mediquick_pending_action');
+            toggleWishlist(pending.payload.product);
+          }
+        } catch (e) {
+          console.error("Error executing pending action in AppContent:", e);
+        }
+      }
+    }
+  }, [currentUser, addToCart, toggleWishlist]);
 
   const isAdmin = currentUser?.role === 'admin';
   const isMaintenance = systemSettings?.maintenanceMode && !isAdmin;
