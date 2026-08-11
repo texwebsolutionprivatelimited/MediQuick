@@ -24,10 +24,14 @@ import {
   MdDelete,
   MdEdit,
   MdRateReview,
-  MdPercent
+  MdPercent,
+  MdFavorite,
+  MdFavoriteBorder,
+  MdCheckCircle
 } from 'react-icons/md';
 import { FaWhatsapp, FaTelegramPlane, FaFacebookF } from 'react-icons/fa';
 import { useProducts } from '../context/ProductsContext';
+import { useWishlist } from '../context/WishlistContext';
 import { db, isConfigValid } from '../firebase/firebase';
 import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { getCouponForProduct } from '../utils/couponMatcher';
@@ -39,11 +43,14 @@ export default function ProductDetails() {
   const { currentUser } = useAuth();
   const { cartItems, addToCart, updateQuantity, prescriptionUploaded, setPrescriptionFile, availableCoupons } = useCart();
   const { products: productsData, updateProductStats } = useProducts();
-  const [quantity, setQuantity] = useState(1);
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const cartItem = cartItems.find((item) => item.id === id);
+  const quantity = cartItem ? cartItem.quantity : 0;
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [addingProductId, setAddingProductId] = useState(null);
 
   // Reviews states
   const [reviews, setReviews] = useState([]);
@@ -58,6 +65,48 @@ export default function ProductDetails() {
 
   // Find product in dataset
   const product = productsData.find(p => p.id === id);
+
+  // Scroll to top on ID change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
+
+  // Find recommended/similar products based on current product
+  const recommendedProducts = useMemo(() => {
+    if (!product || !productsData || productsData.length === 0) return [];
+
+    // Filter out the current product itself
+    const otherProducts = productsData.filter(p => p.id !== id);
+
+    // Score each product based on category, subcategory, brand, generic_name, and uses matches
+    const scored = otherProducts.map(p => {
+      let score = 0;
+      if (p.category && product.category && p.category === product.category) score += 3;
+      if (p.subcategory && product.subcategory && p.subcategory === product.subcategory) score += 2;
+      if (p.brand && product.brand && p.brand === product.brand) score += 1;
+      if (p.generic_name && product.generic_name && p.generic_name === product.generic_name) score += 4;
+      
+      if (p.uses && product.uses) {
+        const pUses = p.uses.toLowerCase().split(/\s+/);
+        const currentUses = product.uses.toLowerCase().split(/\s+/);
+        const intersection = pUses.filter(use => currentUses.includes(use) && use.length > 3);
+        score += intersection.length * 0.5;
+      }
+
+      return { product: p, score };
+    });
+
+    // Sort by score descending, then alphabetically by medicine_name
+    scored.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return a.product.medicine_name.localeCompare(b.product.medicine_name);
+    });
+
+    // Return the top 4 recommended products
+    return scored.slice(0, 4).map(item => item.product);
+  }, [product, productsData, id]);
 
   // Find matching coupon for this product's discount percentage
   const matchingCoupon = useMemo(() => {
@@ -133,6 +182,45 @@ export default function ProductDetails() {
       };
     }
   }, [currentUser, id]);
+
+  // Handle automatic action recovery for guest users after login
+  useEffect(() => {
+    if (currentUser && product) {
+      const pendingStr = localStorage.getItem('mediquick_pending_action');
+      if (pendingStr) {
+        try {
+          const pending = JSON.parse(pendingStr);
+          if (pending.type === 'BUY_NOW' && pending.payload.product?.id === product.id) {
+            localStorage.removeItem('mediquick_pending_action');
+            const targetQty = pending.payload.quantity || quantity || 1;
+            if (product.prescription_required && !prescriptionUploaded) {
+              setShowPrescriptionModal(true);
+            } else {
+              const existingItem = cartItems.find(i => i.id === product.id);
+              if (!existingItem) {
+                addToCart(product, targetQty);
+              } else if (existingItem.quantity !== targetQty) {
+                updateQuantity(product.id, targetQty);
+              }
+              navigate('/checkout', { state: { buyNowProduct: product } });
+            }
+          } else if (pending.type === 'ADD_TO_CART' && pending.payload.item?.id === product.id) {
+            localStorage.removeItem('mediquick_pending_action');
+            const targetQty = pending.payload.qty || quantity || 1;
+            const existingItem = cartItems.find(i => i.id === product.id);
+            if (!existingItem) {
+              addToCart(product, targetQty);
+            } else if (existingItem.quantity !== targetQty) {
+              updateQuantity(product.id, targetQty);
+            }
+          }
+        } catch (e) {
+          console.error("Error executing pending action in ProductDetails:", e);
+        }
+      }
+    }
+  }, [currentUser, product, prescriptionUploaded, addToCart, navigate, quantity, cartItems, updateQuantity]);
+
 
   // Load reviews from Firestore or LocalStorage
   useEffect(() => {
@@ -406,39 +494,11 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
     );
   }
 
-  // Handle automatic action recovery for guest users after login
-  useEffect(() => {
-    if (currentUser && product) {
-      const pendingStr = localStorage.getItem('mediquick_pending_action');
-      if (pendingStr) {
-        try {
-          const pending = JSON.parse(pendingStr);
-          if (pending.type === 'BUY_NOW' && pending.payload.product?.id === product.id) {
-            localStorage.removeItem('mediquick_pending_action');
-            const targetQty = pending.payload.quantity || quantity;
-            if (product.prescription_required && !prescriptionUploaded) {
-              setShowPrescriptionModal(true);
-            } else {
-              addToCart(product, targetQty);
-              navigate('/checkout', { state: { buyNowProduct: product } });
-            }
-          } else if (pending.type === 'ADD_TO_CART' && pending.payload.item?.id === product.id) {
-            localStorage.removeItem('mediquick_pending_action');
-            const targetQty = pending.payload.qty || quantity;
-            addToCart(product, targetQty);
-          }
-        } catch (e) {
-          console.error("Error executing pending action in ProductDetails:", e);
-        }
-      }
-    }
-  }, [currentUser, product, prescriptionUploaded, addToCart, navigate, quantity]);
-
   const handleBuyNow = () => {
     if (!currentUser) {
       localStorage.setItem('mediquick_pending_action', JSON.stringify({
         type: 'BUY_NOW',
-        payload: { product, quantity }
+        payload: { product, quantity: quantity || 1 }
       }));
       navigate('/login', { state: { from: location } });
       return;
@@ -446,7 +506,13 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
     if (product.prescription_required && !prescriptionUploaded) {
       setShowPrescriptionModal(true);
     } else {
-      addToCart(product, quantity);
+      const targetQty = quantity || 1;
+      const existingItem = cartItems.find(i => i.id === product.id);
+      if (!existingItem) {
+        addToCart(product, targetQty);
+      } else if (existingItem.quantity !== targetQty) {
+        updateQuantity(product.id, targetQty);
+      }
       navigate('/checkout', { state: { buyNowProduct: product } }); // Proceed straight to checkout with state
     }
   };
@@ -466,7 +532,13 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
     if (selectedFile) {
       setPrescriptionFile(selectedFile);
       setShowPrescriptionModal(false);
-      addToCart(product, quantity);
+      const targetQty = quantity || 1;
+      const existingItem = cartItems.find(i => i.id === product.id);
+      if (!existingItem) {
+        addToCart(product, targetQty);
+      } else if (existingItem.quantity !== targetQty) {
+        updateQuantity(product.id, targetQty);
+      }
       navigate('/checkout', { state: { buyNowProduct: product } });
     }
   };
@@ -576,28 +648,6 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
               </span>
             </div>
 
-            {/* Quantity Selector */}
-            {product.stock > 0 && (
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold text-dark/60">Quantity:</span>
-                <div className="flex items-center border border-dark/10 rounded-lg overflow-hidden bg-white">
-                  <button 
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    className="px-3 py-1 bg-background hover:bg-dark/5 text-sm font-bold"
-                  >
-                    -
-                  </button>
-                  <span className="px-4 py-1 text-xs font-bold text-dark">{quantity}</span>
-                  <button 
-                    onClick={() => setQuantity(prev => Math.min(product.stock, prev + 1))}
-                    className="px-3 py-1 bg-background hover:bg-dark/5 text-sm font-bold"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Action buttons */}
             <div className="space-y-4 pt-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -615,14 +665,36 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
                       />
                     );
                   }
+                  const isAdding = addingProductId === product?.id;
                   return (
                     <button
-                      onClick={() => addToCart(product, quantity)}
-                      disabled={product.stock <= 0}
-                      className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all select-none border ${product.stock > 0 ? 'bg-white hover:bg-background border-primary/20 text-primary cursor-pointer active:scale-95' : 'bg-dark/5 text-dark/30 border-dark/5 cursor-not-allowed shadow-none'}`}
+                      onClick={() => {
+                        setAddingProductId(product.id);
+                        setTimeout(() => {
+                          addToCart(product, 1);
+                          setAddingProductId(null);
+                        }, 400);
+                      }}
+                      disabled={product.stock <= 0 || isAdding}
+                      className={`flex-1 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm transition-all select-none border ${
+                        isAdding
+                          ? 'bg-emerald-600 text-white border-emerald-600 scale-[0.98] animate-successPop shadow-none'
+                          : product.stock > 0 
+                            ? 'bg-white hover:bg-background border-primary/20 text-primary cursor-pointer active:scale-95' 
+                            : 'bg-dark/5 text-dark/30 border-dark/5 cursor-not-allowed shadow-none'
+                      }`}
                     >
-                      <MdShoppingCart className="text-base" />
-                      Add to Cart
+                      {isAdding ? (
+                        <>
+                          <MdCheckCircle className="text-base animate-successPop" />
+                          Added
+                        </>
+                      ) : (
+                        <>
+                          <MdShoppingCart className="text-base" />
+                          Add to Cart
+                        </>
+                      )}
                     </button>
                   );
                 })()}
@@ -910,6 +982,142 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
           </div>
         </div>
       </div>
+
+      {/* 🤝 RECOMMENDED / SIMILAR PRODUCTS SECTION */}
+      {product && recommendedProducts.length > 0 && (
+        <div className="container mx-auto px-4 mt-8">
+          <div className="bg-white p-6 md:p-10 rounded-[28px] border border-dark/5 shadow-soft space-y-6">
+            <div className="text-left border-b border-dark/5 pb-4">
+              <h2 className="text-xl sm:text-2xl font-black text-dark tracking-tight">Similar Products</h2>
+              <p className="text-xs text-dark/45 mt-1 font-semibold">Commonly recommended based on this medicine's category, brand, or ingredients.</p>
+            </div>
+
+            {/* Grid layout consistent with Medicines listing */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+              {recommendedProducts.map((p) => (
+                <div
+                  key={p.id}
+                  className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px] w-full text-left animate-fade-in"
+                >
+                  {/* Prescription Required Tag */}
+                  {p.prescription_required && (
+                    <span className="absolute left-3 top-3 bg-red-50 text-red-600 border border-red-200/50 text-[8px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider z-10 select-none">
+                      Rx Required
+                    </span>
+                  )}
+
+                  {/* Wishlist Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWishlist(p);
+                    }}
+                    className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white border border-dark/5 shadow-sm flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 cursor-pointer text-dark/45 hover:text-red-500"
+                  >
+                    {isInWishlist(p.id) ? (
+                      <MdFavorite className="text-lg text-red-500 animate-heartBeat" />
+                    ) : (
+                      <MdFavoriteBorder className="text-lg" />
+                    )}
+                  </button>
+
+                  <div 
+                    onClick={() => {
+                      navigate(`/product/${p.id}`);
+                    }}
+                    className="cursor-pointer flex flex-col flex-grow"
+                  >
+                    <div className="product-image-container max-[320px]:w-[120px] max-[320px]:h-[120px] max-[320px]:p-2.5 mb-3 flex items-center justify-center">
+                      <MedicineImage product={p} />
+                    </div>
+                    <div className="text-left flex-grow flex flex-col justify-between">
+                      <div>
+                        <h4 className="font-bold text-dark text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors h-10 overflow-hidden leading-tight text-ellipsis">
+                          {p.medicine_name}
+                        </h4>
+                        <div className="space-y-0.5 mt-1">
+                          <p className="text-[10px] text-dark/45 font-semibold truncate leading-none">
+                            {p.brand}
+                          </p>
+                          <p className="text-[9px] text-dark/55 truncate leading-none">
+                            {p.pack_size}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2.5 mt-2.5 border-t border-dark/5 text-left shrink-0">
+                    <div className="flex items-center gap-1.5 flex-wrap h-5">
+                      <span className="text-sm font-extrabold text-dark">₹{p.price}</span>
+                      {p.mrp > p.price && (
+                        <>
+                          <span className="text-[10px] text-dark/40 line-through">₹{p.mrp}</span>
+                          <span className="bg-secondary/10 text-secondary-dark px-1.5 py-0.5 text-[8px] font-black rounded-md leading-none">
+                            {p.discount_percentage || p.discountPercentage}% OFF
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <p className={`text-[9px] font-bold mt-1.5 leading-none ${p.stock > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                      {p.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                    </p>
+
+                    {(() => {
+                      const itemCart = cartItems.find((item) => item.id === p.id);
+                      const cartQty = itemCart ? itemCart.quantity : 0;
+                      if (cartQty > 0) {
+                        return (
+                          <QuantityStepper
+                            quantity={cartQty}
+                            onIncrease={() => updateQuantity(p.id, cartQty + 1)}
+                            onDecrease={() => updateQuantity(p.id, cartQty - 1)}
+                            className="w-full mt-2.5"
+                          />
+                        );
+                      }
+                      const isAddingSimilar = addingProductId === p.id;
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAddingProductId(p.id);
+                            setTimeout(() => {
+                              addToCart(p, 1);
+                              setAddingProductId(null);
+                            }, 400);
+                          }}
+                          disabled={p.stock <= 0 || isAddingSimilar}
+                          className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
+                            isAddingSimilar
+                              ? 'bg-emerald-600 text-white border-emerald-600 scale-[0.98] animate-successPop'
+                              : p.stock > 0 
+                                ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
+                                : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
+                          }`}
+                        >
+                          {isAddingSimilar ? (
+                            <>
+                              <MdCheckCircle className="text-xs animate-successPop" />
+                              Added
+                            </>
+                          ) : (
+                            <>
+                              <MdShoppingCart className="text-xs" />
+                              Add to Cart
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🚀 REVIEW FORM MODAL POPUP */}
       <AnimatePresence>

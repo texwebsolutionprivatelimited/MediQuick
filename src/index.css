@@ -156,11 +156,9 @@ html, body {
   will-change: transform, box-shadow;
 }
 
-@media (hover: hover) {
-  .premium-card-hover:hover {
-    transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 10px 25px -5px rgba(6, 59, 68, 0.1), 0 8px 16px -4px rgba(6, 59, 68, 0.05);
-  }
+.premium-card-hover:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 10px 25px -5px rgba(6, 59, 68, 0.1), 0 8px 16px -4px rgba(6, 59, 68, 0.05);
 }
 
 /* Standardized Product Image Container */
@@ -170,7 +168,7 @@ html, body {
   max-width: 300px;
   max-height: 300px;
   background-color: #ffffff;
-  padding: 16px;
+  padding: 10px; /* Reduced from 16px to prevent hover zoom clipping on mobile viewports */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,10 +195,8 @@ html, body {
   will-change: transform;
 }
 
-@media (hover: hover) {
-  .premium-card-hover:hover .product-image-container img {
-    transform: scale(1.08); /* Zoom only the product image slightly (3%) on card hover */
-  }
+.premium-card-hover:hover .product-image-container img {
+  transform: scale(1.08); /* Zoom only the product image slightly (3%) on card hover */
 }
 
 /* Samsung Galaxy S8+ (360px width) navbar overrides */
@@ -285,6 +281,10 @@ html, body {
     transform: scale(1) !important;
     object-fit: contain !important;
   }
+  /* Allow slight zoom transition on hover for tiny devices */
+  .premium-card-hover:hover .product-image-container img {
+    transform: scale(1.04) !important;
+  }
 }
 
 /* Responsive Product Image Frame Scaling for 344px and 360px on Product Details page */
@@ -298,6 +298,169 @@ html, body {
     max-height: 160px !important;
     padding: 16px !important;
   }
+}
+
+/* ==========================================
+   Smooth & Modern Custom Animations
+   ========================================== */
+
+/* 1. Subtle card slide-up + fade-in on mount */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.premium-card-hover {
+  opacity: 0;
+  animation: fadeInUp 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), border-color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow;
+}
+
+/* Reduced card hover lift on mobile to avoid overlapping */
+@media (max-width: 640px) {
+  .premium-card-hover:hover {
+    transform: translateY(-4px) scale(1.01) !important;
+  }
+}
+
+/* 2. QuantityStepper mount scale pop-in */
+@keyframes popIn {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-popIn {
+  animation: popIn 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* 3. Springy cart count badge pop */
+@keyframes badgePop {
+  0% {
+    transform: scale(0.6);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-badgePop {
+  animation: badgePop 300ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 4. Heartbeat pop animation when favorited */
+@keyframes heartBeat {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.3);
+  }
+  60% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartBeat {
+  animation: heartBeat 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 5. Smooth page/section entrance slide-in */
+@keyframes pageEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-entrance {
+  animation: pageEntrance 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 6. Dynamic Toast alerts popup entrance */
+@keyframes toastEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-toastEntrance {
+  animation: toastEntrance 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 7. Generic button tactile hover/active transitions */
+button, .btn {
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+button:hover:not(:disabled), .btn:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+}
+button:active:not(:disabled), .btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* 8. Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .premium-card-hover,
+  .animate-popIn,
+  .animate-badgePop,
+  .animate-heartBeat,
+  .page-entrance,
+  .animate-toastEntrance,
+  .animate-successPop,
+  button:hover:not(:disabled),
+  .btn:hover:not(:disabled),
+  button:active:not(:disabled),
+  .btn:active:not(:disabled) {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+    transition: none !important;
+  }
+}
+
+/* 9. Add to Cart button success feedback pop */
+@keyframes successPop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-successPop {
+  animation: successPop 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 

@@ -10,7 +10,7 @@ export default function QuantityStepper({
 }) {
   return (
     <div 
-      className={`flex items-center justify-between bg-primary/5 border border-primary/20 text-primary font-bold rounded-xl overflow-hidden select-none shadow-sm transition-all ${
+      className={`flex items-center justify-between bg-primary/5 border border-primary/20 text-primary font-bold rounded-xl overflow-hidden select-none shadow-sm transition-all animate-popIn ${
         isLarge ? 'h-[48px]' : 'h-[34px]'
       } ${className}`}
     >

@@ -15,7 +15,11 @@ import {
   MdLocalOffer,
   MdSecurity,
   MdLockOutline,
-  MdMailOutline
+  MdMailOutline,
+  MdVerified,
+  MdLocalShipping,
+  MdPayment,
+  MdMedicalServices
 } from 'react-icons/md';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
@@ -42,11 +46,11 @@ export default function Login() {
     }, 1500);
   };
 
-  
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('mediquick_remembered_email'));
 
   // Forgot password states
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
@@ -79,7 +83,7 @@ export default function Login() {
       const user = await login(data.email, data.password);
       
       // Remember Me logic (simulated storage)
-      if (data.rememberMe) {
+      if (rememberMe) {
         localStorage.setItem('mediquick_remembered_email', data.email);
       } else {
         localStorage.removeItem('mediquick_remembered_email');
@@ -170,7 +174,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[45%_55%] items-stretch bg-[#F8FCFC] font-sans">
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-[45%_55%] lg:grid-cols-[40%_60%] xl:grid-cols-[35%_65%] items-stretch bg-[#F8FCFC] font-sans">
       
       {/* Left Column: Welcome Slogans & Animated Medical Vector */}
       <div className="hidden md:flex w-full bg-gradient-to-br from-[#E2F3F0] via-[#F8FCFC] to-white relative flex-col justify-between p-8 sm:p-12 text-dark text-left overflow-hidden border-b md:border-b-0 md:border-r border-dark/5">
@@ -179,12 +183,22 @@ export default function Login() {
         <div className="absolute top-[-5%] left-[-10%] w-[350px] h-[350px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-[20%] right-[-15%] w-[400px] h-[400px] rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
 
-        {/* Branding header */}
-        <div className="flex items-center gap-2.5 select-none relative z-10">
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white shadow-soft font-bold text-lg">
-            +
+        {/* Branding header & Trust Badge */}
+        <div className="relative z-10 space-y-3 select-none">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white shadow-soft font-bold text-lg">
+              +
+            </div>
+            <span className="text-lg font-bold tracking-tight text-primary">MediQuick</span>
           </div>
-          <span className="text-lg font-bold tracking-tight text-primary">MediQuick</span>
+
+          {/* 100% Genuine Medicine Trust Badge */}
+          <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/15 rounded-full px-3.5 py-1.5 w-fit shadow-sm">
+            <MdVerified className="text-primary text-sm sm:text-base shrink-0" />
+            <span className="text-[10px] sm:text-[11px] font-extrabold text-primary-dark tracking-wider uppercase">
+              100% Genuine Medicine
+            </span>
+          </div>
         </div>
 
         {/* Floating 3D Vector SVG Medical Illustration */}
@@ -235,6 +249,28 @@ export default function Login() {
 
         {/* Dynamic Slogan Headings */}
         <div className="relative z-10 max-w-lg mb-6 md:mb-8">
+          {/* Related Benefits List */}
+          <div className="flex flex-wrap gap-2 mb-5 select-none">
+            <div className="flex items-center gap-1.5 bg-[#E2F3F0]/65 border border-primary/10 rounded-full px-3 py-1 w-fit shadow-sm">
+              <MdLocalShipping className="text-primary text-[11px] sm:text-xs shrink-0" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-primary-dark tracking-wide uppercase">
+                Fast & Reliable Delivery
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#E2F3F0]/65 border border-primary/10 rounded-full px-3 py-1 w-fit shadow-sm">
+              <MdPayment className="text-primary text-[11px] sm:text-xs shrink-0" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-primary-dark tracking-wide uppercase">
+                Secure & Easy Payments
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#E2F3F0]/65 border border-primary/10 rounded-full px-3 py-1 w-fit shadow-sm">
+              <MdMedicalServices className="text-primary text-[11px] sm:text-xs shrink-0" />
+              <span className="text-[9px] sm:text-[10px] font-bold text-primary-dark tracking-wide uppercase">
+                Trusted Healthcare Services
+              </span>
+            </div>
+          </div>
+
           <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#063B44] leading-tight tracking-tight">
             Welcome Back!
           </h1>
@@ -267,162 +303,329 @@ export default function Login() {
 
       </div>
 
-      {/* Right Column: Centered Login Card (55%) */}
-      <div className="w-full flex items-center justify-center p-6 sm:p-12 bg-white">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-[500px]"
-        >
-          {/* Main Card with rounded corners (20px) and soft shadow */}
-          <div className="bg-white rounded-[20px] shadow-soft border border-dark/5 p-6 sm:p-10 select-none text-left">
-            
-            {/* Header */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-dark">Access Your Account</h2>
-              <p className="text-xs sm:text-sm text-dark/45 mt-1 font-light">Sign in to manage your medical orders</p>
-            </div>
-
-            {/* Notifications */}
-            {successMsg && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs rounded-xl flex items-center gap-3"
-              >
-                <MdCheckCircle className="text-xl text-emerald-500 shrink-0" />
-                <span className="font-semibold">{successMsg}</span>
-              </motion.div>
-            )}
-
-            {errorMsg && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 text-xs rounded-xl flex items-center gap-3"
-              >
-                <MdErrorOutline className="text-xl text-red-500 shrink-0" />
-                <span className="font-semibold">{errorMsg}</span>
-              </motion.div>
-            )}
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {/* Right Column: Centered Login Card & Benefits Panel */}
+      <div className="w-full flex flex-col xl:flex-row items-center justify-center gap-8 xl:gap-12 p-6 sm:p-12 bg-white overflow-y-auto">
+        {/* Column 1: Login Card & Stats */}
+        <div className="w-full max-w-[480px] shrink-0 flex flex-col gap-5">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="w-full"
+          >
+            {/* Main Card with rounded corners (20px) and soft shadow */}
+            <div className="bg-white rounded-[20px] shadow-soft border border-dark/5 p-6 sm:p-10 select-none text-left">
               
-              {/* Username / Email Address Input */}
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="Enter your email address"
-                required
-                error={errors.email}
-                defaultValue={localStorage.getItem('mediquick_remembered_email') || ''}
-                {...register('email', {
-                  required: 'Email address is required',
-                  pattern: {
-                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                    message: 'Invalid email address'
-                  }
-                })}
-                rightElement={<MdMailOutline className="text-dark/35 text-lg" />}
-              />
-
-              {/* Password Input */}
-              <Input
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Enter your password"
-                required
-                error={errors.password}
-                {...register('password', {
-                  required: 'Password is required'
-                })}
-                rightElement={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-dark/35 hover:text-dark/75 focus:outline-none cursor-pointer flex items-center justify-center w-5 h-5 p-0 bg-transparent border-0 outline-none"
-                  >
-                    {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
-                  </button>
-                }
-              />
-
-              {/* Remember Me and Forgot Password row */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center gap-2 text-dark/65 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="rounded text-primary border-dark/20 focus:ring-primary/45 focus:ring-offset-0 focus:ring-2 w-4 h-4 cursor-pointer"
-                    {...register('rememberMe')}
-                  />
-                  <span>Remember Me</span>
-                </label>
-                
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForgotError(null);
-                    setForgotSuccess(null);
-                    setForgotModalOpen(true);
-                  }}
-                  className="text-primary hover:underline font-semibold"
-                >
-                  Forgot Password?
-                </button>
+              {/* Header */}
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-dark">Access Your Account</h2>
+                <p className="text-xs sm:text-sm text-dark/45 mt-1 font-light">Sign in to manage your medical orders</p>
               </div>
 
-              {/* Sign In Button */}
-              <Button
-                type="submit"
-                variant="primary"
-                loading={loading}
-                className="w-full py-3.5 mt-2 rounded-xl font-bold bg-[#009688] hover:bg-[#00796B] text-sm text-white"
-              >
-                Sign In
-              </Button>
-            </form>
+              {/* Notifications */}
+              {successMsg && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs rounded-xl flex items-center gap-3"
+                >
+                  <MdCheckCircle className="text-lg text-emerald-500 shrink-0" />
+                  <span className="font-medium">{successMsg}</span>
+                </motion.div>
+              )}
 
-            {/* Social Separator */}
-            <div className="my-6 flex items-center justify-between gap-4">
-              <span className="w-full h-px bg-dark/5"></span>
-              <span className="text-[10px] font-semibold tracking-wider text-dark/30 uppercase shrink-0">or continue with</span>
-              <span className="w-full h-px bg-dark/5"></span>
+              {errorMsg && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="mb-6 p-4 bg-red-50 border border-red-100 text-red-700 text-xs rounded-xl flex items-center gap-3"
+                >
+                  <MdErrorOutline className="text-lg text-red-500 shrink-0" />
+                  <span className="font-medium">{errorMsg}</span>
+                </motion.div>
+              )}
+
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Email Input */}
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="name@example.com"
+                  defaultValue={localStorage.getItem('mediquick_remembered_email') || ''}
+                  error={errors.email}
+                  {...register('email', {
+                    required: 'Email address is required',
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: 'Invalid email address'
+                    }
+                  })}
+                  rightElement={<MdMailOutline className="text-dark/35 text-lg" />}
+                />
+
+                {/* Password Input */}
+                <div className="relative">
+                  <Input
+                    label="Password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    error={errors.password}
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters'
+                      }
+                    })}
+                    rightElement={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="w-5 h-5 p-0 bg-transparent border-0 outline-none flex items-center justify-center cursor-pointer text-dark/35 hover:text-dark/60 transition-colors"
+                      >
+                        {showPassword ? <MdVisibilityOff className="text-lg" /> : <MdVisibility className="text-lg" />}
+                      </button>
+                    }
+                  />
+                </div>
+
+                {/* Remember Me & Forgot Password */}
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-dark/15 text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                    <span className="text-xs text-dark/65 font-light">Remember Me</span>
+                  </label>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotModalOpen(true);
+                      setForgotSuccess(null);
+                      setForgotError(null);
+                      resetForgot();
+                    }}
+                    className="text-xs font-bold text-primary hover:underline transition-all cursor-pointer bg-transparent border-none outline-none"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={loading}
+                  className="w-full py-3.5 mt-4 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md bg-primary hover:bg-primary-dark text-white flex items-center justify-center gap-2"
+                >
+                  Sign In
+                </Button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative my-6 text-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-dark/10" />
+                </div>
+                <span className="relative z-10 px-3 bg-white text-[10px] font-extrabold text-dark/35 uppercase tracking-wider">
+                  Or Continue With
+                </span>
+              </div>
+
+              {/* Social Login */}
+              <div className="flex flex-col gap-3">
+                <Button
+                  onClick={handleGoogleLogin}
+                  variant="outline"
+                  disabled={loading}
+                  icon={FcGoogle}
+                  className="w-full py-2.5 border-dark/10 hover:bg-dark/5 text-dark/75 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
+                >
+                  Continue with Google
+                </Button>
+                <Button
+                  onClick={handleAppleLogin}
+                  variant="outline"
+                  disabled={loading}
+                  icon={FaApple}
+                  className="w-full py-2.5 border-dark/10 hover:bg-dark/5 text-dark/75 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
+                >
+                  Continue with Apple
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* MediQuick at a Glance & Quote (Visible only on xl+) */}
+          <div className="hidden xl:flex flex-col gap-4">
+            <div className="bg-[#F8FCFC]/60 border border-dark/5 rounded-[20px] p-4 shadow-xs">
+              <h4 className="text-[10px] sm:text-[11px] font-extrabold text-[#063B44]/75 uppercase tracking-wider mb-2.5">
+                MediQuick at a Glance
+              </h4>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
+                  <span className="block text-xs sm:text-sm font-extrabold text-primary">10k+</span>
+                  <span className="text-[8px] text-dark/50 font-medium leading-none">Medicines</span>
+                </div>
+                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
+                  <span className="block text-xs sm:text-sm font-extrabold text-primary">5k+</span>
+                  <span className="text-[8px] text-dark/50 font-medium leading-none">Happy Users</span>
+                </div>
+                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
+                  <span className="block text-xs sm:text-sm font-extrabold text-primary">Fast</span>
+                  <span className="text-[8px] text-dark/50 font-medium leading-none">Delivery</span>
+                </div>
+                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
+                  <span className="block text-xs sm:text-sm font-extrabold text-primary">Trusted</span>
+                  <span className="text-[8px] text-dark/50 font-medium leading-none">Healthcare</span>
+                </div>
+              </div>
             </div>
 
-            {/* Social Buttons */}
-            <div className="flex flex-col gap-3">
-              <Button
-                onClick={handleGoogleLogin}
-                variant="outline"
-                disabled={loading}
-                icon={FcGoogle}
-                className="w-full py-2.5 border-dark/10 hover:bg-dark/5 text-dark/75 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
-              >
-                Continue with Google
-              </Button>
-              <Button
-                onClick={handleAppleLogin}
-                variant="outline"
-                disabled={loading}
-                icon={FaApple}
-                className="w-full py-2.5 border-dark/10 hover:bg-dark/5 text-dark/75 font-semibold text-xs rounded-xl flex items-center justify-center gap-2"
-              >
-                Continue with Apple
-              </Button>
+            {/* Quote */}
+            <div className="flex items-center justify-center gap-2 bg-[#E2F3F0]/40 border border-primary/10 rounded-full py-2 px-4 select-none shadow-xs">
+              <span className="text-xs">💚</span>
+              <span className="text-[10px] sm:text-[11px] font-bold text-primary-dark tracking-wide italic">
+                "Your health, our priority."
+              </span>
             </div>
-
-            {/* Register Link */}
-            <p className="mt-8 text-center text-xs sm:text-sm text-dark/55">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:underline font-bold transition-colors">
-                Register Now
-              </Link>
-            </p>
-
           </div>
-        </motion.div>
+        </div>
+
+        {/* Column 2: Benefits & Promos */}
+        <div className="hidden xl:flex flex-col gap-4 max-w-[310px] xl:-mt-8">
+          {/* Vertical Why Choose MediQuick Panel */}
+          <div className="flex flex-col w-full min-h-[560px] text-left bg-[#F8FCFC]/60 border border-dark/5 rounded-[24px] p-6 shadow-soft select-none">
+            <div className="border-b border-dark/5 pb-3.5 mb-5">
+              <h3 className="font-extrabold text-sm sm:text-base text-[#063B44] uppercase tracking-wider">
+                Why MediQuick?
+              </h3>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 font-light mt-1">
+                Your trusted partner for healthcare and authentic medicines.
+              </p>
+            </div>
+
+            {/* Timeline / List Wrapper */}
+            <div className="relative flex-grow flex flex-col justify-between py-1 pl-2">
+              {/* Vertical Connecting Line */}
+              <div className="absolute left-[21px] top-6 bottom-6 w-[1.5px] bg-gradient-to-b from-primary/30 via-primary/20 to-primary/5 pointer-events-none" />
+
+              {/* Benefit Item 1 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  🛡️
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">100% Secure & Private</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    Your data and orders are protected.
+                  </p>
+                </div>
+              </div>
+
+              {/* Benefit Item 2 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  🚚
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Fast & Reliable Delivery</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    Get your medicines delivered quickly.
+                  </p>
+                </div>
+              </div>
+
+              {/* Benefit Item 3 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  💊
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Wide Range of Medicines</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    Everyday essentials and healthcare products.
+                  </p>
+                </div>
+              </div>
+
+              {/* Benefit Item 4 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  💰
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Best Prices & Offers</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    Save more with exclusive deals.
+                  </p>
+                </div>
+              </div>
+
+              {/* Benefit Item 5 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  👨‍⚕️
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Trusted Healthcare Services</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    Reliable healthcare support.
+                  </p>
+                </div>
+              </div>
+
+              {/* Benefit Item 6 */}
+              <div className="relative z-10 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
+                  📞
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-bold text-xs text-dark/85 leading-tight">24/7 Customer Support</h4>
+                  <p className="text-[10px] text-dark/55 font-light leading-normal">
+                    We're here whenever you need help.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Promotional Card */}
+          <div className="bg-[#E2F3F0]/50 border border-primary/10 rounded-[20px] p-4 text-left shadow-soft select-none">
+            <h4 className="font-extrabold text-xs text-[#063B44] leading-tight">
+              Save More on Your Medicines
+            </h4>
+            <p className="text-[10px] text-dark/65 font-light leading-normal mt-1">
+              Exclusive offers available for registered users.
+            </p>
+            <div className="mt-2.5 flex items-center justify-between">
+              <span className="text-[9px] font-bold text-primary tracking-wide uppercase cursor-pointer hover:underline">
+                View Offers →
+              </span>
+              <span className="text-xs">💰</span>
+            </div>
+          </div>
+
+          {/* Healthcare Assurance Tags */}
+          <div className="flex flex-wrap gap-1.5 select-none">
+            <div className="bg-white border border-dark/5 rounded-full px-2.5 py-1 text-[8.5px] font-medium text-dark/60 shadow-xs">
+              🛡️ Genuine Medicines
+            </div>
+            <div className="bg-white border border-dark/5 rounded-full px-2.5 py-1 text-[8.5px] font-medium text-dark/60 shadow-xs">
+              🔒 Secure Payments
+            </div>
+            <div className="bg-white border border-dark/5 rounded-full px-2.5 py-1 text-[8.5px] font-medium text-dark/60 shadow-xs">
+              📦 Easy Returns
+            </div>
+            <div className="bg-white border border-dark/5 rounded-full px-2.5 py-1 text-[8.5px] font-medium text-dark/60 shadow-xs">
+              🚀 Reliable Delivery
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Centered Forgot Password Modal */}

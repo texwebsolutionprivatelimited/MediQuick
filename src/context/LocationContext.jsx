@@ -33,7 +33,7 @@ function calculateHaversineDistance(coords1, coords2) {
 }
 
 export function LocationProvider({ children }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const { deliverySettings } = useSettings();
   const [userCoords, setUserCoords] = useState(null);
   const [address, setAddress] = useState("");
@@ -60,28 +60,39 @@ export function LocationProvider({ children }) {
     }
   }, [address, currentUser]);
 
-  // Load from localStorage on initialization
+  // Load from localStorage or check permissions on initialization (only when logged in)
   useEffect(() => {
-    try {
-      const savedCoords = localStorage.getItem('mediquick_user_coords');
-      const savedAddress = localStorage.getItem('mediquick_user_address');
-      if (savedCoords && savedAddress) {
-        setUserCoords(JSON.parse(savedCoords));
-        setAddress(savedAddress);
-      } else {
-        // Automatically check if geolocation permission was already granted
-        if (navigator.permissions && navigator.permissions.query) {
-          navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-            if (result.state === 'granted') {
-              detectLocation();
-            }
-          }).catch(() => {});
+    if (authLoading) return;
+
+    if (currentUser) {
+      try {
+        const savedCoords = localStorage.getItem(`mediquick_user_coords_${currentUser.uid}`);
+        const savedAddress = localStorage.getItem(`mediquick_user_address_${currentUser.uid}`);
+        if (savedCoords && savedAddress) {
+          setUserCoords(JSON.parse(savedCoords));
+          setAddress(savedAddress);
+        } else {
+          // Automatically check if geolocation permission was already granted
+          if (navigator.permissions && navigator.permissions.query) {
+            navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+              if (result.state === 'granted') {
+                detectLocation();
+              }
+            }).catch(() => {});
+          }
         }
+      } catch (e) {
+        console.error("Failed to load cached location:", e);
       }
-    } catch (e) {
-      console.error("Failed to load cached location:", e);
+    } else {
+      // Clear location state for guest users
+      setUserCoords(null);
+      setAddress("");
+      setDistance(null);
+      setDeliveryType(null);
+      setDeliveryCharge(0);
     }
-  }, []);
+  }, [currentUser, authLoading]);
 
   // Re-calculate delivery whenever userCoords or deliverySettings change
   useEffect(() => {
@@ -106,39 +117,30 @@ export function LocationProvider({ children }) {
         setDeliveryType('standard');
       }
 
-      // Save coordinates to localStorage
-      localStorage.setItem('mediquick_user_coords', JSON.stringify(userCoords));
+      // Save coordinates to localStorage (only when logged in)
+      if (currentUser) {
+        localStorage.setItem(`mediquick_user_coords_${currentUser.uid}`, JSON.stringify(userCoords));
+      }
     } else {
       setDistance(null);
       setDeliveryType(null);
       setDeliveryCharge(0);
     }
-  }, [userCoords, deliverySettings]);
+  }, [userCoords, deliverySettings, currentUser]);
 
   const calculateDeliveryFee = (subtotal) => {
     if (subtotal <= 0) return 0;
-    if (!deliverySettings || !deliverySettings.deliveryEnabled) return 0;
-    if (distance === null || distance > Number(deliverySettings.maximumServiceRadius)) return 0;
-    if (subtotal >= Number(deliverySettings.freeDeliveryThreshold)) return 0;
-
-    const baseFee = Number(deliverySettings.baseDeliveryFee);
-    const priRadius = Number(deliverySettings.priorityRadius);
-
-    if (distance <= priRadius) {
-      return baseFee;
-    } else {
-      const extraDist = distance - priRadius;
-      // Progressive delivery fee: base delivery fee + additional charge per km beyond priority radius
-      return baseFee + Math.round(extraDist * 10);
-    }
+    if (subtotal < 500) return 20;
+    if (subtotal < 1600) return 50;
+    return 0; // Free delivery for ₹1600 and above
   };
 
-  // Save address changes to localStorage
+  // Save address changes to localStorage (only when logged in)
   useEffect(() => {
-    if (address) {
-      localStorage.setItem('mediquick_user_address', address);
+    if (address && currentUser) {
+      localStorage.setItem(`mediquick_user_address_${currentUser.uid}`, address);
     }
-  }, [address]);
+  }, [address, currentUser]);
 
   // GPS geolocation detection
   const detectLocation = () => {

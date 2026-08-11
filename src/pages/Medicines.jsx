@@ -5,14 +5,15 @@ import MedicineImage from '../components/MedicineImage';
 import Card from '../components/Card';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import QuantityStepper from '../components/QuantityStepper';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MdShoppingCart, 
   MdFilterList, 
   MdClose,
   MdSort,
   MdFavorite,
-  MdFavoriteBorder
+  MdFavoriteBorder,
+  MdCheckCircle
 } from 'react-icons/md';
 import { useProducts } from '../context/ProductsContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -79,6 +80,7 @@ export default function Medicines() {
   const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [sortBy, setSortBy] = useState("Popularity");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [addingProductId, setAddingProductId] = useState(null);
 
   // Filters state
   const [selectedCategories, setSelectedCategories] = useState(() => {
@@ -597,11 +599,11 @@ export default function Medicines() {
 
             {/* Cards Grid */}
             {loading && filteredProducts.length === 0 ? (
-              <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mt-4">
                 <LoadingSkeleton type="card" count={6} />
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 mt-4">
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
@@ -623,7 +625,7 @@ export default function Medicines() {
                       className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white border border-dark/5 shadow-sm flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 cursor-pointer text-dark/45 hover:text-red-500"
                     >
                       {isInWishlist(product.id) ? (
-                        <MdFavorite className="text-lg text-red-500" />
+                        <MdFavorite className="text-lg text-red-500 animate-heartBeat" />
                       ) : (
                         <MdFavoriteBorder className="text-lg" />
                       )}
@@ -683,21 +685,37 @@ export default function Medicines() {
                             />
                           );
                         }
+                        const isAdding = addingProductId === product.id;
                         return (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              addToCart(product, 1);
+                              setAddingProductId(product.id);
+                              setTimeout(() => {
+                                addToCart(product, 1);
+                                setAddingProductId(null);
+                              }, 400);
                             }}
-                            disabled={product.stock <= 0}
+                            disabled={product.stock <= 0 || isAdding}
                             className={`w-full mt-2.5 py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
-                              product.stock > 0 
-                                ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
-                                : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
+                              isAdding
+                                ? 'bg-emerald-600 text-white border-emerald-600 scale-[0.98] animate-successPop'
+                                : product.stock > 0 
+                                  ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
+                                  : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
                             }`}
                           >
-                            <MdShoppingCart className="text-xs" />
-                            Add to Cart
+                            {isAdding ? (
+                              <>
+                                <MdCheckCircle className="text-xs animate-successPop" />
+                                Added
+                              </>
+                            ) : (
+                              <>
+                                <MdShoppingCart className="text-xs" />
+                                Add to Cart
+                              </>
+                            )}
                           </button>
                         );
                       })()}
@@ -725,13 +743,21 @@ export default function Medicines() {
       </div>
 
       {/* 📱 MOBILE FILTERS OVERLAY */}
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex justify-end">
+      <AnimatePresence>
+        {mobileFiltersOpen && (
           <motion.div 
-            initial={{ x: 300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="w-full max-w-xs bg-white h-full px-6 py-4 shadow-premium overflow-y-auto space-y-4 flex flex-col justify-between"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-dark/60 backdrop-blur-sm flex justify-end"
           >
+            <motion.div 
+              initial={{ x: 300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 300, opacity: 0 }}
+              transition={{ type: "tween", duration: 0.25 }}
+              className="w-full max-w-xs bg-white h-full px-6 py-4 shadow-premium overflow-y-auto space-y-4 flex flex-col justify-between"
+            >
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-dark/5 pb-2">
                 <h3 className="font-bold text-dark flex items-center gap-1.5">
@@ -881,8 +907,9 @@ export default function Medicines() {
               </button>
             </div>
           </motion.div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

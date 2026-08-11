@@ -20,6 +20,7 @@ const AdminLogin = lazy(() => import('../pages/AdminLogin'));
 const ResetPassword = lazy(() => import('../pages/ResetPassword'));
 const AccessDenied = lazy(() => import('../pages/AccessDenied'));
 const Blogs = lazy(() => import('../pages/Blogs'));
+const BlogDetails = lazy(() => import('../pages/BlogDetails'));
 const Faq = lazy(() => import('../pages/Faq'));
 const RefundPolicy = lazy(() => import('../pages/RefundPolicy'));
 const Careers = lazy(() => import('../pages/Careers'));
@@ -90,6 +91,7 @@ export default function AppRoutes() {
         {/* Protected User Routes */}
         <Route path="/about" element={<About />} />
         <Route path="/blogs" element={<Blogs />} />
+        <Route path="/blogs/:id" element={<BlogDetails />} />
         <Route path="/faq" element={<Faq />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/careers" element={<Careers />} />

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { db, isConfigValid } from '../firebase/firebase';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
@@ -17,9 +17,9 @@ import {
 export default function Blogs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [activeArticle, setActiveArticle] = useState(null);
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const categories = ["All", "Heart Health", "Nutrition", "Diabetes Care", "Mental Wellness"];
 
@@ -214,7 +214,17 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
             <motion.div 
               key={art.id}
               layoutId={`article-card-${art.id}`}
-              className="group bg-white border border-dark/5 rounded-[32px] overflow-hidden shadow-soft hover:shadow-hover hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full min-h-[420px]"
+              onClick={() => navigate(`/blogs/${art.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(`/blogs/${art.id}`);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={`Read article: ${art.title}`}
+              className="group bg-white border border-dark/5 rounded-[32px] overflow-hidden shadow-soft hover:shadow-hover hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between h-full min-h-[420px] cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               {/* Cover Image */}
               <div className="h-48 overflow-hidden relative select-none shrink-0">
@@ -251,7 +261,11 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                     <span className="truncate">{art.author}</span>
                   </div>
                   <button
-                    onClick={() => setActiveArticle(art)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/blogs/${art.id}`);
+                    }}
+                    tabIndex={-1}
                     className="text-xs font-black text-primary hover:text-primary-dark hover:underline uppercase tracking-wide shrink-0 cursor-pointer flex items-center gap-0.5 bg-transparent border-none outline-none"
                   >
                     Read Full Article →
@@ -269,76 +283,6 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
         </div>
       </div>
 
-      {/* Modal reading view */}
-      <AnimatePresence>
-        {activeArticle && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-dark/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[32px] w-full max-w-2xl shadow-premium overflow-hidden max-h-[85vh] flex flex-col"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-dark/5 flex items-center justify-between bg-[#F8FCFC]">
-                <div className="space-y-1">
-                  <span className="bg-primary/10 text-primary-dark font-extrabold uppercase text-[9px] px-2 py-0.5 rounded-full tracking-wider">
-                    {activeArticle.category}
-                  </span>
-                  <div className="flex items-center gap-3 text-[10px] text-dark/45 font-bold uppercase tracking-wide pt-1">
-                    <span>{activeArticle.date}</span>
-                    <span>•</span>
-                    <span>{activeArticle.readTime}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveArticle(null)}
-                  className="text-dark/55 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors"
-                >
-                  <MdClose className="text-2xl" />
-                </button>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-grow">
-                <h2 className="text-xl sm:text-2xl font-extrabold text-[#063B44] leading-snug">
-                  {activeArticle.title}
-                </h2>
-                
-                <div className="flex items-center gap-2 text-xs text-dark/50 font-semibold select-none">
-                  <MdPerson className="text-primary text-base" /> Written by {activeArticle.author}
-                </div>
-
-                <div className="h-56 rounded-2xl overflow-hidden shadow-inner select-none">
-                  <img src={activeArticle.image} alt={activeArticle.title} className="w-full h-full object-cover" />
-                </div>
-
-                {/* Article Body */}
-                <div className="text-xs sm:text-sm text-dark/80 font-light leading-relaxed whitespace-pre-line space-y-4">
-                  {activeArticle.content}
-                </div>
-
-                {/* Checklist Commitment Box */}
-                <div className="p-5 bg-primary/5 rounded-[24px] border border-primary/10 space-y-3">
-                  <h4 className="text-xs sm:text-sm font-extrabold text-[#063B44] flex items-center gap-1.5">
-                    <MdBookmarkBorder className="text-primary text-lg" /> Health Action Takeaway:
-                  </h4>
-                  <ul className="text-xs text-dark/75 space-y-2">
-                    <li className="flex items-start gap-2">
-                      <MdCheckCircle className="text-secondary text-base shrink-0 mt-0.5" />
-                      <span>Regular monitoring and doctor checkups form the core of prevention.</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <MdCheckCircle className="text-secondary text-base shrink-0 mt-0.5" />
-                      <span>Small, consistent dietary adjustments outperform temporary diets.</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -1,17 +1,18 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useProducts } from '../context/ProductsContext';
 import { useCart } from '../context/CartContext';
 import MedicineImage from '../components/MedicineImage';
 import QuantityStepper from '../components/QuantityStepper';
-import { MdShoppingCart, MdFavorite, MdArrowBack } from 'react-icons/md';
+import { MdShoppingCart, MdFavorite, MdArrowBack, MdCheckCircle } from 'react-icons/md';
 
 export default function Wishlist() {
   const navigate = useNavigate();
   const { wishlistIds, toggleWishlist } = useWishlist();
   const { products, loading: productsLoading } = useProducts();
   const { cartItems, addToCart, updateQuantity } = useCart();
+  const [addingProductId, setAddingProductId] = useState(null);
 
   // Map product IDs in wishlist to full product details from ProductsContext
   const wishlistItems = useMemo(() => {
@@ -23,7 +24,11 @@ export default function Wishlist() {
 
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
-    addToCart(product, 1);
+    setAddingProductId(product.id);
+    setTimeout(() => {
+      addToCart(product, 1);
+      setAddingProductId(null);
+    }, 400);
   };
 
   const handleRemove = (e, product) => {
@@ -63,7 +68,7 @@ export default function Wishlist() {
             </div>
           </div>
         ) : wishlistItems.length > 0 ? (
-          <div className="grid grid-cols-1 min-[375px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-6 select-none">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 select-none">
             {wishlistItems.map((product) => (
               <div
                 key={product.id}
@@ -83,7 +88,7 @@ export default function Wishlist() {
                   className="absolute right-3 top-3 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white border border-dark/5 shadow-sm flex items-center justify-center transition-all duration-200 active:scale-90 hover:scale-110 cursor-pointer text-red-500"
                   title="Remove from wishlist"
                 >
-                  <MdFavorite className="text-lg text-red-500" />
+                  <MdFavorite className="text-lg text-red-500 animate-heartBeat" />
                 </button>
 
                 <div className="flex flex-col flex-grow">
@@ -139,18 +144,30 @@ export default function Wishlist() {
                           />
                         );
                       }
+                      const isAdding = addingProductId === product.id;
                       return (
                         <button
                           onClick={(e) => handleAddToCart(e, product)}
-                          disabled={product.stock <= 0}
+                          disabled={product.stock <= 0 || isAdding}
                           className={`flex-grow py-2 font-bold text-[10px] rounded-xl flex items-center justify-center gap-1 transition-all select-none shadow-sm ${
-                            product.stock > 0 
-                              ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
-                              : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
+                            isAdding
+                              ? 'bg-emerald-600 text-white border-emerald-600 scale-[0.98] animate-successPop'
+                              : product.stock > 0 
+                                ? 'bg-primary/5 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary cursor-pointer' 
+                                : 'bg-dark/5 text-dark/30 border border-dark/5 cursor-not-allowed'
                           }`}
                         >
-                          <MdShoppingCart className="text-xs" />
-                          Add to Cart
+                          {isAdding ? (
+                            <>
+                              <MdCheckCircle className="text-xs animate-successPop" />
+                              Added
+                            </>
+                          ) : (
+                            <>
+                              <MdShoppingCart className="text-xs" />
+                              Add to Cart
+                            </>
+                          )}
                         </button>
                       );
                     })()}

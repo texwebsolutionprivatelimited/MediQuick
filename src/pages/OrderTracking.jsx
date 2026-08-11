@@ -340,8 +340,11 @@ export default function OrderTracking() {
                           <MdMyLocation />
                         </div>
                         <div className="space-y-0.5 leading-tight">
-                          <h4 className="font-bold text-[10px] text-dark/50 uppercase tracking-wider">Shipping Address</h4>
+                          <h4 className="font-bold text-[10px] text-dark/50 uppercase tracking-wider">Shipping Details</h4>
                           <p className="text-xs text-dark/70 font-light leading-normal">{order.deliveryAddress}</p>
+                          {order.phone && (
+                            <p className="text-[10px] text-dark/65 font-bold mt-1">Contact: {order.phone}</p>
+                          )}
                         </div>
                       </div>
 

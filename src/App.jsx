@@ -27,6 +27,7 @@ function AppContent() {
   const { addToCart } = useCart();
   const { toggleWishlist } = useWishlist();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   // Recovery effect for global guest actions after logging in
   useEffect(() => {
@@ -95,7 +96,7 @@ function AppContent() {
       <Navigation />
       
       {/* Main Content Area */}
-      <main className="flex-grow">
+      <main className="flex-grow page-entrance" key={pathname}>
         <AppRoutes />
       </main>
       

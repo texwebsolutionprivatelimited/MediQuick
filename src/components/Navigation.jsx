@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation as useRouteLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useLocation } from '../context/LocationContext';
@@ -23,6 +24,7 @@ import { useWishlist } from '../context/WishlistContext';
 
 export default function Navigation() {
   const navigate = useNavigate();
+  const routeLocation = useRouteLocation();
   const { currentUser, logout } = useAuth();
   const { cartItems } = useCart();
   const { address, detectLocation, loading: locLoading } = useLocation();
@@ -44,6 +46,7 @@ export default function Navigation() {
   const desktopProfileRef = useRef(null);
   const mobileProfileRef = useRef(null);
   const moreMenuRef = useRef(null);
+  const notificationsRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -88,10 +91,34 @@ export default function Navigation() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [moreMenuOpen]);
+ 
+  // Close Alerts dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationsOpen && notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    }
+    function handleKeyDown(event) {
+      if (notificationsOpen && event.key === "Escape") {
+        setNotificationsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [notificationsOpen]);
+
+  // Close Alerts dropdown when navigating to another page
+  useEffect(() => {
+    setNotificationsOpen(false);
+  }, [routeLocation.pathname]);
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  const routeLocation = useRouteLocation();
   const isAuthPage = ['/login', '/register', '/forgot-password'].includes(routeLocation.pathname);
 
   useEffect(() => {
@@ -244,7 +271,7 @@ export default function Navigation() {
           <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 shrink-0 text-dark/75">
             
             {/* Notification Icon */}
-            <div className="hidden lg:block relative">
+            <div ref={notificationsRef} className="hidden lg:block relative">
               <button 
                 type="button"
                 onClick={() => setNotificationsOpen(!notificationsOpen)}
@@ -258,13 +285,20 @@ export default function Navigation() {
                 <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">Alerts</span>
               </button>
 
-              {notificationsOpen && (
-                <>
-                  {/* Backdrop */}
-                  <div onClick={() => setNotificationsOpen(false)} className="fixed inset-0 z-30 bg-dark/20 sm:bg-transparent" />
-                  
-                  {/* 1. DESKTOP/TABLET DROPDOWN */}
-                  <div className="hidden sm:block absolute right-0 top-full mt-2 w-96 bg-white border border-dark/5 shadow-premium rounded-[24px] p-4 z-40 text-sm text-left">
+              <AnimatePresence>
+                {notificationsOpen && (
+                  <>
+                    {/* Mobile-only backdrop to avoid blocking/swallowing clicks on desktop */}
+                    <div onClick={() => setNotificationsOpen(false)} className="block sm:hidden fixed inset-0 z-30 bg-dark/20" />
+                    
+                    {/* 1. DESKTOP/TABLET DROPDOWN */}
+                    <motion.div
+                      initial={{ opacity: 0, y: -12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -12 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                      className="hidden sm:block absolute right-0 top-full mt-2 w-96 bg-white border border-dark/5 shadow-premium rounded-[24px] p-4 z-40 text-sm text-left"
+                    >
                     <div className="flex items-center justify-between border-b border-dark/5 pb-2 mb-3 select-none">
                       <h4 className="font-extrabold text-[#063B44] text-xs sm:text-sm flex items-center gap-1.5">
                         🔔 Notifications {unreadCount > 0 && <span className="bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount} unread</span>}
@@ -324,10 +358,16 @@ export default function Navigation() {
                         Dismiss All Notifications
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
 
                   {/* 2. MOBILE BOTTOM SHEET */}
-                  <div className="block sm:hidden fixed inset-x-0 bottom-0 max-h-[75vh] bg-white rounded-t-[32px] shadow-premium p-5 z-50 overflow-hidden flex flex-col border-t border-dark/5 text-left">
+                  <motion.div
+                    initial={{ y: "100%", opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: "100%", opacity: 0 }}
+                    transition={{ type: "tween", duration: 0.25 }}
+                    className="block sm:hidden fixed inset-x-0 bottom-0 max-h-[75vh] bg-white rounded-t-[32px] shadow-premium p-5 z-50 overflow-hidden flex flex-col border-t border-dark/5 text-left"
+                  >
                     <div className="w-12 h-1.5 bg-dark/15 rounded-full mx-auto mb-4 shrink-0" />
                     
                     <div className="flex items-center justify-between border-b border-dark/5 pb-3 mb-3 select-none shrink-0">
@@ -385,9 +425,10 @@ export default function Navigation() {
                         ))
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 </>
               )}
+            </AnimatePresence>
             </div>
 
 
@@ -399,13 +440,19 @@ export default function Navigation() {
               >
                 <MdAccountCircle className="text-[22px] transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary" />
                 <span className="text-[12px] lg:text-[13px] font-medium tracking-tight text-dark/65 mt-1.5 leading-none group-hover:text-primary transition-colors">
-                  {currentUser ? (currentUser.displayName || 'Account') : 'Login / Register'}
+                  {currentUser ? 'Account' : 'Login / Register'}
                 </span>
               </button>
 
-              {profileDropdownOpen && (
-                <>
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-dark/5 shadow-premium rounded-2xl p-2 z-40 text-sm text-left">
+              <AnimatePresence>
+                {profileDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 top-full mt-2 w-52 bg-white border border-dark/5 shadow-premium rounded-2xl p-2 z-40 text-sm text-left"
+                  >
                     {currentUser ? (
                       <>
                         <div className="px-4 py-2.5 border-b border-dark/5 leading-tight">
@@ -470,9 +517,9 @@ export default function Navigation() {
                         </Link>
                       </div>
                     )}
-                  </div>
-                </>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Wishlist Link */}
@@ -499,7 +546,7 @@ export default function Navigation() {
               <div className="relative transition-transform duration-200 ease-out group-hover:scale-108 group-hover:text-primary">
                 <MdShoppingCart className="text-[22px]" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+                  <span key={cartItems.length} className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none animate-badgePop">
                     {cartItems.length}
                   </span>
                 )}
@@ -508,23 +555,25 @@ export default function Navigation() {
             </Link>
 
             {/* Location Selector (with pointer pin) */}
-            <div className="hidden lg:block">
-              <button 
-                onClick={detectLocation}
-                disabled={locLoading}
-                className="flex items-center gap-2 text-left max-w-[130px] lg:max-w-[180px] group p-1.5 rounded-xl hover:bg-primary/5 transition-all duration-200 outline-none shrink-0 cursor-pointer border-none bg-transparent"
-              >
-                <MdRoom className={`text-[22px] text-primary shrink-0 transition-transform duration-200 ease-out group-hover:scale-108 ${locLoading ? 'animate-bounce' : ''}`} />
-                <div className="overflow-hidden leading-tight flex flex-col justify-center">
-                  <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider block">
-                    Deliver to
-                  </span>
-                  <p className="text-[12px] lg:text-[13px] font-extrabold text-dark truncate">
-                    {address || "Hyderabad, 500001"}
-                  </p>
-                </div>
-              </button>
-            </div>
+            {currentUser && (
+              <div className="hidden lg:block">
+                <button 
+                  onClick={detectLocation}
+                  disabled={locLoading}
+                  className="flex items-center gap-2 text-left max-w-[130px] lg:max-w-[180px] group p-1.5 rounded-xl hover:bg-primary/5 transition-all duration-200 outline-none shrink-0 cursor-pointer border-none bg-transparent"
+                >
+                  <MdRoom className={`text-[22px] text-primary shrink-0 transition-transform duration-200 ease-out group-hover:scale-108 ${locLoading ? 'animate-bounce' : ''}`} />
+                  <div className="overflow-hidden leading-tight flex flex-col justify-center">
+                    <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider block">
+                      Deliver to
+                    </span>
+                    <p className="text-[12px] lg:text-[13px] font-extrabold text-dark truncate">
+                      {address || "Hyderabad, 500001"}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
@@ -561,9 +610,15 @@ export default function Navigation() {
                 <MdAccountCircle className="text-2xl" />
               </button>
 
-              {profileDropdownOpen && (
-                <>
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-dark/5 shadow-premium rounded-xl p-1.5 z-40 text-xs text-left">
+              <AnimatePresence>
+                {profileDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-white border border-dark/5 shadow-premium rounded-xl p-1.5 z-40 text-xs text-left"
+                  >
                     {currentUser ? (
                       <>
                         <div className="px-3 py-2 border-b border-dark/5 leading-tight">
@@ -628,9 +683,9 @@ export default function Navigation() {
                         </Link>
                       </div>
                     )}
-                  </div>
-                </>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Wishlist */}
@@ -650,7 +705,7 @@ export default function Navigation() {
               <div className="relative">
                 <MdShoppingCart className="text-2xl" />
                 {cartItems.length > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+                  <span key={cartItems.length} className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none animate-badgePop">
                     {cartItems.length}
                   </span>
                 )}
@@ -745,20 +800,24 @@ export default function Navigation() {
 
               {/* Deliver To (Location) Selector in Drawer */}
               <div className="bg-background/40 border border-dark/5 rounded-2xl p-3.5 space-y-2 text-left">
-                <div className="flex items-center gap-1.5">
-                  <MdRoom className="text-primary text-lg" />
-                  <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider">Deliver to</span>
-                </div>
-                <p className="text-xs font-bold text-dark/75 line-clamp-2">
-                  {address || "Hyderabad, 500001"}
-                </p>
-                <button
-                  onClick={detectLocation}
-                  disabled={locLoading}
-                  className="w-full text-center py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-xl transition-colors disabled:opacity-50 mt-1 cursor-pointer"
-                >
-                  {locLoading ? "Detecting..." : "Detect Location"}
-                </button>
+                {currentUser && (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <MdRoom className="text-primary text-lg" />
+                      <span className="text-[10px] text-dark/45 font-bold uppercase tracking-wider">Deliver to</span>
+                    </div>
+                    <p className="text-xs font-bold text-dark/75 line-clamp-2">
+                      {address || "Hyderabad, 500001"}
+                    </p>
+                    <button
+                      onClick={detectLocation}
+                      disabled={locLoading}
+                      className="w-full text-center py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-xl transition-colors disabled:opacity-50 mt-1 cursor-pointer"
+                    >
+                      {locLoading ? "Detecting..." : "Detect Location"}
+                    </button>
+                  </>
+                )}
                 
                 {/* Navigation links list */}
                 <nav className="flex flex-col gap-1 text-left">
@@ -945,10 +1004,17 @@ export default function Navigation() {
               <MdKeyboardArrowDown className="text-base" />
             </button>
 
-            {categoriesDropdownOpen && (
-              <>
-                <div onClick={() => setCategoriesDropdownOpen(false)} className="fixed inset-0 z-30" />
-                <div className="absolute left-0 mt-0.5 w-[768px] bg-white border border-dark/5 shadow-premium rounded-b-[24px] p-6 z-40 text-sm text-left max-h-[480px] overflow-y-auto scrollbar-thin">
+            <AnimatePresence>
+              {categoriesDropdownOpen && (
+                <>
+                  <div onClick={() => setCategoriesDropdownOpen(false)} className="fixed inset-0 z-30" />
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 15 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="absolute left-0 mt-0.5 w-[768px] bg-white border border-dark/5 shadow-premium rounded-b-[24px] p-6 z-40 text-sm text-left max-h-[480px] overflow-y-auto scrollbar-thin"
+                  >
                   <div className="flex items-center justify-between border-b border-dark/5 pb-3 mb-4 select-none">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🗂️</span>
@@ -1001,9 +1067,10 @@ export default function Navigation() {
                       <span className="col-span-3 text-center py-4 text-xs text-dark/40 italic">No categories loaded</span>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </>
             )}
+          </AnimatePresence>
           </div>
 
           <div className="flex items-center justify-between overflow-visible h-full flex-grow pl-6 lg:pl-12">
@@ -1023,10 +1090,17 @@ export default function Navigation() {
                 More <span>⋮</span>
               </button>
  
-              {moreMenuOpen && (
-                <>
-                  <div onClick={() => setMoreMenuOpen(false)} className="fixed inset-0 z-30" />
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-dark/5 shadow-premium rounded-xl py-2 z-40 text-sm text-left flex flex-col">
+              <AnimatePresence>
+                {moreMenuOpen && (
+                  <>
+                    <div onClick={() => setMoreMenuOpen(false)} className="fixed inset-0 z-30" />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="absolute right-0 mt-2 w-48 bg-white border border-dark/5 shadow-premium rounded-xl py-2 z-40 text-sm text-left flex flex-col"
+                    >
                     <Link 
                       to="/blogs" 
                       onClick={() => setMoreMenuOpen(false)} 
@@ -1041,9 +1115,10 @@ export default function Navigation() {
                     >
                       Contact
                     </Link>
-                  </div>
+                  </motion.div>
                 </>
               )}
+            </AnimatePresence>
             </div>
           </div>
 

@@ -141,7 +141,7 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-  const applyCoupon = (code) => {
+  const applyCoupon = (code, items = cartItems) => {
     if (!code || !code.trim()) {
       return { success: false, message: 'Please enter a coupon code.' };
     }
@@ -163,13 +163,13 @@ export function CartProvider({ children }) {
     }
 
     // Check minimum order
-    const subtotal = getSubtotal();
+    const subtotal = getSubtotal(items);
     if (found.minimumOrder && subtotal < Number(found.minimumOrder)) {
       return { success: false, message: `Minimum order of ₹${found.minimumOrder} required to use this coupon.` };
     }
 
     // Validate that the coupon matches the discount percentage of any item in the cart
-    if (!isCouponApplicableToCart(found, cartItems)) {
+    if (!isCouponApplicableToCart(found, items)) {
       return { success: false, message: 'This coupon is not valid for this product.' };
     }
 
@@ -196,19 +196,19 @@ export function CartProvider({ children }) {
   const prescriptionUploaded = !!prescriptionFile;
 
   // Price Calculations
-  const getSubtotal = () => {
-    return cartItems.reduce((acc, item) => {
+  const getSubtotal = (items = cartItems) => {
+    return items.reduce((acc, item) => {
       const price = item.offerPrice || item.price || item.mrp || 0;
       return acc + price * item.quantity;
     }, 0);
   };
 
-  const getDiscount = () => {
-    const subtotal = getSubtotal();
-    if (!coupon) return 0;
-    if (coupon.minimumOrder && subtotal < coupon.minimumOrder) return 0;
+  const getDiscount = (items = cartItems, currentCoupon = coupon) => {
+    const subtotal = getSubtotal(items);
+    if (!currentCoupon) return 0;
+    if (currentCoupon.minimumOrder && subtotal < currentCoupon.minimumOrder) return 0;
 
-    const calculated = calculateEligibleDiscount(coupon, cartItems);
+    const calculated = calculateEligibleDiscount(currentCoupon, items);
 
     return Math.min(calculated, subtotal);
   };

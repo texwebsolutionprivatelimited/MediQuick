@@ -27,13 +27,49 @@ export default function Checkout() {
   const { systemSettings, deliverySettings } = useSettings();
   const { currentUser } = useAuth();
 
+  // Buy Now flow context items resolving
+  const buyNowProduct = routerLocation.state?.buyNowProduct;
+  const checkoutItems = React.useMemo(() => {
+    if (buyNowProduct) {
+      const cartItem = cartItems.find(item => item.id === buyNowProduct.id);
+      const qty = cartItem ? cartItem.quantity : 1;
+      return [{ ...buyNowProduct, quantity: qty }];
+    }
+    return cartItems;
+  }, [buyNowProduct, cartItems]);
+
+  const subtotal = getSubtotal(checkoutItems);
+  const totalMSRP = checkoutItems.reduce((sum, item) => sum + (item.mrp || item.price || 0) * item.quantity, 0);
+  const productDiscount = Math.max(0, totalMSRP - subtotal);
+  const discount = getDiscount(checkoutItems);
+  const deliveryFee = calculateDeliveryFee(subtotal);
+  const total = Math.max(0, subtotal - discount + deliveryFee);
+
+  const uniqueCartDiscounts = React.useMemo(() => {
+    const discounts = checkoutItems
+      .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
+      .filter(d => d > 0);
+    return [...new Set(discounts)];
+  }, [checkoutItems]);
+
   // Local Form states
   const [flatNo, setFlatNo] = useState("");
   const [landmark, setLandmark] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState(address || "");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod"); // "cod", "upi", "card"
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
+
+  const [addressError, setAddressError] = useState("");
+  const [flatError, setFlatError] = useState("");
+  const [landmarkError, setLandmarkError] = useState("");
+  const [mobileError, setMobileError] = useState("");
+
+  const addressRef = React.useRef(null);
+  const flatRef = React.useRef(null);
+  const landmarkRef = React.useRef(null);
+  const mobileRef = React.useRef(null);
 
   // Promo code states
   const [promoInput, setPromoInput] = useState("");
@@ -62,9 +98,9 @@ export default function Checkout() {
       return cCode && cCode.trim().toUpperCase() === codeUpper;
     });
 
-    // If not found in Firestore availableCoupons, check if it's on any of the cart items!
+    // If not found in Firestore availableCoupons, check if it's on any of the checkout items!
     if (!found) {
-      const itemWithCoupon = cartItems.find(item => {
+      const itemWithCoupon = checkoutItems.find(item => {
         const itemCouponCode = item.couponCode || item.coupon_code;
         return itemCouponCode && itemCouponCode.trim().toUpperCase() === codeUpper;
       });
@@ -104,7 +140,6 @@ export default function Checkout() {
     }
 
     // Check discount percentage match (all eligible products must have the same discount percentage)
-    const buyNowProduct = routerLocation.state?.buyNowProduct;
     if (buyNowProduct) {
       const buyNowDiscount = Number(buyNowProduct.discountPercentage !== undefined ? buyNowProduct.discountPercentage : buyNowProduct.discount_percentage) || 0;
       const couponDiscount = Number(found.discountPercentage !== undefined ? found.discountPercentage : found.discount);
@@ -113,7 +148,7 @@ export default function Checkout() {
         return;
       }
     } else {
-      const activeDiscounts = cartItems
+      const activeDiscounts = checkoutItems
         .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
         .filter(d => d > 0);
       const uniqueDiscounts = [...new Set(activeDiscounts)];
@@ -133,7 +168,7 @@ export default function Checkout() {
     }
 
     // Apply the coupon
-    const res = applyCoupon(codeUpper);
+    const res = applyCoupon(codeUpper, checkoutItems);
     if (res.success) {
       setPromoSuccess(res.message);
       setPromoInput("");
@@ -152,8 +187,16 @@ export default function Checkout() {
   React.useEffect(() => {
     if (address) {
       setDeliveryAddress(address);
+      setAddressError("");
     }
   }, [address]);
+
+  // Pre-fill mobile number from user profile
+  React.useEffect(() => {
+    if (currentUser) {
+      setMobileNumber(currentUser.mobileNumber || currentUser.phone || "");
+    }
+  }, [currentUser]);
 
 
   const handleGetCurrentLocation = () => {
@@ -163,17 +206,8 @@ export default function Checkout() {
     detectLocation();
   };
 
-  const subtotal = getSubtotal();
-  const uniqueCartDiscounts = React.useMemo(() => {
-    const discounts = cartItems
-      .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
-      .filter(d => d > 0);
-    return [...new Set(discounts)];
-  }, [cartItems]);
-
   const applicableCoupons = React.useMemo(() => {
     // Check if the route contains buyNowProduct (Buy Now flow)
-    const buyNowProduct = routerLocation.state?.buyNowProduct;
     if (buyNowProduct) {
       const itemCouponCode = buyNowProduct.couponCode || buyNowProduct.coupon_code;
       if (itemCouponCode) {
@@ -202,11 +236,11 @@ export default function Checkout() {
       return [];
     }
 
-    if (!cartItems || cartItems.length === 0) {
+    if (!checkoutItems || checkoutItems.length === 0) {
       return [];
     }
 
-    const activeDiscounts = cartItems
+    const activeDiscounts = checkoutItems
       .map(item => Number(item.discountPercentage !== undefined ? item.discountPercentage : item.discount_percentage) || 0)
       .filter(d => d > 0);
     const uniqueDiscounts = [...new Set(activeDiscounts)];
@@ -217,7 +251,7 @@ export default function Checkout() {
 
     const coupons = [];
     
-    cartItems.forEach(item => {
+    checkoutItems.forEach(item => {
       const itemCouponCode = item.couponCode || item.coupon_code;
       if (itemCouponCode) {
         const match = availableCoupons.find(c => {
@@ -261,14 +295,7 @@ export default function Checkout() {
     });
 
     return coupons;
-  }, [cartItems, availableCoupons, routerLocation.state]);
-
-  const totalMSRP = cartItems.reduce((sum, item) => sum + (item.mrp || item.price || 0) * item.quantity, 0);
-  const productDiscount = Math.max(0, totalMSRP - subtotal);
-
-  const discount = getDiscount();
-  const deliveryFee = calculateDeliveryFee(subtotal);
-  const total = Math.max(0, subtotal - discount + deliveryFee);
+  }, [checkoutItems, availableCoupons, buyNowProduct]);
 
   const isStoreClosed = systemSettings && systemSettings.storeOpen === false;
   // Temporary bypass of delivery serviceability validation for testing/dev
@@ -278,7 +305,52 @@ export default function Checkout() {
 
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
-    if (!deliveryAddress.trim() || isPlacing) return;
+    if (isPlacing) return;
+
+    let hasError = false;
+    if (!deliveryAddress.trim()) {
+      setAddressError("Full Address is required.");
+      hasError = true;
+    } else {
+      setAddressError("");
+    }
+
+    if (!flatNo.trim()) {
+      setFlatError("Please enter your Flat / House No. / Building.");
+      hasError = true;
+    } else {
+      setFlatError("");
+    }
+
+    if (!landmark.trim()) {
+      setLandmarkError("Please enter your Landmark.");
+      hasError = true;
+    } else {
+      setLandmarkError("");
+    }
+
+    if (!mobileNumber.trim()) {
+      setMobileError("Mobile number is required.");
+      hasError = true;
+    } else if (mobileNumber.trim().length !== 10) {
+      setMobileError("Please enter a valid 10-digit mobile number.");
+      hasError = true;
+    } else {
+      setMobileError("");
+    }
+
+    if (hasError) {
+      if (!deliveryAddress.trim()) {
+        addressRef.current?.focus();
+      } else if (!flatNo.trim()) {
+        flatRef.current?.focus();
+      } else if (!landmark.trim()) {
+        landmarkRef.current?.focus();
+      } else if (!mobileNumber.trim() || mobileNumber.trim().length !== 10) {
+        mobileRef.current?.focus();
+      }
+      return;
+    }
 
     setIsPlacing(true);
 
@@ -290,16 +362,16 @@ export default function Checkout() {
       userId: currentUser?.uid || "guest",
       customerName: currentUser?.displayName || currentUser?.fullName || "Guest Customer",
       email: currentUser?.email || "guest@mediquick.com",
-      phone: currentUser?.phone || currentUser?.mobileNumber || "9876543210",
+      phone: mobileNumber.trim(),
       deliveryAddress: fullAddress,
-      items: cartItems.map(item => ({
+      items: checkoutItems.map(item => ({
         id: item.id,
         medicine_name: item.medicine_name,
         price: item.price || item.mrp || 0,
         quantity: item.quantity,
         brand: item.brand || 'Generic'
       })),
-      totalQuantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      totalQuantity: checkoutItems.reduce((sum, item) => sum + item.quantity, 0),
       totalAmount: total,
       paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : paymentMethod === 'upi' ? 'UPI' : 'Credit / Debit Card',
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Paid',
@@ -365,7 +437,7 @@ export default function Checkout() {
     }
   };
 
-  if (cartItems.length === 0 && !orderSuccess) {
+  if (checkoutItems.length === 0 && !orderSuccess) {
     return (
       <div className="container mx-auto px-4 py-20 text-center font-sans">
         <h2 className="text-2xl font-bold text-dark">No Items in Checkout</h2>
@@ -422,13 +494,22 @@ export default function Checkout() {
                     </button>
                   </div>
                   <textarea 
+                    ref={addressRef}
                     value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    onChange={(e) => {
+                      setDeliveryAddress(e.target.value);
+                      if (e.target.value.trim()) {
+                        setAddressError("");
+                      }
+                    }}
                     required
                     rows="2"
                     placeholder="Enter your street address, city, and pincode..."
                     className="w-full px-3.5 py-2.5 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background resize-none text-dark leading-relaxed"
                   />
+                  {addressError && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-1">{addressError}</p>
+                  )}
                   {locError && (
                     <p className="text-[10px] text-red-500 font-semibold mt-1">{locError}</p>
                   )}
@@ -438,23 +519,63 @@ export default function Checkout() {
                   <div className="space-y-1">
                     <label className="font-bold text-dark/65">Flat / House No. / Building</label>
                     <input 
+                      ref={flatRef}
                       type="text" 
                       value={flatNo}
-                      onChange={(e) => setFlatNo(e.target.value)}
+                      onChange={(e) => {
+                        setFlatNo(e.target.value);
+                        if (e.target.value.trim()) {
+                          setFlatError("");
+                        }
+                      }}
                       placeholder="e.g. Flat 302, Block A"
                       className="w-full px-3.5 py-2.5 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background"
                     />
+                    {flatError && (
+                      <p className="text-[10px] text-red-500 font-semibold mt-1">{flatError}</p>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-dark/65">Landmark (Optional)</label>
+                    <label className="font-bold text-dark/65">Landmark (Required)</label>
                     <input 
+                      ref={landmarkRef}
                       type="text" 
                       value={landmark}
-                      onChange={(e) => setLandmark(e.target.value)}
+                      onChange={(e) => {
+                        setLandmark(e.target.value);
+                        if (e.target.value.trim()) {
+                          setLandmarkError("");
+                        }
+                      }}
                       placeholder="e.g. Near Gachibowli Stadium"
                       className="w-full px-3.5 py-2.5 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background"
                     />
+                    {landmarkError && (
+                      <p className="text-[10px] text-red-500 font-semibold mt-1">{landmarkError}</p>
+                    )}
                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-dark/65">Mobile Number (Required)</label>
+                  <input 
+                    ref={mobileRef}
+                    type="text" 
+                    value={mobileNumber}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setMobileNumber(val);
+                      if (val.trim()) {
+                        setMobileError("");
+                      }
+                    }}
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength={10}
+                    className="w-full px-3.5 py-2.5 border border-dark/10 rounded-xl outline-none focus:border-primary bg-background"
+                  />
+                  {mobileError && (
+                    <p className="text-[10px] text-red-500 font-semibold mt-1">{mobileError}</p>
+                  )}
                 </div>
               </div>
             </Card>
@@ -545,7 +666,7 @@ export default function Checkout() {
               <h3 className="font-bold text-xs text-dark uppercase tracking-wider border-b border-dark/5 pb-3">Order Items</h3>
               
               <div className="space-y-3 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-                {cartItems.map((item) => (
+                {checkoutItems.map((item) => (
                   <div key={item.id} className="flex justify-between items-center text-xs gap-3">
                     <div className="overflow-hidden leading-tight text-left">
                       <p className="font-bold text-dark truncate max-w-[150px]">{item.medicine_name}</p>

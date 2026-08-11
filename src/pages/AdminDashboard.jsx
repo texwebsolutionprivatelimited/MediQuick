@@ -5721,7 +5721,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
       {/* Dynamic Toast notifications overlay */}
 
       {toast && (
-        <div className={`fixed bottom-5 right-5 z-[100] px-5 py-3.5 rounded-2xl shadow-premium border flex items-center gap-2.5 text-xs font-black select-none tracking-wide transition-all duration-300 animate-bounce ${
+        <div className={`fixed bottom-5 right-5 z-[100] px-5 py-3.5 rounded-2xl shadow-premium border flex items-center gap-2.5 text-xs font-black select-none tracking-wide transition-all duration-300 animate-toastEntrance ${
           toast.type === 'success' 
             ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
             : 'bg-red-50 text-red-700 border-red-100'

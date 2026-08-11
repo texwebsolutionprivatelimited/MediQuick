@@ -252,7 +252,7 @@ export default function Profile() {
         </div>
       )}
 
-      <div className="w-full max-w-[500px] space-y-6">
+      <div className="w-full max-w-[500px] md:max-w-2xl lg:max-w-3xl space-y-6">
         
         {/* Back navigation */}
         <button 
@@ -263,30 +263,8 @@ export default function Profile() {
         </button>
 
         <Card hoverable={false} className="bg-white border border-dark/5 p-6 sm:p-10 rounded-[32px] shadow-premium overflow-hidden relative">
-          
-          {/* Top-Right Edit Profile / Cancel Button */}
-          <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-10">
-            {!isEditing ? (
-              <button 
-                type="button"
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1.5 text-xs font-extrabold text-primary bg-primary/10 hover:bg-primary/20 px-3.5 py-2 rounded-xl transition-all cursor-pointer select-none"
-              >
-                <MdEdit className="text-base" /> Edit Profile
-              </button>
-            ) : (
-              <button 
-                type="button"
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="flex items-center gap-1.5 text-xs font-bold text-dark/60 hover:text-dark bg-dark/5 hover:bg-dark/10 px-3.5 py-2 rounded-xl transition-all cursor-pointer select-none disabled:opacity-50"
-              >
-                <MdCancel className="text-base" /> Cancel
-              </button>
-            )}
-          </div>
 
-          <div className="flex flex-col md:flex-row gap-8 items-center md:items-start pb-8 border-b border-dark/5">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-center md:items-start pb-8 border-b border-dark/5 w-full">
             
             {/* Avatar Image / Default Icon Container */}
             <div className="relative group shrink-0">
@@ -323,20 +301,45 @@ export default function Profile() {
               />
             </div>
 
-            {/* Profile Brief Info */}
-            <div className="text-center md:text-left space-y-2 pr-12">
-              <h1 className="text-2xl font-extrabold text-dark tracking-tight leading-none">
-                {isEditing ? (formData.fullName || 'User Name') : fullName}
-              </h1>
-              <p className="text-xs text-dark/50 leading-relaxed font-light">{email}</p>
-              <div className="pt-1.5 flex flex-wrap gap-2 justify-center md:justify-start">
-                <span className="bg-primary/10 text-primary-dark font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider leading-none">
-                  {role} Account
-                </span>
-                {currentUser.role === 'admin' && (
-                  <span className="bg-secondary/10 text-secondary-dark font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider leading-none">
-                    Console Access Enabled
+            {/* Profile Info & Edit Button Wrapper */}
+            <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 flex-grow w-full min-w-0">
+              {/* Profile Brief Info */}
+              <div className="text-center md:text-left space-y-2 flex-grow min-w-0 pr-0 sm:pr-4">
+                <h1 className="text-2xl font-extrabold text-dark tracking-tight leading-snug break-words">
+                  {isEditing ? (formData.fullName || 'User Name') : fullName}
+                </h1>
+                <p className="text-xs text-dark/50 leading-relaxed font-light break-all">{email}</p>
+                <div className="pt-1.5 flex flex-wrap gap-2 justify-center md:justify-start">
+                  <span className="bg-primary/10 text-primary-dark font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider leading-none">
+                    {role} Account
                   </span>
+                  {currentUser.role === 'admin' && (
+                    <span className="bg-secondary/10 text-secondary-dark font-black text-[9px] px-2 py-0.5 rounded uppercase tracking-wider leading-none">
+                      Console Access Enabled
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Edit Profile / Cancel Button */}
+              <div className="shrink-0 z-10 mt-2 sm:mt-0">
+                {!isEditing ? (
+                  <button 
+                    type="button"
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1.5 text-xs font-extrabold text-primary bg-primary/10 hover:bg-primary/20 px-3.5 py-2 rounded-xl transition-all cursor-pointer select-none whitespace-nowrap"
+                  >
+                    <MdEdit className="text-base" /> Edit Profile
+                  </button>
+                ) : (
+                  <button 
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 text-xs font-bold text-dark/60 hover:text-dark bg-dark/5 hover:bg-dark/10 px-3.5 py-2 rounded-xl transition-all cursor-pointer select-none disabled:opacity-50 whitespace-nowrap"
+                  >
+                    <MdCancel className="text-base" /> Cancel
+                  </button>
                 )}
               </div>
             </div>
@@ -381,7 +384,7 @@ export default function Profile() {
                   <MdLock className="absolute right-3 top-2.5 text-dark/30 text-sm" />
                 </div>
               ) : (
-                <p className="font-semibold text-dark leading-relaxed pl-5 truncate" title={email}>{email}</p>
+                <p className="font-semibold text-dark whitespace-normal break-all leading-relaxed pl-5" title={email}>{email}</p>
               )}
             </div>
 

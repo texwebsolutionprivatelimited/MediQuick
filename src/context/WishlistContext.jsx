@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { db, isConfigValid } from '../firebase/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from './CartContext';
 
 const WishlistContext = createContext();
 
@@ -15,6 +16,7 @@ export function WishlistProvider({ children }) {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { cartItems } = useCart();
 
   const [wishlistIds, setWishlistIds] = useState([]);
   const [toasts, setToasts] = useState([]);
@@ -60,6 +62,48 @@ export function WishlistProvider({ children }) {
       localStorage.setItem(`mediquick_wishlist_${currentUser.uid}`, JSON.stringify(wishlistIds));
     }
   }, [wishlistIds, currentUser]);
+
+  // Keep track of the previous state of cartItems to detect new additions/increases
+  const prevCartItemsRef = useRef(cartItems);
+
+  // Auto-remove item from wishlist when it is added to the cart
+  useEffect(() => {
+    if (!currentUser || wishlistIds.length === 0) {
+      prevCartItemsRef.current = cartItems;
+      return;
+    }
+
+    // Find items whose quantity has increased in the cart
+    const addedItems = cartItems.filter((item) => {
+      const prevItem = prevCartItemsRef.current.find((i) => i.id === item.id);
+      const prevQty = prevItem ? prevItem.quantity : 0;
+      return item.quantity > prevQty;
+    });
+
+    if (addedItems.length > 0) {
+      // Find which of these added items are currently in the wishlist
+      const idsToRemove = addedItems
+        .map((item) => item.id)
+        .filter((id) => wishlistIds.includes(id));
+
+      if (idsToRemove.length > 0) {
+        const updatedIds = wishlistIds.filter((id) => !idsToRemove.includes(id));
+        setWishlistIds(updatedIds);
+
+        // Persist change to database or localStorage
+        if (isConfigValid && db) {
+          const docRef = doc(db, 'wishlists', currentUser.uid);
+          setDoc(docRef, { productIds: updatedIds }, { merge: true }).catch((err) => {
+            console.error("Failed to update wishlist in Firestore:", err);
+          });
+        } else {
+          localStorage.setItem(`mediquick_wishlist_${currentUser.uid}`, JSON.stringify(updatedIds));
+        }
+      }
+    }
+
+    prevCartItemsRef.current = cartItems;
+  }, [cartItems, currentUser, wishlistIds]);
 
   const showToast = (message) => {
     const id = Date.now();
