@@ -380,6 +380,35 @@ export default function Medicines() {
     setSearchParams({});
   };
 
+  const getDynamicColor = (percent) => {
+    const stages = [
+      { r: 16, g: 185, b: 129 },   // Green
+      { r: 132, g: 204, b: 22 },   // Lime
+      { r: 245, g: 158, b: 11 },   // Yellow/Orange
+      { r: 239, g: 68, b: 68 },    // Red
+      { r: 153, g: 27, b: 27 }     // Dark Red
+    ];
+
+    if (percent <= 0) return `rgb(${stages[0].r}, ${stages[0].g}, ${stages[0].b})`;
+    if (percent >= 100) return `rgb(${stages[4].r}, ${stages[4].g}, ${stages[4].b})`;
+
+    const position = percent / 25;
+    const index = Math.floor(position);
+    const fraction = position - index;
+
+    const c1 = stages[index];
+    const c2 = stages[index + 1] || stages[index];
+
+    const r = Math.round(c1.r + (c2.r - c1.r) * fraction);
+    const g = Math.round(c1.g + (c2.g - c1.g) * fraction);
+    const b = Math.round(c1.b + (c2.b - c1.b) * fraction);
+
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  const sliderPercent = ((maxPrice - 40) / (3000 - 40)) * 100;
+  const activeColor = getDynamicColor(sliderPercent);
+
   return (
     <div className="bg-[#F8FCFC] min-h-screen pb-16 font-sans text-dark/90">
       
@@ -479,7 +508,18 @@ export default function Medicines() {
                 max="3000" 
                 value={maxPrice} 
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-primary h-1.5 bg-background rounded-lg appearance-none cursor-pointer"
+                className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                style={{
+                  background: `linear-gradient(to right, 
+                    rgb(16, 185, 129) 0%, 
+                    rgb(132, 204, 22) ${Math.min(25, sliderPercent)}%, 
+                    rgb(245, 158, 11) ${Math.min(50, sliderPercent)}%, 
+                    rgb(239, 68, 68) ${Math.min(75, sliderPercent)}%, 
+                    ${activeColor} ${sliderPercent}%, 
+                    #E5E7EB ${sliderPercent}%, 
+                    #E5E7EB 100%)`,
+                  accentColor: activeColor
+                }}
               />
             </div>
 
@@ -849,7 +889,18 @@ export default function Medicines() {
                   max="3000" 
                   value={maxPrice} 
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  className="w-full accent-primary h-1.5 bg-background rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, 
+                      rgb(16, 185, 129) 0%, 
+                      rgb(132, 204, 22) ${Math.min(25, sliderPercent)}%, 
+                      rgb(245, 158, 11) ${Math.min(50, sliderPercent)}%, 
+                      rgb(239, 68, 68) ${Math.min(75, sliderPercent)}%, 
+                      ${activeColor} ${sliderPercent}%, 
+                      #E5E7EB ${sliderPercent}%, 
+                      #E5E7EB 100%)`,
+                    accentColor: activeColor
+                  }}
                 />
               </div>
 

@@ -1439,6 +1439,24 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
     }
   };
 
+  const testImageLoad = (url) => {
+    return new Promise((resolve) => {
+      if (!url) return resolve(true);
+      if (url.startsWith('/')) return resolve(true);
+      
+      const img1 = new Image();
+      img1.onload = () => resolve(true);
+      img1.onerror = () => {
+        const img2 = new Image();
+        img2.referrerPolicy = "no-referrer";
+        img2.onload = () => resolve(true);
+        img2.onerror = () => resolve(false);
+        img2.src = url;
+      };
+      img1.src = url;
+    });
+  };
+
   const handleAddMedSubmit = async (e) => {
     e.preventDefault();
     setAddMedError(null);
@@ -1454,9 +1472,16 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
       return;
     }
 
-    if (addMedData.image_url && !validateImageUrl(addMedData.image_url)) {
-      setAddMedError("Please provide a valid image URL (starting with http://, https://, or a local path like /).");
-      return;
+    if (addMedData.image_url) {
+      if (!validateImageUrl(addMedData.image_url)) {
+        setAddMedError("Please provide a valid image URL (starting with http://, https://, or a local path like /).");
+        return;
+      }
+      const isLoaded = await testImageLoad(addMedData.image_url);
+      if (!isLoaded) {
+        setAddMedError("The image URL could not be loaded. This can happen if the host website blocks hotlinking/cross-site requests, if the URL has expired or requires authentication, or if it is not a valid image format.");
+        return;
+      }
     }
 
     try {
@@ -1508,9 +1533,16 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
       return;
     }
 
-    if (editMedData.image_url && !validateImageUrl(editMedData.image_url)) {
-      setEditMedError("Please provide a valid image URL (starting with http://, https://, or a local path like /).");
-      return;
+    if (editMedData.image_url) {
+      if (!validateImageUrl(editMedData.image_url)) {
+        setEditMedError("Please provide a valid image URL (starting with http://, https://, or a local path like /).");
+        return;
+      }
+      const isLoaded = await testImageLoad(editMedData.image_url);
+      if (!isLoaded) {
+        setEditMedError("The image URL could not be loaded. This can happen if the host website blocks hotlinking/cross-site requests, if the URL has expired or requires authentication, or if it is not a valid image format.");
+        return;
+      }
     }
 
     try {
@@ -4543,6 +4575,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                         src={addMedImagePreview || addMedData.image_url} 
                         alt="Packaging Preview" 
                         className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           e.target.src = "https://images.unsplash.com/photo-584017911766-6477ef9798f1?auto=format&fit=crop&w=400&q=80";
                         }}
@@ -4860,6 +4893,7 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                         src={editMedImagePreview || editMedData.image_url} 
                         alt="Packaging Preview" 
                         className="w-full h-full object-contain"
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           e.target.src = "https://images.unsplash.com/photo-584017911766-6477ef9798f1?auto=format&fit=crop&w=400&q=80";
                         }}
@@ -5277,22 +5311,42 @@ Repeat this cycle for 3 to 5 minutes to significantly lower cortisol and clear m
                 </div>
               </div>
 
-              <div className="bg-background p-4 rounded-2xl border border-dark/5 flex flex-col justify-center space-y-2.5">
-                <div className="flex justify-between text-dark/60">
-                  <span>Subtotal</span>
-                  <span className="font-semibold">₹{selectedOrder.totalAmount >= 500 ? selectedOrder.totalAmount : selectedOrder.totalAmount - 40}</span>
-                </div>
-                {selectedOrder.totalAmount < 500 && (
-                  <div className="flex justify-between text-dark/60">
-                    <span>Delivery Charges</span>
-                    <span className="font-semibold">₹40</span>
+              {(() => {
+                const displaySubtotal = selectedOrder.subtotal !== undefined
+                  ? selectedOrder.subtotal
+                  : (selectedOrder.totalAmount >= 500 ? selectedOrder.totalAmount : selectedOrder.totalAmount - 40);
+
+                const displayDiscount = selectedOrder.discount !== undefined ? selectedOrder.discount : 0;
+
+                const displayDeliveryFee = selectedOrder.deliveryFee !== undefined
+                  ? selectedOrder.deliveryFee
+                  : (selectedOrder.totalAmount >= 500 ? 0 : 40);
+
+                return (
+                  <div className="bg-background p-4 rounded-2xl border border-dark/5 flex flex-col justify-center space-y-2.5">
+                    <div className="flex justify-between text-dark/60">
+                      <span>Subtotal</span>
+                      <span className="font-semibold">₹{displaySubtotal}</span>
+                    </div>
+                    {displayDiscount > 0 && (
+                      <div className="flex justify-between text-secondary-dark">
+                        <span>Discount</span>
+                        <span className="font-semibold">-₹{displayDiscount}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-dark/60">
+                      <span>Delivery Charges</span>
+                      <span className="font-semibold">
+                        {displayDeliveryFee > 0 ? `₹${displayDeliveryFee}` : "FREE"}
+                      </span>
+                    </div>
+                    <div className="border-t border-dark/10 pt-2 flex justify-between items-baseline">
+                      <span className="font-bold text-dark text-sm">Grand Total</span>
+                      <span className="font-black text-primary text-lg">₹{selectedOrder.totalAmount}</span>
+                    </div>
                   </div>
-                )}
-                <div className="border-t border-dark/10 pt-2 flex justify-between items-baseline">
-                  <span className="font-bold text-dark text-sm">Grand Total</span>
-                  <span className="font-black text-primary text-lg">₹{selectedOrder.totalAmount}</span>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Actions */}

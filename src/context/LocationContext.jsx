@@ -130,9 +130,15 @@ export function LocationProvider({ children }) {
 
   const calculateDeliveryFee = (subtotal) => {
     if (subtotal <= 0) return 0;
-    if (subtotal < 500) return 20;
-    if (subtotal < 1600) return 50;
-    return 0; // Free delivery for ₹1600 and above
+    if (subtotal < 100) {
+      return 60;
+    } else if (subtotal <= 500) {
+      return 40;
+    } else if (subtotal < 1599) {
+      return 30;
+    } else {
+      return 0;
+    }
   };
 
   // Save address changes to localStorage (only when logged in)

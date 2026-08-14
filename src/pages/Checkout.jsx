@@ -372,6 +372,9 @@ export default function Checkout() {
         brand: item.brand || 'Generic'
       })),
       totalQuantity: checkoutItems.reduce((sum, item) => sum + item.quantity, 0),
+      subtotal: subtotal,
+      discount: discount,
+      deliveryFee: deliveryFee,
       totalAmount: total,
       paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : paymentMethod === 'upi' ? 'UPI' : 'Credit / Debit Card',
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Paid',

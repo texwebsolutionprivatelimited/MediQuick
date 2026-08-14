@@ -797,7 +797,7 @@ export default function Home() {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 min-[576px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {CATEGORIES.map((cat) => (
               <Link key={cat.id} to={`/medicines?category=${cat.query}`} className="w-full">
                 <motion.div whileHover={{ y: -6, scale: 1.02 }} className="cursor-pointer">
