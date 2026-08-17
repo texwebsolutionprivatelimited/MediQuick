@@ -313,7 +313,15 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
 export default function Home() {
   const { currentUser } = useAuth();
   const { cartItems, addToCart, updateQuantity } = useCart();
-  const { address, detectLocation, loading: locLoading, userCoords } = useLocation();
+  const { 
+    detectLocation, 
+    loading: locLoading, 
+    locationChoice, 
+    setLocationChoice,
+    isLocationModalOpen,
+    setIsLocationModalOpen,
+    address
+  } = useLocation();
   const navigate = useNavigate();
   const { products: productsData } = useProducts();
   const { systemSettings } = useSettings();
@@ -382,28 +390,14 @@ export default function Home() {
     return `https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodeURIComponent(baseText)}`;
   };
 
-  // Check and query location permission states on load
+  // Check and query location permission states on load (only after login)
   useEffect(() => {
-    const savedAddress = localStorage.getItem('mediquick_user_address');
-    const savedCoords = localStorage.getItem('mediquick_user_coords');
-    if (savedAddress && savedCoords) {
-      return; // Loaded from cache
-    }
-
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        if (result.state === 'granted') {
-          detectLocation();
-        } else {
-          setShowLocationPopup(true);
-        }
-      }).catch(() => {
-        setShowLocationPopup(true);
-      });
-    } else {
+    if (currentUser && !address && !locLoading && !isLocationModalOpen) {
       setShowLocationPopup(true);
+    } else {
+      setShowLocationPopup(false);
     }
-  }, []);
+  }, [currentUser, address, locLoading, isLocationModalOpen]);
 
   // Auto-slide Testimonials Carousel every 5 seconds
   useEffect(() => {
@@ -424,11 +418,21 @@ export default function Home() {
 
   const handleAllowLocation = () => {
     setShowLocationPopup(false);
-    detectLocation();
+    detectLocation(
+      // On Success
+      () => {},
+      // On Failure (e.g. denied permission) -> immediately show manual location Modal
+      () => {
+        setLocationChoice('manual');
+        setIsLocationModalOpen(true);
+      }
+    );
   };
 
-  const handleNotNowLocation = () => {
+  const handleEnterLocationManually = () => {
     setShowLocationPopup(false);
+    setLocationChoice('manual');
+    setIsLocationModalOpen(true);
   };
 
   const handleSearchSubmit = (e) => {
@@ -456,17 +460,17 @@ export default function Home() {
       {/* 🚀 2. LOCATION PERMISSION POPUP (Centered overlay) */}
       <AnimatePresence>
         {showLocationPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/10 p-4">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-md bg-white p-6 rounded-[24px] shadow-premium text-center border border-dark/5"
+              className="w-full max-w-md bg-white p-6 rounded-[24px] shadow-premium text-center border border-dark/5 animate-entrance"
             >
               <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-3xl mb-4">
                 <MdRoom />
               </div>
-              <h3 className="text-xl font-bold text-dark">Allow Location Access</h3>
+              <h3 className="text-xl font-bold text-dark">Allow MediQuick to access your location?</h3>
               <p className="text-xs text-dark/65 leading-relaxed font-light mt-2 max-w-sm mx-auto">
                 Enable your location to view medicines available near you and receive faster 1-Hour delivery.
               </p>
@@ -474,15 +478,15 @@ export default function Home() {
               <div className="flex flex-col gap-2 mt-6">
                 <button
                   onClick={handleAllowLocation}
-                  className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wide rounded-xl transition-all shadow-md"
+                  className="w-full py-3 bg-primary hover:bg-primary-dark text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer border-none"
                 >
                   Allow Location
                 </button>
                 <button
-                  onClick={handleNotNowLocation}
-                  className="w-full py-3 hover:bg-background text-dark/60 hover:text-dark font-bold text-xs uppercase tracking-wide rounded-xl transition-all"
+                  onClick={handleEnterLocationManually}
+                  className="w-full py-3 hover:bg-background text-dark/60 hover:text-dark font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none bg-transparent"
                 >
-                  Not Now
+                  Enter Location Manually
                 </button>
               </div>
             </motion.div>

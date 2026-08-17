@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
-export default function MedicineImage({ product, className = "w-full h-full object-contain" }) {
+export default function MedicineImage({ product, medicine, className = "w-full h-full object-contain" }) {
+  const activeProduct = product || medicine;
   const [src, setSrc] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [fallbackAttempted, setFallbackAttempted] = useState(false);
 
   useEffect(() => {
-    const url = product?.image_url || "/images/default-medicine.png";
+    let url = activeProduct?.image_url || "/images/default-medicine.png";
+    if (url && activeProduct?.last_updated && url.startsWith('http')) {
+      const time = new Date(activeProduct.last_updated).getTime();
+      if (!isNaN(time)) {
+        const separator = url.includes('?') ? '&' : '?';
+        url = `${url}${separator}t=${time}`;
+      }
+    }
+    
     setSrc(prev => {
       if (prev === url) {
         return prev;
@@ -15,7 +24,7 @@ export default function MedicineImage({ product, className = "w-full h-full obje
       setLoaded(false);
       return url;
     });
-  }, [product?.id, product?.image_url]);
+  }, [activeProduct?.id, activeProduct?.image_url, activeProduct?.last_updated]);
 
   const handleError = () => {
     if (!fallbackAttempted) {
@@ -38,7 +47,7 @@ export default function MedicineImage({ product, className = "w-full h-full obje
           <path d="M50 30v40M30 50h40" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
         </svg>
         <span className="text-[9px] font-bold text-[#009688]/75 text-center uppercase tracking-wider line-clamp-1 truncate max-w-full px-1">
-          {product?.brand || "MediQuick"}
+          {activeProduct?.brand || "MediQuick"}
         </span>
       </div>
     );
@@ -53,7 +62,7 @@ export default function MedicineImage({ product, className = "w-full h-full obje
       
       <img
         src={src}
-        alt={product?.medicine_name || "Medicine"}
+        alt={activeProduct?.medicine_name || "Medicine"}
         loading="lazy"
         referrerPolicy="no-referrer"
         onLoad={() => setLoaded(true)}

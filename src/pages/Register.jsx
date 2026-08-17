@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,13 +11,14 @@ import {
   MdCheckCircle, 
   MdErrorOutline,
   MdWc,
-  MdCalendarToday
+  MdCalendarToday,
+  MdMailOutline
 } from 'react-icons/md';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
 
 export default function Register() {
-  const { register: registerUser, loginWithGoogle, loginWithApple } = useAuth();
+  const { currentUser, register: registerUser, loginWithGoogle, loginWithApple } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,6 +36,13 @@ export default function Register() {
   });
 
   const passwordVal = watch('password', '');
+
+  // Redirect to home if already logged in (but not during registration success transition)
+  useEffect(() => {
+    if (currentUser && !successMsg) {
+      navigate('/');
+    }
+  }, [currentUser, navigate, successMsg]);
 
   // Calculate password strength rating
   const getPasswordStrength = (password) => {
@@ -64,10 +72,10 @@ export default function Register() {
         gender: data.gender,
         dateOfBirth: data.dob,
       });
-      setSuccessMsg("Account created successfully! Redirecting to Login...");
+      setSuccessMsg("Account created successfully! Redirecting to Home...");
       setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+        navigate('/');
+      }, 1500);
     } catch (err) {
       const getFirebaseErrorMessage = (error) => {
         switch (error.code) {

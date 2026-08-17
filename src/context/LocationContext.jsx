@@ -43,6 +43,15 @@ export function LocationProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // New location management states
+  const [locationChoice, setLocationChoice] = useState(null);
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+
+  const hubCoords = {
+    lat: Number(deliverySettings?.hubLatitude) || DEFAULT_PHARMACY_COORDS.lat,
+    lng: Number(deliverySettings?.hubLongitude) || DEFAULT_PHARMACY_COORDS.lng
+  };
+
   // Sync address changes globally to the user's Firestore profile document
   useEffect(() => {
     if (address && currentUser?.uid) {
@@ -66,26 +75,44 @@ export function LocationProvider({ children }) {
 
     if (currentUser) {
       try {
+        const savedChoice = localStorage.getItem(`mediquick_location_choice_${currentUser.uid}`);
         const savedCoords = localStorage.getItem(`mediquick_user_coords_${currentUser.uid}`);
         const savedAddress = localStorage.getItem(`mediquick_user_address_${currentUser.uid}`);
-        if (savedCoords && savedAddress) {
+        
+        if (savedChoice) {
+          setLocationChoice(savedChoice);
+          if (savedAddress) {
+            setAddress(savedAddress);
+          }
+          if (savedCoords) {
+            setUserCoords(JSON.parse(savedCoords));
+          }
+          // If preference is browser location, verify if geolocation is still granted and refresh
+          if (savedChoice === 'detected') {
+            if (navigator.permissions && navigator.permissions.query) {
+              navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+                if (result.state === 'granted') {
+                  detectLocation();
+                }
+              }).catch(() => {});
+            }
+          }
+        } else if (savedCoords && savedAddress) {
+          // Legacy fallback
+          setLocationChoice('manual');
           setUserCoords(JSON.parse(savedCoords));
           setAddress(savedAddress);
         } else {
-          // Automatically check if geolocation permission was already granted
-          if (navigator.permissions && navigator.permissions.query) {
-            navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-              if (result.state === 'granted') {
-                detectLocation();
-              }
-            }).catch(() => {});
-          }
+          setLocationChoice(null);
+          setUserCoords(null);
+          setAddress("");
         }
       } catch (e) {
         console.error("Failed to load cached location:", e);
       }
     } else {
       // Clear location state for guest users
+      setLocationChoice(null);
       setUserCoords(null);
       setAddress("");
       setDistance(null);
@@ -93,6 +120,17 @@ export function LocationProvider({ children }) {
       setDeliveryCharge(0);
     }
   }, [currentUser, authLoading]);
+
+  // Save locationChoice to localStorage
+  useEffect(() => {
+    if (currentUser) {
+      if (locationChoice) {
+        localStorage.setItem(`mediquick_location_choice_${currentUser.uid}`, locationChoice);
+      } else {
+        localStorage.removeItem(`mediquick_location_choice_${currentUser.uid}`);
+      }
+    }
+  }, [locationChoice, currentUser]);
 
   // Re-calculate delivery whenever userCoords or deliverySettings change
   useEffect(() => {
@@ -149,13 +187,14 @@ export function LocationProvider({ children }) {
   }, [address, currentUser]);
 
   // GPS geolocation detection
-  const detectLocation = () => {
+  const detectLocation = (onSuccess = null, onFailure = null) => {
     setLoading(true);
     setError(null);
 
     if (!navigator.geolocation) {
       setError("Geolocation is not supported by your browser.");
       setLoading(false);
+      if (onFailure) onFailure();
       return;
     }
 
@@ -165,16 +204,22 @@ export function LocationProvider({ children }) {
         const lng = position.coords.longitude;
         const coords = { lat, lng };
         setUserCoords(coords);
+        setLocationChoice('detected');
         
+        const finishGeocoding = (resolvedAddress) => {
+          setAddress(resolvedAddress);
+          setLoading(false);
+          if (onSuccess) onSuccess(resolvedAddress);
+        };
+
         if (window.google && window.google.maps) {
           const geocoder = new window.google.maps.Geocoder();
           geocoder.geocode({ location: coords }, (results, status) => {
             if (status === "OK" && results[0]) {
-              setAddress(results[0].formatted_address);
+              finishGeocoding(results[0].formatted_address);
             } else {
-              setAddress(`Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+              finishGeocoding(`Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
             }
-            setLoading(false);
           });
         } else {
           try {
@@ -209,17 +254,15 @@ export function LocationProvider({ children }) {
             if (!resolvedAddress) {
               resolvedAddress = data.display_name || `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
             }
-            setAddress(resolvedAddress);
+            finishGeocoding(resolvedAddress);
           } catch (err) {
             console.error("OSM geocoding failed, falling back to mock:", err);
-            const dist = calculateHaversineDistance(PHARMACY_COORDS, coords);
+            const dist = calculateHaversineDistance(hubCoords, coords);
             if (dist <= 5) {
-              setAddress("Gachibowli Flyover, Gachibowli, Hyderabad, 500032");
+              finishGeocoding("Gachibowli Flyover, Gachibowli, Hyderabad, 500032");
             } else {
-              setAddress("Secunderabad Junction, Hyderabad, 500003");
+              finishGeocoding("Secunderabad Junction, Hyderabad, 500003");
             }
-          } finally {
-            setLoading(false);
           }
         }
       },
@@ -227,12 +270,14 @@ export function LocationProvider({ children }) {
         console.warn("Geolocation permission denied or error:", err);
         setError("Location permission denied. Please enter your address manually.");
         setLoading(false);
+        if (onFailure) onFailure(err);
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 10000 }
     );
   };
 
   const manualSetLocation = (addressText, customCoords = null) => {
+    setLocationChoice('manual');
     setAddress(addressText);
     if (customCoords) {
       setUserCoords(customCoords);
@@ -257,6 +302,10 @@ export function LocationProvider({ children }) {
     error,
     detectLocation,
     manualSetLocation,
+    locationChoice,
+    setLocationChoice,
+    isLocationModalOpen,
+    setIsLocationModalOpen,
     pharmacyCoords: {
       lat: Number(deliverySettings?.hubLatitude) || DEFAULT_PHARMACY_COORDS.lat,
       lng: Number(deliverySettings?.hubLongitude) || DEFAULT_PHARMACY_COORDS.lng

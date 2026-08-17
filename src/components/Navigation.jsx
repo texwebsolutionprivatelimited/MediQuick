@@ -27,7 +27,7 @@ export default function Navigation() {
   const routeLocation = useRouteLocation();
   const { currentUser, logout } = useAuth();
   const { cartItems } = useCart();
-  const { address, detectLocation, loading: locLoading } = useLocation();
+  const { address, setIsLocationModalOpen, loading: locLoading } = useLocation();
   const { products: productsData, categories } = useProducts();
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
   const { wishlistIds } = useWishlist();
@@ -558,7 +558,7 @@ export default function Navigation() {
             {currentUser && (
               <div className="hidden lg:block">
                 <button 
-                  onClick={detectLocation}
+                  onClick={() => setIsLocationModalOpen(true)}
                   disabled={locLoading}
                   className="flex items-center gap-2 text-left max-w-[130px] lg:max-w-[180px] group p-1.5 rounded-xl hover:bg-primary/5 transition-all duration-200 outline-none shrink-0 cursor-pointer border-none bg-transparent"
                 >
@@ -810,11 +810,13 @@ export default function Navigation() {
                       {address || "Hyderabad, 500001"}
                     </p>
                     <button
-                      onClick={detectLocation}
-                      disabled={locLoading}
-                      className="w-full text-center py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-xl transition-colors disabled:opacity-50 mt-1 cursor-pointer"
+                      onClick={() => {
+                        setIsLocationModalOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full text-center py-2 bg-primary/10 hover:bg-primary/20 text-primary font-bold text-xs rounded-xl transition-colors mt-1 cursor-pointer border-none"
                     >
-                      {locLoading ? "Detecting..." : "Detect Location"}
+                      Update Location
                     </button>
                   </>
                 )}

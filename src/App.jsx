@@ -10,6 +10,7 @@ import { WishlistProvider, useWishlist } from './context/WishlistContext';
 import AppRoutes from './routes/AppRoutes';
 import Navigation from './components/Navigation';
 import Footer from './components/Footer';
+import LocationModal from './components/LocationModal';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -94,6 +95,9 @@ function AppContent() {
       <ScrollToTop />
       {/* Premium Navigation Header */}
       <Navigation />
+      
+      {/* Global Location Modal */}
+      <LocationModal />
       
       {/* Main Content Area */}
       <main className="flex-grow page-entrance" key={pathname}>

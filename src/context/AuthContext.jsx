@@ -83,14 +83,32 @@ export function AuthProvider({ children }) {
           // Get user details/role from Firestore
           try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists()) {
-              setCurrentUser({ ...user, ...userDoc.data() });
-            } else {
-              setCurrentUser({ ...user, role: 'user' });
-            }
+            const userData = userDoc.exists() ? userDoc.data() : {};
+            const fullUser = {
+              uid: user.uid,
+              email: user.email,
+              displayName: userData.fullName || user.displayName || '',
+              fullName: userData.fullName || user.displayName || '',
+              role: userData.role || 'user',
+              mobileNumber: userData.mobileNumber || '',
+              gender: userData.gender || '',
+              dateOfBirth: userData.dateOfBirth || '',
+              createdAt: userData.createdAt || new Date().toISOString()
+            };
+            setCurrentUser(fullUser);
           } catch (e) {
             console.error("Error fetching user metadata:", e);
-            setCurrentUser({ ...user, role: 'user' });
+            setCurrentUser({
+              uid: user.uid,
+              email: user.email,
+              displayName: user.displayName || '',
+              fullName: user.displayName || '',
+              role: 'user',
+              mobileNumber: '',
+              gender: '',
+              dateOfBirth: '',
+              createdAt: new Date().toISOString()
+            });
           }
         } else {
           const storedUser = localStorage.getItem('mediquick_current_user');

@@ -11,8 +11,17 @@ export function useProducts() {
   return useContext(ProductsContext);
 }
 
+const CURRENT_VERSION = 'v2_cache';
+
 export function ProductsProvider({ children }) {
   const [products, setProducts] = useState(() => {
+    const cachedVersion = localStorage.getItem('mediquick_products_version');
+    if (cachedVersion !== CURRENT_VERSION) {
+      localStorage.setItem('mediquick_products_version', CURRENT_VERSION);
+      localStorage.removeItem('mediquick_local_medicines');
+      return initialMedicines;
+    }
+
     const saved = localStorage.getItem('mediquick_local_medicines');
     if (!saved) return initialMedicines;
     
@@ -156,7 +165,33 @@ export function ProductsProvider({ children }) {
             }
           });
         } else {
-          setProducts(list);
+          // Compare and update cached products in localStorage with the latest Firestore data (source of truth)
+          const savedLocal = localStorage.getItem('mediquick_local_medicines');
+          let mergedList = [...list];
+          if (savedLocal) {
+            try {
+              const cachedProducts = JSON.parse(savedLocal);
+              const cachedMap = new Map(cachedProducts.map(p => [p.id, p]));
+              
+              // Firestore is the absolute source of truth. We make sure stale cached values are overwritten.
+              mergedList = list.map(dbProd => {
+                const cachedProd = cachedMap.get(dbProd.id);
+                if (cachedProd) {
+                  if (dbProd.image_url !== cachedProd.image_url) {
+                    console.log(`Replacing stale image URL for ${dbProd.medicine_name}: ${cachedProd.image_url} -> ${dbProd.image_url}`);
+                  }
+                  return dbProd;
+                }
+                return dbProd;
+              });
+            } catch (err) {
+              console.error("Failed to parse cached medicines during Firestore merge:", err);
+            }
+          }
+
+          setProducts(mergedList);
+          localStorage.setItem('mediquick_local_medicines', JSON.stringify(mergedList));
+          localStorage.setItem('mediquick_products_version', CURRENT_VERSION);
         }
         setLoading(false);
       }, (error) => {

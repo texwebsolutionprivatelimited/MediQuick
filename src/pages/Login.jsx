@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -27,10 +27,17 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../firebase/firebase";
 
 export default function Login() {
-  const { login, loginWithGoogle, loginWithApple } = useAuth();
+  const { currentUser, login, loginWithGoogle, loginWithApple } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+
+  // Redirect to Home if already logged in
+  useEffect(() => {
+    if (currentUser) {
+      navigate('/');
+    }
+  }, [currentUser, navigate]);
 
   // Helper to handle dynamic redirect after authentication
   const handleSuccessRedirect = (user, msg) => {
@@ -462,30 +469,6 @@ export default function Login() {
 
           {/* MediQuick at a Glance & Quote (Visible only on xl+) */}
           <div className="hidden xl:flex flex-col gap-4">
-            <div className="bg-[#F8FCFC]/60 border border-dark/5 rounded-[20px] p-4 shadow-xs">
-              <h4 className="text-[10px] sm:text-[11px] font-extrabold text-[#063B44]/75 uppercase tracking-wider mb-2.5">
-                MediQuick at a Glance
-              </h4>
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
-                  <span className="block text-xs sm:text-sm font-extrabold text-primary">10k+</span>
-                  <span className="text-[8px] text-dark/50 font-medium leading-none">Medicines</span>
-                </div>
-                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
-                  <span className="block text-xs sm:text-sm font-extrabold text-primary">5k+</span>
-                  <span className="text-[8px] text-dark/50 font-medium leading-none">Happy Users</span>
-                </div>
-                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
-                  <span className="block text-xs sm:text-sm font-extrabold text-primary">Fast</span>
-                  <span className="text-[8px] text-dark/50 font-medium leading-none">Delivery</span>
-                </div>
-                <div className="bg-white border border-dark/5 rounded-xl p-2 shadow-xs">
-                  <span className="block text-xs sm:text-sm font-extrabold text-primary">Trusted</span>
-                  <span className="text-[8px] text-dark/50 font-medium leading-none">Healthcare</span>
-                </div>
-              </div>
-            </div>
-
             {/* Quote */}
             <div className="flex items-center justify-center gap-2 bg-[#E2F3F0]/40 border border-primary/10 rounded-full py-2 px-4 select-none shadow-xs">
               <span className="text-xs">💚</span>
@@ -499,7 +482,7 @@ export default function Login() {
         {/* Column 2: Benefits & Promos */}
         <div className="hidden xl:flex flex-col gap-4 max-w-[310px] xl:-mt-8">
           {/* Vertical Why Choose MediQuick Panel */}
-          <div className="flex flex-col w-full min-h-[560px] text-left bg-[#F8FCFC]/60 border border-dark/5 rounded-[24px] p-6 shadow-soft select-none">
+          <div className="flex flex-col w-full min-h-[360px] text-left bg-[#F8FCFC]/60 border border-dark/5 rounded-[24px] p-6 shadow-soft select-none">
             <div className="border-b border-dark/5 pb-3.5 mb-5">
               <h3 className="font-extrabold text-sm sm:text-base text-[#063B44] uppercase tracking-wider">
                 Why MediQuick?
@@ -510,7 +493,7 @@ export default function Login() {
             </div>
 
             {/* Timeline / List Wrapper */}
-            <div className="relative flex-grow flex flex-col justify-between py-1 pl-2">
+            <div className="relative flex-grow flex flex-col gap-6 py-1 pl-2">
               {/* Vertical Connecting Line */}
               <div className="absolute left-[21px] top-6 bottom-6 w-[1.5px] bg-gradient-to-b from-primary/30 via-primary/20 to-primary/5 pointer-events-none" />
 
@@ -553,44 +536,6 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Benefit Item 4 */}
-              <div className="relative z-10 flex gap-4 items-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
-                  💰
-                </div>
-                <div className="space-y-0.5">
-                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Best Prices & Offers</h4>
-                  <p className="text-[10px] text-dark/55 font-light leading-normal">
-                    Save more with exclusive deals.
-                  </p>
-                </div>
-              </div>
-
-              {/* Benefit Item 5 */}
-              <div className="relative z-10 flex gap-4 items-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
-                  👨‍⚕️
-                </div>
-                <div className="space-y-0.5">
-                  <h4 className="font-bold text-xs text-dark/85 leading-tight">Trusted Healthcare Services</h4>
-                  <p className="text-[10px] text-dark/55 font-light leading-normal">
-                    Reliable healthcare support.
-                  </p>
-                </div>
-              </div>
-
-              {/* Benefit Item 6 */}
-              <div className="relative z-10 flex gap-4 items-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm shadow-xs shrink-0 select-none border border-primary/20">
-                  📞
-                </div>
-                <div className="space-y-0.5">
-                  <h4 className="font-bold text-xs text-dark/85 leading-tight">24/7 Customer Support</h4>
-                  <p className="text-[10px] text-dark/55 font-light leading-normal">
-                    We're here whenever you need help.
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
