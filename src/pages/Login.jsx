@@ -23,11 +23,9 @@ import {
 } from 'react-icons/md';
 import { FcGoogle } from 'react-icons/fc';
 import { FaApple } from 'react-icons/fa';
-import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase/firebase";
 
 export default function Login() {
-  const { currentUser, login, loginWithGoogle, loginWithApple } = useAuth();
+  const { currentUser, login, loginWithGoogle, loginWithApple, sendPasswordReset } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -64,6 +62,15 @@ export default function Login() {
       setErrorMsg("Your account has been blocked by the administrator. Please contact support for assistance.");
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('forgot') === 'true' || location.state?.openForgotModal) {
+      setForgotModalOpen(true);
+      if (location.state?.openForgotModal) {
+        navigate(location.pathname + location.search, { replace: true, state: {} });
+      }
+    }
+  }, [searchParams, location, navigate]);
 
   // Forgot password states
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
@@ -130,8 +137,8 @@ export default function Login() {
     setForgotSuccess(null);
     const email = data.forgotEmail.trim().toLowerCase();
     try {
-      await sendPasswordResetEmail(auth, email);
-      setForgotSuccess("Password reset link has been sent successfully.");
+      await sendPasswordReset(email);
+      setForgotSuccess("Password reset link has been sent successfully. Please check your inbox.");
       setTimeout(() => {
         // Close modal and reset form
         setForgotModalOpen(false);
@@ -141,6 +148,9 @@ export default function Login() {
     } catch (error) {
       console.error(error);
       const getForgotPassErrorMessage = (err) => {
+        if (!err.code) {
+          return err.message || 'Failed to send password reset email. Please try again.';
+        }
         switch (err.code) {
           case 'auth/user-not-found':
             return 'No account found with this email.';
@@ -420,7 +430,7 @@ export default function Login() {
                       setForgotModalOpen(true);
                       setForgotSuccess(null);
                       setForgotError(null);
-                      resetForgot();
+                      resetForgotForm();
                     }}
                     className="text-xs font-bold text-primary hover:underline transition-all cursor-pointer bg-transparent border-none outline-none"
                   >

@@ -17,7 +17,7 @@
     "manufacturer": "Micro Labs Ltd",
     "composition": "Paracetamol IP - 650mg",
     "uses": "Treatment of Fever and Pain relief.",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:34.690Z"
   },
@@ -39,7 +39,7 @@
     "manufacturer": "GlaxoSmithKline India",
     "composition": "Amoxycillin (500mg) + Clavulanic Acid (125mg)",
     "uses": "Treatment of Bacterial infections.",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/wy2y9bdipmh6rgkrj0zm.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:35.990Z"
   },
@@ -61,7 +61,7 @@
     "manufacturer": "Sanofi India Ltd",
     "composition": "Ibuprofen IP - 400mg, Paracetamol IP - 325mg",
     "uses": "Pain relief, Fever reduction, Anti-inflammatory",
-    "image_url": "/images/medicines/med-3-combiflam-tablet.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -83,7 +83,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Pantoprazole Sodium IP - 40mg",
     "uses": "Gastroesophageal Reflux Disease (GERD), Gastric ulcers, Acidity",
-    "image_url": "/images/medicines/med-4-pantocid-40mg-tablet.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -105,7 +105,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Azithromycin IP - 500mg",
     "uses": "Bacterial respiratory infections, Tonsillitis, Sinusitis",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/kqkouvaqejbyk47dvjfu.jpg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:39:36.704Z"
   },
@@ -127,7 +127,7 @@
     "manufacturer": "Alkem Laboratories Ltd",
     "composition": "Cefixime IP - 200mg",
     "uses": "Urinary tract infections, Otitis media, Bronchitis",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:39:37.468Z"
   },
@@ -149,7 +149,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Montelukast Sodium - 10mg, Levocetirizine Hydrochloride - 5mg",
     "uses": "Allergic symptoms, Running nose, Sneezing, Chronic asthma",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:39:38.183Z"
   },
@@ -171,7 +171,7 @@
     "manufacturer": "FDC Limited",
     "composition": "Cefixime IP - 200mg",
     "uses": "Typhoid fever, Throat infections, Urinary tract infection",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/xkg1pweump6uhajxdn7y.jpg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:39:38.886Z"
   },
@@ -193,7 +193,7 @@
     "manufacturer": "Aristo Pharmaceuticals Pvt Ltd",
     "composition": "Ceftriaxone Sodium IP - 1000mg",
     "uses": "Meningitis, Abdominal infections, Sepsis, Surgical prophylaxis",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/485c7b62664a44fd984080ee0ee15906.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:39.617Z"
   },
@@ -215,7 +215,7 @@
     "manufacturer": "Alkem Laboratories Ltd",
     "composition": "Pantoprazole Sodium - 40mg, Domperidone - 30mg",
     "uses": "Acidity, Heartburn, GERD, Indigestion with nausea",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:40.306Z"
   },
@@ -237,7 +237,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Cetirizine Hydrochloride IP - 10mg",
     "uses": "Allergic rhinitis, Urticaria skin itching, Insect bite allergy",
-    "image_url": "/images/medicines/med-11-okacet-tablet.svg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -259,7 +259,7 @@
     "manufacturer": "GlaxoSmithKline India Ltd",
     "composition": "Paracetamol IP - 500mg",
     "uses": "Fever, Body pain, Toothache, Headache",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:39:40.973Z"
   },
@@ -281,7 +281,7 @@
     "manufacturer": "Novartis India Ltd",
     "composition": "Diclofenac Sodium IP - 100mg (Sustained Release)",
     "uses": "Osteoarthritis, Rheumatoid arthritis, Chronic lower back pain",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/ahmbxmi2bd1wiojpxqld.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:41.661Z"
   },
@@ -303,7 +303,7 @@
     "manufacturer": "Abbott India Ltd",
     "composition": "Amoxycillin Trihydrate IP - 500mg",
     "uses": "Chest infections, Pneumonia, Dental infections, Strep throat",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/3c5f6e710dd74dffbf0ba5cc4b6c5a07.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:42.369Z"
   },
@@ -325,7 +325,7 @@
     "manufacturer": "Dr. Reddy's Laboratories Ltd",
     "composition": "Omeprazole IP - 20mg",
     "uses": "Acidity, Heartburn prevention, Zollinger-Ellison syndrome",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/fa7427131ec64163b5bbafb529df0736.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:43.032Z"
   },
@@ -347,7 +347,7 @@
     "manufacturer": "GlaxoSmithKline Consumer Healthcare",
     "composition": "Paracetamol IP - 500mg with Optizorb",
     "uses": "Headache, body pain, toothache, fever reduction",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/y0jmjvvh86ch0ivpgg4o.jpg",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-08-12T09:39:43.714Z"
   },
@@ -369,7 +369,7 @@
     "manufacturer": "Abbott India Ltd",
     "composition": "Magnesium Hydroxide, Aluminium Hydroxide, Simethicone, Sodium Carboxymethylcellulose",
     "uses": "Acid reflux, flatulence, gastric pain, stomach bloating",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u0yjtcv5c7p7s8w2b3yd.jpg",
+    "image_url": "",
     "discount_percentage": 13,
     "last_updated": "2026-08-12T09:39:44.406Z"
   },
@@ -391,7 +391,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Diclofenac Diethylamine BP - 1.16% w/w, Methyl Salicylate IP - 10.0% w/w, Menthol IP - 5.0% w/w",
     "uses": "Muscular strain, backache, neck pain, joint stiffness, sprains",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u6eov69dptd33kpejld6.jpg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-08-12T09:43:17.086Z"
   },
@@ -413,7 +413,7 @@
     "manufacturer": "FDC Limited",
     "composition": "Sodium Chloride, Potassium Chloride, Sodium Citrate, Dextrose Anhydrous",
     "uses": "Fluid replacement, electrolyte balance, dehydration recovery",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u9s8qjc56qj45h7fd9yd.jpg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:39:45.099Z"
   },
@@ -435,7 +435,7 @@
     "manufacturer": "Kenvue Consumer Health",
     "composition": "Diphenhydramine Hydrochloride IP - 14.08mg, Ammonium Chloride IP - 138mg, Sodium Citrate IP - 57.03mg",
     "uses": "Cough relief, allergic cough, throat tickle, sneezing",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/hndjkvvy86ch0ivpgg4o.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:45.766Z"
   },
@@ -457,7 +457,7 @@
     "manufacturer": "Procter & Gamble India",
     "composition": "Menthol, Camphor, Eucalyptus Oil, Nutmeg Oil, Thymol",
     "uses": "Nasal congestion, headache, backache, breathing cold relief",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/b6v4bcygsc5qj47fey9d.jpg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:39:46.437Z"
   },
@@ -479,7 +479,7 @@
     "manufacturer": "Bayer Pharmaceuticals India",
     "composition": "Paracetamol IP - 250mg, Propyphenazone IP - 150mg, Caffeine anhydrous IP - 50mg",
     "uses": "Severe headaches, dental pain, migraine, body ache",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/fdlq7sbdfdc1kqe3jbnl.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:47.114Z"
   },
@@ -501,7 +501,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "Pudina Satva (Mentha Piperita) oil - 0.18ml",
     "uses": "Indigestion, acidity, stomach ache, gas relief",
-    "image_url": "/images/medicines/med-23-pudin-hara-pearls.svg",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -523,7 +523,7 @@
     "manufacturer": "Pfizer Limited",
     "composition": "Aluminium Hydroxide - 250mg, Magnesium Hydroxide - 250mg, Activated Dimethicone - 50mg",
     "uses": "Heartburn, hyperacidity, peptic ulcer pain, flatulence",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/mbdxk2kboh3llijyaao2.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:47.816Z"
   },
@@ -545,7 +545,7 @@
     "manufacturer": "GlaxoSmithKline Consumer Healthcare",
     "composition": "Svarjiksara (Sodium Bicarbonate) - 2.91g, Nimbukamlam (Citric Acid) - 2.04g",
     "uses": "Heartburn, acidity, sour stomach, indigestion bloating",
-    "image_url": "/images/medicines/med-25-eno-fruit-salt-lemon.svg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -567,7 +567,7 @@
     "manufacturer": "Reckitt Benckiser India",
     "composition": "Wintergreen Oil, Mint Extract, Turpentine Oil, Eucalyptus Oil",
     "uses": "Back pain, joint pain, muscle strain, sprains",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/fdlq7sbdfdc1kqe3jbnl.jpg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:39:48.489Z"
   },
@@ -589,7 +589,7 @@
     "manufacturer": "Paras Pharmaceuticals Ltd",
     "composition": "Clotrimazole IP - 1% w/w, Ichthammol Ammonium - 0.2% w/w",
     "uses": "Skin fungal infections, ringworm, jock itch, groin rash",
-    "image_url": "/images/medicines/med-27-itch-guard-cream.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -611,7 +611,7 @@
     "manufacturer": "GlaxoSmithKline Consumer Healthcare",
     "composition": "Xylometazoline Hydrochloride IP - 0.1% w/v",
     "uses": "Nasal congestion from common cold, sinusitis, allergies",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u6eov69dptd33kpejld6.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:49.150Z"
   },
@@ -633,7 +633,7 @@
     "manufacturer": "Reckitt Benckiser India Ltd",
     "composition": "Dichlorobenzyl Alcohol - 1.2mg, Amylmetacresol - 0.6mg",
     "uses": "Sore throat, dry cough tickle, minor mouth infection",
-    "image_url": "/images/medicines/med-29-strepsils-honey-lemon-lozenges.svg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -655,7 +655,7 @@
     "manufacturer": "Franco-Indian Pharmaceuticals",
     "composition": "Ferric Ammonium Citrate - 110mg, Folic Acid - 1.5mg, Cyanocobalamin (B12) - 15mcg",
     "uses": "Iron deficiency anemia, recovery, pregnancy iron supplement",
-    "image_url": "/images/medicines/med-30-dexorange-syrup.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -677,7 +677,7 @@
     "manufacturer": "Roche Diabetes Care",
     "composition": "Electrochemical test strips",
     "uses": "Self-monitoring of blood glucose",
-    "image_url": "/images/medicines/med-31-accu-chek-active-test-strips-50s.svg",
+    "image_url": "",
     "discount_percentage": 19,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -699,7 +699,7 @@
     "manufacturer": "LifeScan Europe",
     "composition": "Electrochemical glucose strips",
     "uses": "Daily blood sugar screening",
-    "image_url": "/images/medicines/med-32-onetouch-select-plus-test-strips-50s.svg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -721,7 +721,7 @@
     "manufacturer": "Roche Diabetes Care",
     "composition": "Sterile surgical steel lancets",
     "uses": "Virtually pain-free lancing and pricking",
-    "image_url": "/images/medicines/med-33-accu-chek-fastclix-lancets-102s.svg",
+    "image_url": "",
     "discount_percentage": 13,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -743,7 +743,7 @@
     "manufacturer": "USV Private Limited",
     "composition": "Metformin Hydrochloride IP - 500mg",
     "uses": "Type 2 diabetes mellitus, insulin resistance management",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/3c5f6e710dd74dffbf0ba5cc4b6c5a07.jpg",
+    "image_url": "",
     "discount_percentage": 13,
     "last_updated": "2026-08-12T09:39:49.878Z"
   },
@@ -765,7 +765,7 @@
     "manufacturer": "Novartis India Ltd",
     "composition": "Vildagliptin - 50mg, Metformin Hydrochloride - 500mg",
     "uses": "Type 2 Diabetes mellitus uncontrolled on metformin monotherapy",
-    "image_url": "/images/medicines/med-35-galvus-met-50-500mg-tablet.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -787,7 +787,7 @@
     "manufacturer": "MSD Pharmaceuticals",
     "composition": "Sitagliptin Phosphate - 50mg, Metformin Hydrochloride - 500mg",
     "uses": "Type 2 Diabetes mellitus glycemic control",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:39:50.547Z"
   },
@@ -809,7 +809,7 @@
     "manufacturer": "Sanofi India Ltd",
     "composition": "Glimepiride IP - 2mg",
     "uses": "Type 2 Diabetes mellitus blood sugar regulation",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/xz5q9xefnf4qurvkdyss.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:51.213Z"
   },
@@ -831,7 +831,7 @@
     "manufacturer": "Sanofi India Ltd",
     "composition": "Insulin Glargine IP - 100 IU/ml",
     "uses": "Type 1 & Type 2 Diabetes Mellitus daily basal coverage",
-    "image_url": "/images/medicines/med-38-lantus-solostar-insulin-pen.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -853,7 +853,7 @@
     "manufacturer": "Novo Nordisk India",
     "composition": "Insulin Degludec (70%) + Insulin Aspart (30%)",
     "uses": "Diabetes mellitus daily basal-bolus coverage",
-    "image_url": "/images/medicines/med-39-ryzodeg-flextouch-insulin-pen.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -875,7 +875,7 @@
     "manufacturer": "Lupin Limited",
     "composition": "Metformin Hydrochloride IP - 500mg (Sustained Release)",
     "uses": "Type 2 Diabetes mellitus glycemic control",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/ahmbxmi2bd1wiojpxqld.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:51.935Z"
   },
@@ -897,7 +897,7 @@
     "manufacturer": "Becton Dickinson India",
     "composition": "Sterile disposable plastic syringes",
     "uses": "Insulin subcutaneous delivery",
-    "image_url": "/images/medicines/med-41-bd-ultra-fine-insulin-syringes-31g.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -919,7 +919,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Gymnema Sylvestre (Meshashringi), Pterocarpus Marsupium (Asana), Shilajeet",
     "uses": "Adjuvant therapy in pre-diabetes and mild Type 2 Diabetes",
-    "image_url": "/images/medicines/med-42-diabecon-tablets.svg",
+    "image_url": "",
     "discount_percentage": 6,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -941,7 +941,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "Karela (Bitter Gourd) juice - 50%, Jamun (Blackberry) seed extract juice - 50%",
     "uses": "Natural glucose levels regulation, digestive detox",
-    "image_url": "/images/medicines/med-43-karela-jamun-juice.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -963,7 +963,7 @@
     "manufacturer": "USV Private Limited",
     "composition": "Glimepiride IP - 2mg, Metformin Hydrochloride IP - 500mg",
     "uses": "Type 2 Diabetes mellitus glycemic control",
-    "image_url": "/images/medicines/med-44-glycomet-gp-2-500-tablet.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -985,7 +985,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Sitagliptin Phosphate - 50mg, Metformin Hydrochloride - 500mg",
     "uses": "Type 2 Diabetes mellitus dual action therapy",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:52.637Z"
   },
@@ -1007,7 +1007,7 @@
     "manufacturer": "Mankind Pharma Ltd",
     "composition": "Amlodipine Besylate IP - 5mg",
     "uses": "Hypertension, Coronary artery disease, Angina",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/v9py58kciridvbi7bqls.jpg",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-08-12T09:39:53.293Z"
   },
@@ -1029,7 +1029,7 @@
     "manufacturer": "Mankind Pharma Ltd",
     "composition": "Atorvastatin Calcium IP - 10mg",
     "uses": "High cholesterol (hyperlipidemia), prevention of cardiovascular events",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:53.956Z"
   },
@@ -1051,7 +1051,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Atorvastatin Calcium IP - 20mg",
     "uses": "Hypercholesterolemia, atherosclerosis prevention",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/fa7427131ec64163b5bbafb529df0736.jpg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:39:54.599Z"
   },
@@ -1073,7 +1073,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Rosuvastatin Calcium IP - 10mg",
     "uses": "Primary hypercholesterolemia, lipid disorders management",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-08-12T09:39:55.275Z"
   },
@@ -1095,7 +1095,7 @@
     "manufacturer": "Sanofi India Ltd",
     "composition": "Ramipril IP - 5mg",
     "uses": "Hypertension, congestive heart failure, post-myocardial infarction",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/v9py58kciridvbi7bqls.jpg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:39:55.940Z"
   },
@@ -1117,7 +1117,7 @@
     "manufacturer": "Merck Specialities Pvt Ltd",
     "composition": "Bisoprolol Fumarate IP - 5mg",
     "uses": "Hypertension, chronic stable angina, chronic heart failure",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/v9py58kciridvbi7bqls.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:56.609Z"
   },
@@ -1139,7 +1139,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Clopidogrel Bisulfate IP - 75mg",
     "uses": "Prevention of ischemic stroke, myocardial infarction, acute coronary syndrome",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/xlfda4lsg7frx2xzwt3g.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:57.276Z"
   },
@@ -1161,7 +1161,7 @@
     "manufacturer": "USV Private Limited",
     "composition": "Aspirin IP - 75mg",
     "uses": "Prophylaxis of myocardial infarction, cardiac thrombosis risk reduction",
-    "image_url": "/images/medicines/med-53-ecosprin-75mg-enteric-coated-tablet.svg",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -1183,7 +1183,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Metoprolol Succinate IP - 50mg (Prolonged Release)",
     "uses": "Hypertension, angina pectoris, heart rate management",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpeg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:57.935Z"
   },
@@ -1205,7 +1205,7 @@
     "manufacturer": "Pfizer Limited",
     "composition": "Prazosin Hydrochloride - 5mg (Extended Release)",
     "uses": "Severe hypertension, Raynaud's phenomenon, benign prostatic hyperplasia",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/v9py58kciridvbi7bqls.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:58.612Z"
   },
@@ -1227,7 +1227,7 @@
     "manufacturer": "J.B. Chemicals & Pharmaceuticals",
     "composition": "Cilnidipine IP - 10mg",
     "uses": "Essential hypertension, renal impairment related hypertension",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/c773bc28-3c46-444a-b50a-f0f81395fa3d.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:39:59.297Z"
   },
@@ -1249,7 +1249,7 @@
     "manufacturer": "Unichem Laboratories Ltd",
     "composition": "Clonidine Hydrochloride IP - 100mcg",
     "uses": "Hypertension crisis management, chronic arterial hypertension",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/kvdgswy8eyzkwmulwlyf.jpg",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-08-12T09:39:59.961Z"
   },
@@ -1271,7 +1271,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Terminalia Arjuna bark extract - 250mg",
     "uses": "Cardioprotectant, cardiovascular wellness support",
-    "image_url": "/images/medicines/med-58-himalaya-arjuna-capsules.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -1293,7 +1293,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Arjuna bark, Calx of shells, Guggulu, Shilajeet, Nepeta Hindostana",
     "uses": "Hypercholesterolemia control, cardiac health booster",
-    "image_url": "/images/medicines/med-59-himalaya-abana-tablets.svg",
+    "image_url": "",
     "discount_percentage": 7,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -1315,7 +1315,7 @@
     "manufacturer": "Sun Pharmaceutical Industries Ltd",
     "composition": "Garlic Oil IP - 0.25% w/w in softgels",
     "uses": "Natural cholesterol balance, cardiovascular protection",
-    "image_url": "/images/medicines/med-60-garlic-pearls-capsules.svg",
+    "image_url": "",
     "discount_percentage": 13,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -1337,7 +1337,7 @@
     "manufacturer": "Reckitt Benckiser India Ltd",
     "composition": "Chloroxylenol B.P. - 4.8% w/v, Terpineol, Alcohol",
     "uses": "Wound cleansing, Antiseptic bathing, Disinfection",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/mbdxk2kboh3llijyaao2.jpg",
+    "image_url": "",
     "discount_percentage": 4,
     "last_updated": "2026-08-12T09:40:00.627Z"
   },
@@ -1359,7 +1359,7 @@
     "manufacturer": "Colgate-Palmolive India Ltd",
     "composition": "Sodium Fluoride, Triclosan, Hydrated Silica",
     "uses": "Daily dental cleaning, Cavity defense, Gum health",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/zmvcksshowex5pp3p4bk.jpg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:01.289Z"
   },
@@ -1381,7 +1381,7 @@
     "manufacturer": "Hindustan Unilever Ltd",
     "composition": "Sodium Lauroyl Isethionate, Stearic Acid, Coconut Acid, 1/4 Moisturising Cream",
     "uses": "Skin nourishment and daily gentle cleansing",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:40:01.954Z"
   },
@@ -1403,7 +1403,7 @@
     "manufacturer": "Procter & Gamble India",
     "composition": "Zinc Pyrithione, Menthol, Citric Acid, Sodium Laureth Sulfate",
     "uses": "Scalp anti-dandruff cleaning, itching relief",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:40:02.627Z"
   },
@@ -1425,7 +1425,7 @@
     "manufacturer": "Nivea India Pvt Ltd",
     "composition": "Almond Oil, Glycerin, Deep Moisture Serum",
     "uses": "Body skin hydration, dry skin restoration",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 19,
     "last_updated": "2026-08-12T09:40:03.293Z"
   },
@@ -1447,7 +1447,7 @@
     "manufacturer": "Reckitt Benckiser India Ltd",
     "composition": "Salicylic Acid, Glycerin, Sodium Laureth Sulfate, Fragrance",
     "uses": "Hand disinfection, sanitation",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/mbdxk2kboh3llijyaao2.jpg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-08-12T09:40:03.974Z"
   },
@@ -1469,7 +1469,7 @@
     "manufacturer": "Hindustan Unilever Ltd",
     "composition": "Water, Sorbitol, Sodium Palm Kernelete, Glycerin (98%)",
     "uses": "Gentle face and body wash, skin hydration",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:04.643Z"
   },
@@ -1491,7 +1491,7 @@
     "manufacturer": "Procter & Gamble India",
     "composition": "Nylon bristles, plastic handle",
     "uses": "Daily oral brushing",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 15,
     "last_updated": "2026-08-12T09:40:05.313Z"
   },
@@ -1513,7 +1513,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Eucalyptol, Menthol, Methyl Salicylate, Thymol, Alcohol (21.6%)",
     "uses": "Mouth rinse, bad breath control, plaque defense",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:05.962Z"
   },
@@ -1535,7 +1535,7 @@
     "manufacturer": "Gillette India Limited",
     "composition": "Stainless steel blades, plastic/rubber handle",
     "uses": "Mens facial shaving",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:40:06.612Z"
   },
@@ -1557,7 +1557,7 @@
     "manufacturer": "Marico Limited",
     "composition": "100% Pure Coconut Oil",
     "uses": "Hair conditioning, scalp nourishment, dry skin",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:07.283Z"
   },
@@ -1579,7 +1579,7 @@
     "manufacturer": "ITC Limited",
     "composition": "Peach extract, Avocado extract, Sodium Laureth Sulfate, Glycerin",
     "uses": "Daily body wash, skin conditioning",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:07.965Z"
   },
@@ -1601,7 +1601,7 @@
     "manufacturer": "McNroe Consumer Products",
     "composition": "Ethyl Alcohol, Perfume, Propylene Glycol, Triclosan",
     "uses": "Deodorant fragrance, sweat defense",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:08.740Z"
   },
@@ -1623,7 +1623,7 @@
     "manufacturer": "GlaxoSmithKline Consumer Healthcare",
     "composition": "Potassium Nitrate IP - 5.0% w/w, Sodium Fluoride IP - 0.22% w/w",
     "uses": "Tooth sensitivity defense, oral hygiene, cavity shield",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:09.424Z"
   },
@@ -1645,7 +1645,7 @@
     "manufacturer": "Hindustan Unilever Ltd",
     "composition": "Sodium Palmate, Active Silver, Fragrance",
     "uses": "Daily germ protection body bath",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:10.087Z"
   },
@@ -1667,7 +1667,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Talc, Fragrance",
     "uses": "Baby moisture absorption, Skin cooling, Chafing relief",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 7,
     "last_updated": "2026-08-12T09:40:10.802Z"
   },
@@ -1689,7 +1689,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Decyl Glucoside, Glycerin, Sodium Methyl Cocoyl Taurate",
     "uses": "Gentle baby hair wash, scalp hygiene",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:11.458Z"
   },
@@ -1711,7 +1711,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Olive Oil (Jaitun), Winter Cherry (Ashwagandha), Aloe Vera",
     "uses": "Daily infant massage, bone and muscle tone development",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:12.136Z"
   },
@@ -1733,7 +1733,7 @@
     "manufacturer": "Procter & Gamble India",
     "composition": "Purified water, Chamomile flower extract, citric acid",
     "uses": "Infant skin wiping, diaper change sanitation",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:12.801Z"
   },
@@ -1755,7 +1755,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Vetiver (Khus-Khus), Zinc Calx (Yashada Bhasma), Olive Oil",
     "uses": "Sweet rash prevention, baby body cooling",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:13.449Z"
   },
@@ -1777,7 +1777,7 @@
     "manufacturer": "Sebamed Germany (USV India)",
     "composition": "Allantoin, Squalane, pH 5.5 surfactants",
     "uses": "Delicate skin body wash for infants",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:14.116Z"
   },
@@ -1799,7 +1799,7 @@
     "manufacturer": "Unicharm India Private Ltd",
     "composition": "Superabsorbent polymer, non-woven fabric",
     "uses": "Baby sanitation, overnight wetness protection",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:14.767Z"
   },
@@ -1821,7 +1821,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Mineral oil, Avocado fruit oil, Pro-Vitamin B5, Fragrance",
     "uses": "Infant scalp conditioning, hair growth support",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:40:15.470Z"
   },
@@ -1843,7 +1843,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Olive Oil, Country Mallow (Bala), Licorice, Almond Oil",
     "uses": "Infant body moisturizing and dry skin defense",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:16.152Z"
   },
@@ -1865,7 +1865,7 @@
     "manufacturer": "Mother Sparsh Baby Care",
     "composition": "99% Pure water, Aloe vera leaf extract",
     "uses": "Clean baby face, hands, and bottom gently",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 19,
     "last_updated": "2026-08-12T09:40:16.816Z"
   },
@@ -1887,7 +1887,7 @@
     "manufacturer": "Hindustan Unilever Ltd",
     "composition": "Skin-identical nutrients, glycerin, light fragrance",
     "uses": "Daily baby skin defense, full-body hydration",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:17.483Z"
   },
@@ -1909,7 +1909,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Olive Oil, Almond Oil, Honey, Sunflower Oil",
     "uses": "Daily mild baby bath wash",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:18.160Z"
   },
@@ -1931,7 +1931,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Mineral oil, Cetyl alcohol, Glycerin",
     "uses": "Chapped cheeks, rough knees/elbows moisture defense",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u6eov69dptd33kpejld6.jpg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:18.814Z"
   },
@@ -1953,7 +1953,7 @@
     "manufacturer": "Artsana India Pvt Ltd",
     "composition": "Calendula officinalis flower extract, glycerin",
     "uses": "Tear-free scalp and body cleansing",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:19.463Z"
   },
@@ -1975,7 +1975,7 @@
     "manufacturer": "Me N Moms Pvt Ltd",
     "composition": "Pure natural biodegradable surfactants",
     "uses": "Sterilizing feeding bottles, accessories, and toys",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:20.143Z"
   },
@@ -1997,7 +1997,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Himsra (Capparis Spinosa) - 130mg, Kasani (Cichorium Intybus) - 130mg",
     "uses": "Prevention and treatment of Hepatitis, Alcoholic Liver Disease, Loss of appetite",
-    "image_url": "/images/medicines/med-91-himalaya-liv-52-ds.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2019,7 +2019,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "Amla (Gooseberry), Ashwagandha, Giloy, Shatavari, Pippali",
     "uses": "Immunity builder, winter protection against flu and infections",
-    "image_url": "/images/medicines/med-92-dabor-chyawanprash.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2041,7 +2041,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Ashwagandha (Withania Somnifera) root extract - 250mg",
     "uses": "Stress release, fatigue recovery, muscle strength support",
-    "image_url": "/images/medicines/med-93-himalaya-ashwagandha.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2063,7 +2063,7 @@
     "manufacturer": "Baidyanath Ayurved Bhawan",
     "composition": "Amla (Emblica officinalis), Haritaki (Terminalia chebula), Bibhitaki (Terminalia bellirica) equal proportions",
     "uses": "Constipation relief, colon cleanse, digestive aid",
-    "image_url": "/images/medicines/med-94-baidyanath-triphala-churna.svg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2085,7 +2085,7 @@
     "manufacturer": "Patanjali Ayurved Limited",
     "composition": "Aloe Vera juice pulp - 99.8% w/v",
     "uses": "Digestive detox, skin nourishment, weight management support",
-    "image_url": "/images/medicines/med-95-patanjali-aloe-vera-juice.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2107,7 +2107,7 @@
     "manufacturer": "Emami Limited",
     "composition": "Mentha (Pudina) extract - 16% w/w, Gaultheria (Wintergreen) oil - 8% w/w, Eucalyptus oil - 12% w/w",
     "uses": "Headache, backache, muscle sprain, local cold congestion",
-    "image_url": "/images/medicines/med-96-zandu-balm-extra-strength.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2129,7 +2129,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "100% pure honey",
     "uses": "Natural sweetener, cough soothe, metabolic aid",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/6d01098a3999474fbcd3a959e0eb9e59.jpg",
+    "image_url": "",
     "discount_percentage": 7,
     "last_updated": "2026-08-12T09:40:20.800Z"
   },
@@ -2151,7 +2151,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Shatavari (Asparagus Racemosus) root extract - 250mg",
     "uses": "Female hormone regulator, lactation support, general vitality",
-    "image_url": "/images/medicines/med-98-himalaya-shatavari-tablets.svg",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2173,7 +2173,7 @@
     "manufacturer": "Baidyanath Ayurved Bhawan",
     "composition": "Senna Leaf (Sonamukhi), Haritaki, Ajwain, Black Salt",
     "uses": "Chronic constipation, indigestion, gas bloating",
-    "image_url": "/images/medicines/med-99-baidyanath-kabz-hari-fit.svg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2195,7 +2195,7 @@
     "manufacturer": "Patanjali Ayurved Limited",
     "composition": "Sandalwood, Turmeric, Aloe vera, Manjistha extracts",
     "uses": "Skin blemishes, acne spots, anti-aging herbal mask",
-    "image_url": "/images/medicines/med-100-patanjali-divya-kanti-lep.svg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2217,7 +2217,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "Mentha Piperita (Pudina) extract liquid oil",
     "uses": "Stomach gas, spasm cramps, indigestion bloating",
-    "image_url": "/images/medicines/med-101-dabur-pudin-hara-active.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2239,7 +2239,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Neem (Azadirachta Indica) leaf extract - 250mg",
     "uses": "Skin acne control, blood detox, skin infections defense",
-    "image_url": "https://images.unsplash.com/photo-605264964528-06403738d6fd?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:40:21.479Z"
   },
@@ -2261,7 +2261,7 @@
     "manufacturer": "Emami Limited",
     "composition": "Aloevera, Draksha, Ajwain, Triphala, Dashmoola",
     "uses": "Acidity, flatulence, bloating, constipation, low appetite",
-    "image_url": "/images/medicines/med-103-zandu-pancharishta-syrup.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2283,7 +2283,7 @@
     "manufacturer": "Dabur India Ltd",
     "composition": "Shilajeet, Swarna Bhasma (Gold Calx), Kesar (Saffron), Ashwagandha",
     "uses": "Stamina booster, fatigue release, youthful energy",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/nbbvonflqzjxsflnrcjg.jpg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:40:22.164Z"
   },
@@ -2305,7 +2305,7 @@
     "manufacturer": "Baidyanath Ayurved Bhawan",
     "composition": "Shankhpushpi, Brahmi, Ashwagandha",
     "uses": "Cognitive performance, memory improvement, anxiety relief",
-    "image_url": "/images/medicines/med-105-baidyanath-shankhpushpi-syrup.svg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2327,7 +2327,7 @@
     "manufacturer": "Sun Pharmaceutical Industries",
     "composition": "Ginseng Root extract, Vitamin A, B-Complex, C, D3, E, Iron, Zinc, Calcium",
     "uses": "Fights fatigue, improves concentration, boosts daily stamina",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u8dcfvyv86ch0ivpgg4o.jpg",
+    "image_url": "",
     "discount_percentage": 15,
     "last_updated": "2026-08-12T09:40:22.823Z"
   },
@@ -2349,7 +2349,7 @@
     "manufacturer": "Apex Laboratories Pvt Ltd",
     "composition": "Vitamin A, B-Complex, C, D3, E, Zinc, Selenium, Copper",
     "uses": "Nutritional deficiencies, Weak immunity, Fatigue, Convalescence",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/fa7427131ec64163b5bbafb529df0736.jpg",
+    "image_url": "",
     "discount_percentage": 4,
     "last_updated": "2026-08-12T09:40:23.503Z"
   },
@@ -2371,7 +2371,7 @@
     "manufacturer": "Abbott India Ltd",
     "composition": "Ascorbic Acid IP (Vitamin C) - 500mg",
     "uses": "Vitamin C deficiency, Scurvy, Skin collagen support, Immunity",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/3c5f6e710dd74dffbf0ba5cc4b6c5a07.jpg",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:40:24.153Z"
   },
@@ -2393,7 +2393,7 @@
     "manufacturer": "Procter & Gamble India Ltd",
     "composition": "Vitamin B1 (Thiamine) - 10mg, B2 (Riboflavin) - 10mg, B6 (Pyridoxine) - 3mg, B12 (Cyanocobalamin) - 15mcg, Niacinamide - 45mg",
     "uses": "Neuropathic pain, nerve recovery, mouth ulcers, B12 deficiency",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/a44e0vn4ts0y4nco6x1f.jpg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:24.808Z"
   },
@@ -2415,7 +2415,7 @@
     "manufacturer": "Pfizer Limited India",
     "composition": "Vitamin B1, B2, B6, B12, Folic Acid, Vitamin C - 150mg, Niacinamide",
     "uses": "Mouth ulcers, recovery from antibiotics, nutritional hair fall",
-    "image_url": "/images/medicines/med-110-becosules-capsules.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2437,7 +2437,7 @@
     "manufacturer": "Procter & Gamble India Ltd",
     "composition": "Tocopheryl Acetate IP - 400mg",
     "uses": "Skin repair, muscle cramps, hair loss treatment, antioxidant defense",
-    "image_url": "/images/medicines/med-111-evion-400-vitamin-e-capsule.svg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2459,7 +2459,7 @@
     "manufacturer": "Torrent Pharmaceuticals Ltd",
     "composition": "Calcium Carbonate - 1250mg (equiv to elemental Calcium - 500mg), Vitamin D3 - 250 IU",
     "uses": "Osteoporosis prevention, joint pain, calcium deficiency",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/cropped/kqkouvaqejbyk47dvjfu.jpg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:25.498Z"
   },
@@ -2481,7 +2481,7 @@
     "manufacturer": "Cadila Healthcare Ltd",
     "composition": "Cholecalciferol IP - 60,000 IU",
     "uses": "Severe Vitamin D deficiency, rickets, bone fracture healing",
-    "image_url": "https://images.unsplash.com/photo-6110784899350-1d84e82fda6e?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:26.197Z"
   },
@@ -2503,7 +2503,7 @@
     "manufacturer": "Eris Lifesciences Ltd",
     "composition": "Cholecalciferol IP - 60,000 IU (Chewable)",
     "uses": "Bone mineralization, weekly Vitamin D supplementation",
-    "image_url": "/images/medicines/med-114-tayo-60k-vitamin-d3-tablet.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2525,7 +2525,7 @@
     "manufacturer": "Eris Lifesciences Ltd",
     "composition": "Cholecalciferol IP - 400 IU per ml",
     "uses": "Infant bone mineralization, rickets prevention",
-    "image_url": "https://images.unsplash.com/photo-1515488042361-404e9250afef?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:26.843Z"
   },
@@ -2547,7 +2547,7 @@
     "manufacturer": "Bayer India Limited",
     "composition": "Vitamin A, B-complex, C, D3, E, Zinc, Iron, Manganese, Magnesium",
     "uses": "Fights tiredness, daily micro-nutrients balance, skin health",
-    "image_url": "/images/medicines/med-116-supradyn-daily-multivitamin.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2569,7 +2569,7 @@
     "manufacturer": "GlaxoSmithKline India Ltd",
     "composition": "Ascorbic Acid IP - 500mg",
     "uses": "Scurvy treatment, immunity boost, tissue wound healing support",
-    "image_url": "/images/medicines/med-117-celin-500mg-vitamin-c-tablet.svg",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2591,7 +2591,7 @@
     "manufacturer": "GlaxoSmithKline India Ltd",
     "composition": "Vitamin B Complex, Vitamin C, Zinc Sulphate",
     "uses": "Recovery from infections, general nerve strength, skin wellness",
-    "image_url": "/images/medicines/med-118-cobadex-cz-capsule.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2613,7 +2613,7 @@
     "manufacturer": "Alkem Laboratories Ltd",
     "composition": "Cholecalciferol IP - 60,000 IU in peanut oil base",
     "uses": "Weekly osteoporosis defense, calcium absorption booster",
-    "image_url": "https://images.unsplash.com/photo-6110784899350-1d84e82fda6e?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:27.521Z"
   },
@@ -2635,7 +2635,7 @@
     "manufacturer": "Cipla Ltd",
     "composition": "Alendronate Sodium IP - 70mg",
     "uses": "Post-menopausal osteoporosis, Paget's disease of bone",
-    "image_url": "/images/medicines/med-120-osteofos-70mg-tablet.svg",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2657,7 +2657,7 @@
     "manufacturer": "Roche Diabetes Care",
     "composition": "Digital Glucometer Machine Kit",
     "uses": "Self-monitoring of blood glucose levels.",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/u8dcfvyv86ch0ivpgg4o.jpg",
+    "image_url": "",
     "discount_percentage": 23,
     "last_updated": "2026-08-12T09:43:18.355Z"
   },
@@ -2679,7 +2679,7 @@
     "manufacturer": "Omron Healthcare",
     "composition": "Digital BP Monitor with Arm Cuff",
     "uses": "Monitoring blood pressure and pulse rate.",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/b6vcygsc5qj47fey9d3d.jpg",
+    "image_url": "",
     "discount_percentage": 19,
     "last_updated": "2026-08-12T09:40:28.166Z"
   },
@@ -2701,7 +2701,7 @@
     "manufacturer": "Omron Healthcare",
     "composition": "Electronic sensor digital thermometer",
     "uses": "Body temperature monitoring",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/b6vcygsc5qj47fey9d3d.jpg",
+    "image_url": "",
     "discount_percentage": 20,
     "last_updated": "2026-08-12T09:40:28.905Z"
   },
@@ -2723,7 +2723,7 @@
     "manufacturer": "Nectar Biopharma (Dr. Trust)",
     "composition": "Optoelectronic LED digital sensor",
     "uses": "Oxygen saturation (SpO2) and pulse monitoring",
-    "image_url": "/images/medicines/med-124-dr-trust-fingertip-pulse-oximeter.svg",
+    "image_url": "",
     "discount_percentage": 29,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2745,7 +2745,7 @@
     "manufacturer": "Philips Respironics",
     "composition": "Compressor Nebulizer Machine Kit",
     "uses": "Inhalation drug delivery for asthma, bronchitis, and COPD",
-    "image_url": "/images/medicines/med-125-philips-compressor-nebulizer.svg",
+    "image_url": "",
     "discount_percentage": 15,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2767,7 +2767,7 @@
     "manufacturer": "Nectar Biopharma (Dr. Trust)",
     "composition": "Electronic weighing scale with LCD screen",
     "uses": "Body weight tracking",
-    "image_url": "/images/medicines/med-126-dr-trust-digital-weighing-scale.svg",
+    "image_url": "",
     "discount_percentage": 38,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2789,7 +2789,7 @@
     "manufacturer": "Omron Healthcare",
     "composition": "Compressor Nebulizer Machine Kit with masks",
     "uses": "Aerosol drug inhalation for respiratory disorders",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/b6vcygsc5qj47fey9d3d.jpg",
+    "image_url": "",
     "discount_percentage": 14,
     "last_updated": "2026-08-12T09:40:29.555Z"
   },
@@ -2811,7 +2811,7 @@
     "manufacturer": "Roche Diabetes Care",
     "composition": "Digital Glucometer with Bluetooth",
     "uses": "Instant blood glucose screening and tracking",
-    "image_url": "/images/medicines/med-128-accu-chek-instant-glucometer.svg",
+    "image_url": "",
     "discount_percentage": 24,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2833,7 +2833,7 @@
     "manufacturer": "Nectar Biopharma (Dr. Trust)",
     "composition": "Infrared sensor electronic digital thermometer",
     "uses": "Contactless forehead body temperature scan",
-    "image_url": "/images/medicines/med-129-dr-trust-infrared-forehead-thermometer.svg",
+    "image_url": "",
     "discount_percentage": 27,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2855,7 +2855,7 @@
     "manufacturer": "Hicks Thermometers India Ltd",
     "composition": "Galinstan liquid-in-glass thermometer",
     "uses": "Clinical oral temperature screening",
-    "image_url": "/images/medicines/med-130-hicks-oval-analogue-thermometer.svg",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2877,7 +2877,7 @@
     "manufacturer": "Beurer GmbH Germany",
     "composition": "High-accuracy LED optical pulse oximeter",
     "uses": "Oxygen level and pulse rate tracking",
-    "image_url": "/images/medicines/med-131-beurer-po-30-pulse-oximeter.svg",
+    "image_url": "",
     "discount_percentage": 25,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2899,7 +2899,7 @@
     "manufacturer": "Omron Healthcare",
     "composition": "Digital BP Monitor with Medium Cuff",
     "uses": "Home blood pressure tracking",
-    "image_url": "https://onemg.gumlet.io/a_ignore,w_380,h_380,c_fit,q_auto,f_auto/cropped/b6vcygsc5qj47fey9d3d.jpg",
+    "image_url": "",
     "discount_percentage": 18,
     "last_updated": "2026-08-12T09:43:19.059Z"
   },
@@ -2921,7 +2921,7 @@
     "manufacturer": "Nectar Biopharma (Dr. Trust)",
     "composition": "Electric heat coil embedded pad",
     "uses": "Muscle spasm relaxation, joint pain heat therapy",
-    "image_url": "/images/medicines/med-133-dr-trust-orthopedic-heating-pad.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2943,7 +2943,7 @@
     "manufacturer": "Rossmax International Ltd",
     "composition": "Compressor Nebulizer Machine Kit with adjustable cup",
     "uses": "Respiratory drug inhalation",
-    "image_url": "/images/medicines/med-134-rossmax-compressor-nebulizer.svg",
+    "image_url": "",
     "discount_percentage": 15,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2965,7 +2965,7 @@
     "manufacturer": "Omron Healthcare",
     "composition": "Tempered glass electronic weighing scale",
     "uses": "Daily weight tracking",
-    "image_url": "/images/medicines/med-135-omron-hn-289-weighing-scale.svg",
+    "image_url": "",
     "discount_percentage": 17,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -2987,7 +2987,7 @@
     "manufacturer": "GD Pharmaceuticals Pvt Ltd",
     "composition": "Boric Acid, Zinc Oxide, Anhydrous Lanolin",
     "uses": "Chapped lips, Dry skin recovery, Cracked heels, Minor cuts",
-    "image_url": "https://onemg.gumlet.io/l_watermark_346,w_480,h_480/a_ignore,w_480,h_480,c_fit,q_auto,f_auto/612a8de029ee416ab320d109d19d2293.jpg",
+    "image_url": "",
     "discount_percentage": 5,
     "last_updated": "2026-08-12T09:40:30.240Z"
   },
@@ -3009,7 +3009,7 @@
     "manufacturer": "Vicco Laboratories",
     "composition": "Turmeric extract (16% w/w), Sandalwood Oil (0.5% w/w)",
     "uses": "Acne control, Skin blemishes, Pigmentation, Face glow",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:30.913Z"
   },
@@ -3031,7 +3031,7 @@
     "manufacturer": "Galderma India Pvt Ltd",
     "composition": "Glycerin, Panthenol, Niacinamide, Sodium Cocoyl Isethionate",
     "uses": "Sensitive skin daily face wash, skin soothing",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:31.562Z"
   },
@@ -3053,7 +3053,7 @@
     "manufacturer": "Piramal Pharma Ltd",
     "composition": "Kaolin Clay, Zinc Oxide, Glycerin, Castor Oil",
     "uses": "Oil balance, acne prevention, daily light moisturizer",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:32.228Z"
   },
@@ -3075,7 +3075,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Homosalate, Octisalate, Avobenzone, Oxybenzone",
     "uses": "Sunburn protection, anti-tanning, UVA/UVB shield",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 16,
     "last_updated": "2026-08-12T09:40:32.892Z"
   },
@@ -3097,7 +3097,7 @@
     "manufacturer": "Emami Limited",
     "composition": "Aloe vera, Tulsi, Neem, Sandalwood extracts",
     "uses": "Skin scaling, rough hands healing, first aid cream",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 6,
     "last_updated": "2026-08-12T09:40:33.546Z"
   },
@@ -3119,7 +3119,7 @@
     "manufacturer": "Galderma India Pvt Ltd",
     "composition": "Sweet Almond oil, Vitamin E, Glycerin",
     "uses": "Dry skin healing, body skin scaling defense",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 8,
     "last_updated": "2026-08-12T09:40:34.229Z"
   },
@@ -3141,7 +3141,7 @@
     "manufacturer": "Himalaya Wellness Company",
     "composition": "Neem, Turmeric extracts",
     "uses": "Acne defense, oil removal, daily facial wash",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:34.903Z"
   },
@@ -3163,7 +3163,7 @@
     "manufacturer": "Nivea India Pvt Ltd",
     "composition": "Jojoba oil, Tocopheryl Acetate (Vitamin E), Glycerin",
     "uses": "Light facial skin moisturizing, hand dry spots",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:35.576Z"
   },
@@ -3185,7 +3185,7 @@
     "manufacturer": "Bio Veda Action Research Co",
     "composition": "Dandelion extract, Nutmeg oil, Sandalwood extract",
     "uses": "Anti-aging facial therapy, wrinkle reduction",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 12,
     "last_updated": "2026-08-12T09:40:36.234Z"
   },
@@ -3207,7 +3207,7 @@
     "manufacturer": "Honasa Consumer Limited",
     "composition": "Turmeric extract, Saffron extract, Licorice extract, Walnut beads",
     "uses": "Sun tan removal, face wash brightening",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:36.877Z"
   },
@@ -3229,7 +3229,7 @@
     "manufacturer": "Sebamed Germany (USV India)",
     "composition": "Montaline C35 (coconut active), Panthenol",
     "uses": "Acne vulgaris face wash, sensitive skin foam wash",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:37.543Z"
   },
@@ -3251,7 +3251,7 @@
     "manufacturer": "Pureplay Skin Sciences",
     "composition": "Green Tea leaf extract, Glycolic Acid, Cellulose scrub beads",
     "uses": "Pore exfoliation, oily skin face wash",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 11,
     "last_updated": "2026-08-12T09:40:38.338Z"
   },
@@ -3273,7 +3273,7 @@
     "manufacturer": "Johnson & Johnson India",
     "composition": "Hyaluronic Acid, Olive extract, Glycerin",
     "uses": "72h hydration gel, light oil-free face moisturizer",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 10,
     "last_updated": "2026-08-12T09:40:39.002Z"
   },
@@ -3295,7 +3295,7 @@
     "manufacturer": "Glenmark Pharmaceuticals Ltd",
     "composition": "Ethylhexyl Methoxycinnamate, Zinc Oxide, D-Panthenol",
     "uses": "Non-comedogenic moisturizer, daily sun defense",
-    "image_url": "https://images.unsplash.com/photo-608248597279-f99d160b2109?auto=format&fit=crop&w=400&q=80",
+    "image_url": "",
     "discount_percentage": 9,
     "last_updated": "2026-08-12T09:40:39.655Z"
   },
@@ -3317,7 +3317,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Red Blood Cells, White Blood Cells, Platelets, Haemoglobin",
     "uses": "Anemia screening, Infection evaluation, Immunity check",
-    "image_url": "/images/medicines/med-151-complete-blood-count-cbc-test.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3339,7 +3339,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Total Cholesterol, HDL, LDL, VLDL, Triglycerides",
     "uses": "Heart risk profile, Hypertension check, Atherosclerosis screen",
-    "image_url": "/images/medicines/med-152-lipid-profile-cholesterol-test.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3361,7 +3361,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Glycated Hemoglobin fraction",
     "uses": "Diabetic average sugar tracking, Pre-diabetes screening",
-    "image_url": "/images/medicines/med-153-hba1c-glycated-hemoglobin-test.svg",
+    "image_url": "",
     "discount_percentage": 30,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3383,7 +3383,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Total Triiodothyronine (T3), Thyroxine (T4), Thyroid Stimulating Hormone (TSH)",
     "uses": "Weight gain/loss audit, Metabolism check, Fatigue evaluation",
-    "image_url": "/images/medicines/med-154-thyroid-profile-t3-t4-tsh-test.svg",
+    "image_url": "",
     "discount_percentage": 36,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3405,7 +3405,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "SGOT, SGPT, Bilirubin Total/Direct, Alkaline Phosphatase, Albumin",
     "uses": "Liver toxicity screen, Jaundice evaluation, Alcohol liver audit",
-    "image_url": "/images/medicines/med-155-liver-function-test-lft.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3427,7 +3427,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Urea, Uric Acid, Creatinine, Electrolytes",
     "uses": "Kidney performance, Filtration check, Hypertension monitor",
-    "image_url": "/images/medicines/med-156-kidney-function-test-kft-rft.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-14T12:00:00Z"
   },
@@ -3449,7 +3449,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "25-Hydroxy Vitamin D",
     "uses": "Bone pain, fatigue audit, calcium absorption check",
-    "image_url": "/images/medicines/med-157-vitamin-d-25-hydroxy-test.svg",
+    "image_url": "",
     "discount_percentage": 44,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3471,7 +3471,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Cyanocobalamin (B12) fraction",
     "uses": "Tingling sensations, general weakness, neuropathy check",
-    "image_url": "/images/medicines/med-158-vitamin-b12-cobalamin-test.svg",
+    "image_url": "",
     "discount_percentage": 42,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3493,7 +3493,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Glucose Fasting, Glucose Post-Prandial",
     "uses": "Diabetic monitoring, metabolic sugar screening",
-    "image_url": "/images/medicines/med-159-blood-sugar-fasting-pp-test.svg",
+    "image_url": "",
     "discount_percentage": 40,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3515,7 +3515,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Urine pH, Specific Gravity, Pus Cells, Albumin, Sugar",
     "uses": "UTI check, kidney stone audit, diabetes screening",
-    "image_url": "/images/medicines/med-160-urine-routine-microscopy-test.svg",
+    "image_url": "",
     "discount_percentage": 33,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3537,7 +3537,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "PAPP-A, Free Beta hCG",
     "uses": "Fetal chromosomal risk assessment",
-    "image_url": "/images/medicines/med-161-double-marker-pregnancy-screening.svg",
+    "image_url": "",
     "discount_percentage": 20,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3559,7 +3559,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Alpha-Fetoprotein (AFP), hCG, Estriol",
     "uses": "Fetal developmental risk screening",
-    "image_url": "/images/medicines/med-162-triple-marker-screening.svg",
+    "image_url": "",
     "discount_percentage": 22,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3581,7 +3581,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Hepatitis B Surface Antigen",
     "uses": "Hep-B screening, liver health audit",
-    "image_url": "/images/medicines/med-163-hbsag-hepatitis-b-screening.svg",
+    "image_url": "",
     "discount_percentage": 28,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3603,7 +3603,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Rheumatoid Factor antibodies",
     "uses": "Joint pain diagnosis, autoimmune screening",
-    "image_url": "/images/medicines/med-164-ra-factor-quantitative-test.svg",
+    "image_url": "",
     "discount_percentage": 24,
     "last_updated": "2026-07-17T07:30:00Z"
   },
@@ -3625,7 +3625,7 @@
     "manufacturer": "MediQuick NABL Lab Partners",
     "composition": "Dengue NS1 Antigen, Dengue IgG, Dengue IgM",
     "uses": "Active high-fever Dengue diagnosis",
-    "image_url": "/images/medicines/med-165-dengue-ns1-antigen-antibody-test.svg",
+    "image_url": "",
     "discount_percentage": 29,
     "last_updated": "2026-07-17T07:30:00Z"
   }

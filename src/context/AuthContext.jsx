@@ -7,7 +7,8 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  confirmPasswordReset
+  confirmPasswordReset,
+  verifyPasswordResetCode
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { auth, db, isConfigValid } from '../firebase/firebase';
@@ -401,11 +402,42 @@ export function AuthProvider({ children }) {
   // Forgot Password helper
   const sendPasswordReset = async (email) => {
     const cleanEmail = email.trim().toLowerCase();
-    try {
-      await sendPasswordResetEmail(auth, cleanEmail);
-    } catch (error) {
-      console.error("[Firebase Auth] Firebase error sending password reset:", error);
-      throw error;
+    if (isConfigValid && auth) {
+      try {
+        const actionCodeSettings = {
+          url: `${window.location.origin}/reset-password`,
+          handleCodeInApp: false
+        };
+        await sendPasswordResetEmail(auth, cleanEmail, actionCodeSettings);
+      } catch (error) {
+        console.error("[Firebase Auth] Firebase error sending password reset:", error);
+        throw error;
+      }
+    } else {
+      const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+      const matched = users.find(u => u.email.toLowerCase() === cleanEmail);
+      if (!matched) {
+        throw new Error('No account found with this email.');
+      }
+      const mockResetUrl = `${window.location.origin}/reset-password?email=${encodeURIComponent(cleanEmail)}&oobCode=mock-code-${Date.now()}`;
+      console.log(`[Mock Reset Password Link]: ${mockResetUrl}`);
+      window.latestMockResetUrl = mockResetUrl;
+    }
+  };
+
+  // Verify Reset Code helper
+  const verifyResetCode = async (oobCode) => {
+    if (isConfigValid && auth) {
+      return await verifyPasswordResetCode(auth, oobCode);
+    } else {
+      const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
+      if (usedCodes.includes(oobCode)) {
+        throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+      }
+      if (oobCode && oobCode.startsWith('mock-code')) {
+        return 'user@mediquick.com';
+      }
+      throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
     }
   };
 
@@ -414,6 +446,10 @@ export function AuthProvider({ children }) {
     if (isConfigValid && auth) {
       await confirmPasswordReset(auth, oobCode, newPassword);
     } else {
+      const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
+      if (usedCodes.includes(oobCode)) {
+        throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+      }
       const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
       const emailToFind = mockEmail || 'user@mediquick.com';
       const userIndex = users.findIndex(u => u.email.toLowerCase() === emailToFind.toLowerCase());
@@ -422,6 +458,10 @@ export function AuthProvider({ children }) {
       }
       users[userIndex].password = newPassword;
       localStorage.setItem('mediquick_users', JSON.stringify(users));
+      
+      // Invalidate code upon successful reset
+      usedCodes.push(oobCode);
+      sessionStorage.setItem('mediquick_used_mock_codes', JSON.stringify(usedCodes));
     }
   };
 
@@ -449,6 +489,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     loginWithApple,
     sendPasswordReset,
+    verifyResetCode,
     resetPassword,
     updateUserProfile
   };

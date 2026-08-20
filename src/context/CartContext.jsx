@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, isConfigValid } from '../firebase/firebase';
 import { isCouponApplicableToCart, calculateEligibleDiscount } from '../utils/couponMatcher';
 import { useAuth } from './AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useProducts } from './ProductsContext';
 
 const CartContext = createContext();
 
@@ -16,7 +17,9 @@ export function CartProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [cartItems, setCartItems] = useState(() => {
+  const { products } = useProducts();
+
+  const [rawCartItems, setRawCartItems] = useState(() => {
     const storedUser = localStorage.getItem('mediquick_current_user');
     if (storedUser) {
       try {
@@ -33,6 +36,28 @@ export function CartProvider({ children }) {
     }
     return [];
   });
+
+  const cartItems = useMemo(() => {
+    return rawCartItems.map(item => {
+      const latestProduct = products?.find(p => p.id === item.id);
+      if (latestProduct) {
+        return {
+          ...item,
+          price: latestProduct.price,
+          mrp: latestProduct.mrp,
+          medicine_name: latestProduct.medicine_name,
+          brand: latestProduct.brand,
+          stock: latestProduct.stock,
+          prescription_required: latestProduct.prescription_required,
+          image_url: latestProduct.image_url,
+          discount_percentage: latestProduct.discount_percentage,
+          last_updated: latestProduct.last_updated
+        };
+      }
+      return item;
+    });
+  }, [rawCartItems, products]);
+
   const [coupon, setCoupon] = useState(null);
   const [prescriptionFile, setPrescriptionFile] = useState(null); // stores { name, size, type, dataUrl or firebaseStorageUrl }
 
@@ -45,16 +70,16 @@ export function CartProvider({ children }) {
       const savedCart = localStorage.getItem(userCartKey);
       if (savedCart) {
         try {
-          setCartItems(JSON.parse(savedCart));
+          setRawCartItems(JSON.parse(savedCart));
         } catch (e) {
           console.error("Error loading user cart:", e);
-          setCartItems([]);
+          setRawCartItems([]);
         }
       } else {
-        setCartItems([]);
+        setRawCartItems([]);
       }
     } else {
-      setCartItems([]);
+      setRawCartItems([]);
       setCoupon(null);
       setPrescriptionFile(null);
     }
@@ -65,9 +90,9 @@ export function CartProvider({ children }) {
     if (loading) return;
     if (currentUser) {
       const userCartKey = `mediquick_cart_${currentUser.uid}`;
-      localStorage.setItem(userCartKey, JSON.stringify(cartItems));
+      localStorage.setItem(userCartKey, JSON.stringify(rawCartItems));
     }
-  }, [cartItems, currentUser, loading]);
+  }, [rawCartItems, currentUser, loading]);
 
   const addToCart = (item, qty = 1) => {
     if (!currentUser) {
@@ -78,7 +103,7 @@ export function CartProvider({ children }) {
       navigate('/login', { state: { from: location } });
       return;
     }
-    setCartItems((prevItems) => {
+    setRawCartItems((prevItems) => {
       const existing = prevItems.find((i) => i.id === item.id);
       if (existing) {
         return prevItems.map((i) =>
@@ -90,7 +115,7 @@ export function CartProvider({ children }) {
   };
 
   const removeFromCart = (id) => {
-    setCartItems((prevItems) => prevItems.filter((i) => i.id !== id));
+    setRawCartItems((prevItems) => prevItems.filter((i) => i.id !== id));
   };
 
   const updateQuantity = (id, qty) => {
@@ -98,13 +123,13 @@ export function CartProvider({ children }) {
       removeFromCart(id);
       return;
     }
-    setCartItems((prevItems) =>
+    setRawCartItems((prevItems) =>
       prevItems.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
     );
   };
 
   const clearCart = () => {
-    setCartItems([]);
+    setRawCartItems([]);
     setCoupon(null);
     setPrescriptionFile(null);
   };

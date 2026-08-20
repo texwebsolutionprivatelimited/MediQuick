@@ -217,8 +217,18 @@ export function ProductsProvider({ children }) {
     // Seed Products
     for (const prod of initialMedicines) {
       const docRef = doc(db, 'products', prod.id);
+      let existingImageUrl = '';
+      try {
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          existingImageUrl = docSnap.data().image_url || '';
+        }
+      } catch (err) {
+        console.warn(`Failed to check existing product ${prod.id} during seed:`, err);
+      }
       await setDoc(docRef, {
         ...prod,
+        image_url: existingImageUrl || prod.image_url || '',
         last_updated: serverTimestamp()
       });
     }
