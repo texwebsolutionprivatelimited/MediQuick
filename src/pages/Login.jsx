@@ -59,6 +59,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('mediquick_remembered_email'));
 
+  useEffect(() => {
+    if (searchParams.get('blocked') === 'true') {
+      setErrorMsg("Your account has been blocked by the administrator. Please contact support for assistance.");
+    }
+  }, [searchParams]);
+
   // Forgot password states
   const [forgotModalOpen, setForgotModalOpen] = useState(false);
   const [forgotSuccess, setForgotSuccess] = useState(null);

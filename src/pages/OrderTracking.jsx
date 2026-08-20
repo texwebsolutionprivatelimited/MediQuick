@@ -30,6 +30,12 @@ export default function OrderTracking() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedOrderForReturn, setSelectedOrderForReturn] = useState(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnDetails, setReturnDetails] = useState("");
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+
   useEffect(() => {
     if (!currentUser) {
       setLoading(false);
@@ -83,6 +89,89 @@ export default function OrderTracking() {
       };
     }
   }, [currentUser]);
+
+  const isReturnAllowed = (order) => {
+    if (order.status !== 'Delivered') return false;
+    if (order.returnStatus) return false;
+    if (!order.deliveredAt) return false;
+
+    try {
+      let deliveryTime = null;
+      if (order.deliveredAt.toDate) {
+        deliveryTime = order.deliveredAt.toDate().getTime();
+      } else if (order.deliveredAt.seconds) {
+        deliveryTime = order.deliveredAt.seconds * 1000;
+      } else {
+        deliveryTime = new Date(order.deliveredAt).getTime();
+      }
+
+      if (isNaN(deliveryTime)) return false;
+
+      const RETURN_WINDOW_DAYS = 7;
+      const expiryTime = deliveryTime + (RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+      return Date.now() <= expiryTime;
+    } catch (e) {
+      console.error("Error parsing deliveredAt:", e);
+      return false;
+    }
+  };
+
+  const handleOpenReturnModal = (order) => {
+    setSelectedOrderForReturn(order);
+    setReturnReason("Wrong item delivered");
+    setReturnDetails("");
+    setShowReturnModal(true);
+  };
+
+  const handleSubmitReturn = async (e) => {
+    e.preventDefault();
+    if (!selectedOrderForReturn) return;
+    setSubmittingReturn(true);
+
+    try {
+      const returnStatus = "requested";
+      const returnRequestedAt = new Date().toISOString();
+
+      const returnData = {
+        returnStatus,
+        returnRequestedAt,
+        returnReason,
+        returnDetails
+      };
+
+      if (isConfigValid && db) {
+        // Update in root orders collection
+        const orderRef = doc(db, 'orders', selectedOrderForReturn.id);
+        await updateDoc(orderRef, returnData);
+
+        // Update in user subcollection for completeness
+        if (currentUser?.uid) {
+          const userOrderRef = doc(db, 'users', currentUser.uid, 'orders', selectedOrderForReturn.id);
+          await updateDoc(userOrderRef, returnData).catch(err => {
+            console.warn("Could not sync user subcollection return info:", err);
+          });
+        }
+      } else {
+        // Update mock local storage orders
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === selectedOrderForReturn.orderId 
+            ? { ...o, ...returnData } 
+            : o
+        );
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+      }
+
+      alert("Return request submitted successfully.");
+      setShowReturnModal(false);
+      setSelectedOrderForReturn(null);
+    } catch (err) {
+      console.error("Error submitting return:", err);
+      alert("Failed to submit return request: " + err.message);
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
 
   const isCancellationAllowed = (status) => {
     return ["Pending", "Confirmed", "Packed"].includes(status);
@@ -243,6 +332,29 @@ export default function OrderTracking() {
                         >
                           <MdChat className="text-xs" /> Help Chat
                         </button>
+                        {isReturnAllowed(order) && (
+                          <button
+                            onClick={() => handleOpenReturnModal(order)}
+                            className="px-3.5 py-1.5 border border-amber-500/20 bg-amber-50 hover:bg-amber-100 text-amber-600 text-[10px] font-bold uppercase rounded-lg flex items-center gap-1 transition-all cursor-pointer select-none animate-pulse"
+                          >
+                            Return Order
+                          </button>
+                        )}
+                        {order.returnStatus === 'requested' && (
+                          <span className="px-3.5 py-1.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] font-bold uppercase rounded-lg select-none">
+                            Return Requested
+                          </span>
+                        )}
+                        {order.returnStatus === 'approved' && (
+                          <span className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-[10px] font-bold uppercase rounded-lg select-none">
+                            Return Approved
+                          </span>
+                        )}
+                        {order.returnStatus === 'completed' && (
+                          <span className="px-3.5 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 text-[10px] font-bold uppercase rounded-lg select-none">
+                            Return Completed
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -370,6 +482,62 @@ export default function OrderTracking() {
         )}
 
       </div>
+
+      {showReturnModal && selectedOrderForReturn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/40 p-4">
+          <div className="w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 animate-entrance text-left">
+            <h3 className="text-lg font-bold text-dark mb-1">Return Order #{selectedOrderForReturn.orderId}</h3>
+            <p className="text-xs text-dark/45 font-light mb-4">Please select a reason for returning this order.</p>
+            <form onSubmit={handleSubmitReturn} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-primary tracking-wider mb-2">Reason for Return</label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  className="w-full px-4 py-3 bg-background border border-dark/10 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold text-dark cursor-pointer"
+                  required
+                >
+                  <option value="Wrong item delivered">Wrong item delivered</option>
+                  <option value="Item damaged / broken seal">Item damaged / broken seal</option>
+                  <option value="Expired medicine">Expired medicine</option>
+                  <option value="No longer needed">No longer needed</option>
+                  <option value="Incorrect quantity">Incorrect quantity</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-primary tracking-wider mb-2">Additional Details (Optional)</label>
+                <textarea
+                  value={returnDetails}
+                  onChange={(e) => setReturnDetails(e.target.value)}
+                  rows="3"
+                  placeholder="Provide more context about the return..."
+                  className="w-full px-4 py-3 bg-background border border-dark/10 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold text-dark resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReturnModal(false)}
+                  className="flex-1 py-3 border border-dark/10 hover:bg-background text-dark/60 text-xs font-bold uppercase rounded-xl transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReturn}
+                  className="flex-1 py-3 bg-primary hover:bg-primary-dark text-white text-xs font-bold uppercase rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {submittingReturn ? "Submitting..." : "Submit Return"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

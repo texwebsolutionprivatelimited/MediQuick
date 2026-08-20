@@ -9,7 +9,15 @@ export default function MedicineImage({ product, medicine, className = "w-full h
   useEffect(() => {
     let url = activeProduct?.image_url || "/images/default-medicine.png";
     if (url && activeProduct?.last_updated && url.startsWith('http')) {
-      const time = new Date(activeProduct.last_updated).getTime();
+      let time;
+      if (typeof activeProduct.last_updated.toDate === 'function') {
+        time = activeProduct.last_updated.toDate().getTime();
+      } else if (activeProduct.last_updated.seconds) {
+        time = activeProduct.last_updated.seconds * 1000;
+      } else {
+        time = new Date(activeProduct.last_updated).getTime();
+      }
+      
       if (!isNaN(time)) {
         const separator = url.includes('?') ? '&' : '?';
         url = `${url}${separator}t=${time}`;

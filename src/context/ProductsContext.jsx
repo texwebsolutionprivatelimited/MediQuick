@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import initialMedicines from '../data/medicines.json';
 import initialCategories from '../data/categories.json';
 import { db, isConfigValid } from '../firebase/firebase';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, query, getDoc, serverTimestamp } from 'firebase/firestore';
 import { uploadToImageKit } from '../utils/imageUpload';
 
 const ProductsContext = createContext();
@@ -55,6 +55,8 @@ export function ProductsProvider({ children }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const [isProductsSynced, setIsProductsSynced] = useState(false);
+  const [productsSyncError, setProductsSyncError] = useState(null);
 
   // Sync Categories from Firestore in Realtime
   useEffect(() => {
@@ -77,28 +79,10 @@ export function ProductsProvider({ children }) {
           });
         });
         
-        // If Firestore is empty, seed it with default categories (including their initial subcategories)
         if (list.length === 0) {
-          // Immediately populate state with defaults while seeding or if write fails
-          setCategories(initialCategories);
-          initialCategories.forEach(async (cat, idx) => {
-            const filteredProducts = initialMedicines.filter(p => p.category.toLowerCase() === cat.name.toLowerCase());
-            const subcats = Array.from(new Set(filteredProducts.map(p => p.subcategory || p.category))).sort();
-            
-            const docRef = doc(db, 'categories', cat.id);
-            try {
-              await setDoc(docRef, {
-                categoryName: cat.name,
-                description: cat.description || '',
-                categoryImage: cat.icon || '💊',
-                subCategories: subcats,
-                displayOrder: idx,
-                isActive: true
-              });
-            } catch (err) {
-              console.warn("Seeding category failed (likely permission denied):", err);
-            }
-          });
+          // If Firestore is empty, do NOT automatically seed. Set to empty array.
+          setCategories([]);
+          localStorage.setItem('mediquick_local_categories', JSON.stringify([]));
         } else {
           // Sort categories by displayOrder or name for stable rendering order
           list.sort((a, b) => {
@@ -129,6 +113,18 @@ export function ProductsProvider({ children }) {
         const list = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
+          
+          let lastUpdatedStr = new Date().toISOString();
+          if (data.last_updated) {
+            if (typeof data.last_updated.toDate === 'function') {
+              lastUpdatedStr = data.last_updated.toDate().toISOString();
+            } else if (typeof data.last_updated === 'string') {
+              lastUpdatedStr = data.last_updated;
+            } else if (data.last_updated.seconds) {
+              lastUpdatedStr = new Date(data.last_updated.seconds * 1000).toISOString();
+            }
+          }
+
           list.push({
             id: docSnap.id,
             medicine_name: data.medicine_name || '',
@@ -149,53 +145,26 @@ export function ProductsProvider({ children }) {
             uses: data.uses || '',
             image_url: data.image_url || '',
             discount_percentage: Number(data.discount_percentage || 0),
-            last_updated: data.last_updated || new Date().toISOString()
+            last_updated: lastUpdatedStr
           });
         });
         
-        // If Firestore is empty, seed it with default medicines
         if (list.length === 0) {
-          setProducts(initialMedicines);
-          initialMedicines.forEach(async (prod) => {
-            const docRef = doc(db, 'products', prod.id);
-            try {
-              await setDoc(docRef, prod);
-            } catch (err) {
-              console.warn("Seeding product failed (likely permission denied):", err);
-            }
-          });
+          // If Firestore is empty, do NOT automatically seed. Set to empty array.
+          setProducts([]);
+          localStorage.setItem('mediquick_local_medicines', JSON.stringify([]));
         } else {
-          // Compare and update cached products in localStorage with the latest Firestore data (source of truth)
-          const savedLocal = localStorage.getItem('mediquick_local_medicines');
-          let mergedList = [...list];
-          if (savedLocal) {
-            try {
-              const cachedProducts = JSON.parse(savedLocal);
-              const cachedMap = new Map(cachedProducts.map(p => [p.id, p]));
-              
-              // Firestore is the absolute source of truth. We make sure stale cached values are overwritten.
-              mergedList = list.map(dbProd => {
-                const cachedProd = cachedMap.get(dbProd.id);
-                if (cachedProd) {
-                  if (dbProd.image_url !== cachedProd.image_url) {
-                    console.log(`Replacing stale image URL for ${dbProd.medicine_name}: ${cachedProd.image_url} -> ${dbProd.image_url}`);
-                  }
-                  return dbProd;
-                }
-                return dbProd;
-              });
-            } catch (err) {
-              console.error("Failed to parse cached medicines during Firestore merge:", err);
-            }
-          }
-
-          setProducts(mergedList);
-          localStorage.setItem('mediquick_local_medicines', JSON.stringify(mergedList));
+          setProducts(list);
+          localStorage.setItem('mediquick_local_medicines', JSON.stringify(list));
           localStorage.setItem('mediquick_products_version', CURRENT_VERSION);
         }
+        setIsProductsSynced(true);
+        setProductsSyncError(null);
         setLoading(false);
       }, (error) => {
         console.error("Error listening to products:", error);
+        setProductsSyncError(error.message || "Failed to sync products from database");
+        setIsProductsSynced(false);
         setLoading(false);
       });
       
@@ -211,7 +180,6 @@ export function ProductsProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('mediquick_local_categories', JSON.stringify(categories));
   }, [categories]);
-
   // Image Upload helper using ImageKit
   const uploadImage = async (file) => {
     if (!file) return '';
@@ -223,6 +191,46 @@ export function ProductsProvider({ children }) {
       throw e;
     }
   };
+
+  // Explicit seeding/initialization function
+  const seedDatabase = async () => {
+    if (!isConfigValid || !db) {
+      throw new Error("Firebase is not connected or configured.");
+    }
+    
+    // Seed Categories
+    for (let idx = 0; idx < initialCategories.length; idx++) {
+      const cat = initialCategories[idx];
+      const filteredProducts = initialMedicines.filter(p => p.category.toLowerCase() === cat.name.toLowerCase());
+      const subcats = Array.from(new Set(filteredProducts.map(p => p.subcategory || p.category))).sort();
+      const docRef = doc(db, 'categories', cat.id);
+      await setDoc(docRef, {
+        categoryName: cat.name,
+        description: cat.description || '',
+        categoryImage: cat.icon || '💊',
+        subCategories: subcats,
+        displayOrder: idx,
+        isActive: true
+      });
+    }
+
+    // Seed Products
+    for (const prod of initialMedicines) {
+      const docRef = doc(db, 'products', prod.id);
+      await setDoc(docRef, {
+        ...prod,
+        last_updated: serverTimestamp()
+      });
+    }
+  };
+
+  // Expose seedDatabase on window object for manual invocation by developers/admins
+  useEffect(() => {
+    window.seedDatabase = seedDatabase;
+    return () => {
+      delete window.seedDatabase;
+    };
+  }, [categories, products]);
 
   // --- MEDICINE CRUD ACTIONS ---
 
@@ -265,7 +273,10 @@ export function ProductsProvider({ children }) {
       };
 
       if (isConfigValid && db) {
-        await setDoc(doc(db, 'products', newMed.id), newMed);
+        await setDoc(doc(db, 'products', newMed.id), {
+          ...newMed,
+          last_updated: serverTimestamp()
+        });
       } else {
         setProducts(prev => [newMed, ...prev]);
       }
@@ -282,9 +293,34 @@ export function ProductsProvider({ children }) {
   const updateMedicine = async (id, medData, imageFile = null) => {
     setLoading(true);
     try {
-      let imageUrl = medData.image_url || '';
+      let dbExisting = {};
+      if (isConfigValid && db) {
+        try {
+          const docSnap = await getDoc(doc(db, 'products', id));
+          if (docSnap.exists()) {
+            dbExisting = docSnap.data();
+          }
+        } catch (err) {
+          console.warn("Failed to fetch latest product from Firestore inside updateMedicine:", err);
+        }
+      }
+
+      const existing = products.find(med => med.id === id) || {};
+
+      // Determine the final image_url
+      let finalImageUrl;
       if (imageFile) {
-        imageUrl = await uploadImage(imageFile);
+        finalImageUrl = await uploadImage(imageFile);
+      } else {
+        // Check if admin explicitly changed the image URL text input
+        const isImageChangedByAdmin = medData.image_url !== existing.image_url;
+        if (isImageChangedByAdmin) {
+          // If they explicitly modified the text input (cleared it or changed to a new URL)
+          finalImageUrl = medData.image_url || '/images/default-medicine.png';
+        } else {
+          // Admin did not modify the text input; keep the authoritative database URL
+          finalImageUrl = dbExisting.image_url || existing.image_url || '/images/default-medicine.png';
+        }
       }
 
       const priceNum = Number(medData.price);
@@ -293,35 +329,38 @@ export function ProductsProvider({ children }) {
         ? Math.round(((mrpNum - priceNum) / mrpNum) * 100)
         : 0;
 
-      const existing = products.find(med => med.id === id) || {};
-
       const updatedMed = {
+        ...dbExisting,
         id,
         medicine_name: medData.medicine_name,
-        generic_name: medData.generic_name || existing.generic_name || 'Generic Formula',
-        brand: medData.brand || existing.brand,
-        category: medData.category || existing.category,
-        subcategory: medData.subcategory || existing.subcategory,
-        strength: medData.strength || medData.dosage || existing.strength || 'Standard',
-        form: medData.form || existing.form || 'Tablet',
-        pack_size: medData.pack_size || existing.pack_size || 'Pack of 1 Unit',
+        generic_name: medData.generic_name || dbExisting.generic_name || existing.generic_name || 'Generic Formula',
+        brand: medData.brand || dbExisting.brand || existing.brand,
+        category: medData.category || dbExisting.category || existing.category,
+        subcategory: medData.subcategory || dbExisting.subcategory || existing.subcategory,
+        strength: medData.strength || medData.dosage || dbExisting.strength || existing.strength || 'Standard',
+        form: medData.form || dbExisting.form || existing.form || 'Tablet',
+        pack_size: medData.pack_size || dbExisting.pack_size || existing.pack_size || 'Pack of 1 Unit',
         price: priceNum,
         mrp: mrpNum,
-        stock: Number(medData.stock !== undefined ? medData.stock : (medData.stock_quantity !== undefined ? medData.stock_quantity : (existing.stock || 0))),
+        stock: Number(medData.stock !== undefined ? medData.stock : (medData.stock_quantity !== undefined ? medData.stock_quantity : (dbExisting.stock || existing.stock || 0))),
         prescription_required: !!medData.prescription_required,
-        description: medData.description || existing.description || 'No description provided.',
-        manufacturer: medData.manufacturer || existing.manufacturer || 'MediQuick India Ltd',
-        composition: medData.composition || existing.composition || 'Active ingredients',
-        uses: medData.uses || existing.uses || 'General wellness',
-        image_url: imageUrl || existing.image_url || '/images/default-medicine.png',
+        description: medData.description || dbExisting.description || existing.description || 'No description provided.',
+        manufacturer: medData.manufacturer || dbExisting.manufacturer || existing.manufacturer || 'MediQuick India Ltd',
+        composition: medData.composition || dbExisting.composition || existing.composition || 'Active ingredients',
+        uses: medData.uses || dbExisting.uses || existing.uses || 'General wellness',
+        image_url: finalImageUrl,
         discount_percentage: calculatedDiscount,
         last_updated: new Date().toISOString()
       };
 
       if (isConfigValid && db) {
-        await updateDoc(doc(db, 'products', id), updatedMed);
+        await updateDoc(doc(db, 'products', id), {
+          ...updatedMed,
+          last_updated: serverTimestamp()
+        });
+      } else {
+        setProducts(prev => prev.map(med => med.id === id ? updatedMed : med));
       }
-      setProducts(prev => prev.map(med => med.id === id ? updatedMed : med));
       return id;
     } catch (e) {
       console.error("Error updating medicine:", e);
@@ -542,6 +581,9 @@ export function ProductsProvider({ children }) {
     updateCategory,
     deleteCategory,
     updateProductStats,
+    isProductsSynced,
+    productsSyncError,
+    seedDatabase,
     isFirebaseConnected: !!(isConfigValid && db)
   };
 

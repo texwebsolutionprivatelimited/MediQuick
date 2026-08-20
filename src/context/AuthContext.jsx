@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   confirmPasswordReset
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { auth, db, isConfigValid } from '../firebase/firebase';
 
 const AuthContext = createContext();
@@ -84,6 +84,13 @@ export function AuthProvider({ children }) {
           try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             const userData = userDoc.exists() ? userDoc.data() : {};
+            if (userData.isBlocked) {
+              await signOut(auth);
+              setCurrentUser(null);
+              localStorage.removeItem('mediquick_current_user');
+              setLoading(false);
+              return;
+            }
             const fullUser = {
               uid: user.uid,
               email: user.email,
@@ -133,11 +140,55 @@ export function AuthProvider({ children }) {
       // Mock Auth State Check
       const storedUser = localStorage.getItem('mediquick_current_user');
       if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        // Check mock user blocking status
+        const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+        const matched = users.find(u => u.uid === parsed.uid);
+        if (matched && matched.isBlocked) {
+          localStorage.removeItem('mediquick_current_user');
+          setCurrentUser(null);
+        } else {
+          setCurrentUser(parsed);
+        }
       }
       setLoading(false);
     }
   }, []);
+
+  // Real-time blocker observer for active sessions
+  useEffect(() => {
+    let unsubscribe;
+    if (isConfigValid && db && auth && currentUser?.uid && currentUser?.role !== 'admin') {
+      unsubscribe = onSnapshot(doc(db, 'users', currentUser.uid), async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data();
+          if (data && data.isBlocked) {
+            await signOut(auth);
+            setCurrentUser(null);
+            localStorage.removeItem('mediquick_current_user');
+          }
+        }
+      });
+    } else if (!isConfigValid || !auth) {
+      // Mock mode blocking monitor
+      const checkBlocked = () => {
+        if (currentUser?.uid && currentUser?.role !== 'admin') {
+          const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+          const matched = users.find(u => u.uid === currentUser.uid);
+          if (matched && matched.isBlocked) {
+            setCurrentUser(null);
+            localStorage.removeItem('mediquick_current_user');
+          }
+        }
+      };
+      checkBlocked();
+      window.addEventListener('storage', checkBlocked);
+      return () => window.removeEventListener('storage', checkBlocked);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [currentUser?.uid]);
 
   const login = async (email, password) => {
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@mediquick.com';
@@ -164,7 +215,13 @@ export function AuthProvider({ children }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
       const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
-      const userData = userDoc.data();
+      const userData = userDoc.exists() ? userDoc.data() : null;
+      
+      if (userData && userData.isBlocked) {
+        await signOut(auth);
+        throw new Error('Your account has been blocked by the administrator. Please contact support for assistance.');
+      }
+      
       const fullUser = { 
         uid: firebaseUser.uid, 
         email: firebaseUser.email, 
@@ -179,6 +236,9 @@ export function AuthProvider({ children }) {
       const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (!user) {
         throw new Error('No account found with this email or password.');
+      }
+      if (user.isBlocked) {
+        throw new Error('Your account has been blocked by the administrator. Please contact support for assistance.');
       }
       const userSession = { 
         uid: user.uid, 
@@ -296,6 +356,11 @@ export function AuthProvider({ children }) {
         userProfile = { uid: docSnap.id, ...docSnap.data() };
       });
 
+      if (userProfile.isBlocked) {
+        await signOut(auth);
+        throw new Error('Your account has been blocked by the administrator. Please contact support for assistance.');
+      }
+
       setCurrentUser(userProfile);
       return userProfile;
     } else {
@@ -304,6 +369,9 @@ export function AuthProvider({ children }) {
       const registeredUser = users.find(u => u.email.toLowerCase() === 'googleuser@mediquick.com');
       if (!registeredUser) {
         throw new Error("This Google account is not registered. Please sign up first or use a registered account.");
+      }
+      if (registeredUser.isBlocked) {
+        throw new Error('Your account has been blocked by the administrator. Please contact support for assistance.');
       }
       const userSession = { 
         uid: registeredUser.uid, 

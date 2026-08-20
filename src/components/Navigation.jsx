@@ -28,7 +28,7 @@ export default function Navigation() {
   const { currentUser, logout } = useAuth();
   const { cartItems } = useCart();
   const { address, setIsLocationModalOpen, loading: locLoading } = useLocation();
-  const { products: productsData, categories } = useProducts();
+  const { products: productsData, categories, isProductsSynced, productsSyncError } = useProducts();
   const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
   const { wishlistIds } = useWishlist();
   const wishlistCount = wishlistIds.length;
@@ -186,6 +186,13 @@ export default function Navigation() {
 
   return (
     <header className="sticky top-0 z-40 w-full flex flex-col shadow-soft select-none font-sans bg-white">
+      {/* Offline/Sync Warning Banner */}
+      {!isProductsSynced && productsSyncError && (
+        <div className="w-full bg-amber-50 border-b border-amber-200 py-1.5 px-4 text-center text-xs text-amber-800 flex items-center justify-center gap-2">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+          <span>Offline mode: Using cached products database. Real-time updates are temporarily unavailable.</span>
+        </div>
+      )}
       
       {/* 🚀 DESKTOP/TABLET HEADER (Hidden on small mobile screens below md) */}
       <div className="hidden md:block w-full bg-white/95 backdrop-blur-md border-b border-dark/5 py-4 lg:py-5 relative z-10">

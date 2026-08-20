@@ -87,16 +87,6 @@ export function LocationProvider({ children }) {
           if (savedCoords) {
             setUserCoords(JSON.parse(savedCoords));
           }
-          // If preference is browser location, verify if geolocation is still granted and refresh
-          if (savedChoice === 'detected') {
-            if (navigator.permissions && navigator.permissions.query) {
-              navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-                if (result.state === 'granted') {
-                  detectLocation();
-                }
-              }).catch(() => {});
-            }
-          }
         } else if (savedCoords && savedAddress) {
           // Legacy fallback
           setLocationChoice('manual');

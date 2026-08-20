@@ -57,7 +57,7 @@ export default function Checkout() {
   const [landmark, setLandmark] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState(address || "");
   const [mobileNumber, setMobileNumber] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cod"); // "cod", "upi", "card"
+  const [paymentMethod, setPaymentMethod] = useState("online"); // "online", "cod"
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isPlacing, setIsPlacing] = useState(false);
 
@@ -376,7 +376,7 @@ export default function Checkout() {
       discount: discount,
       deliveryFee: deliveryFee,
       totalAmount: total,
-      paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : paymentMethod === 'upi' ? 'UPI' : 'Credit / Debit Card',
+      paymentMethod: paymentMethod === 'cod' ? 'COD' : 'Online Payment',
       paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Paid',
       orderDate: new Date().toISOString(),
       status: 'Pending'
@@ -594,63 +594,29 @@ export default function Checkout() {
                   <input 
                     type="radio" 
                     name="payment" 
+                    value="online"
+                    checked={paymentMethod === "online"}
+                    onChange={() => setPaymentMethod("online")}
+                    className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
+                  />
+                  <div>
+                    <span className="font-bold text-dark text-xs sm:text-sm">Online Payment</span>
+                    <p className="text-[10px] text-dark/45 mt-0.5">Pay securely now</p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
+                  <input 
+                    type="radio" 
+                    name="payment" 
                     value="cod"
                     checked={paymentMethod === "cod"}
                     onChange={() => setPaymentMethod("cod")}
                     className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
                   />
                   <div>
-                    <span className="font-bold text-dark">Cash on Delivery (COD)</span>
-                    <p className="text-[10px] text-dark/45 mt-0.5">Pay in cash or digital scan when order reaches your door.</p>
-                  </div>
-                </label>
-
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      value="upi"
-                      checked={paymentMethod === "upi"}
-                      onChange={() => setPaymentMethod("upi")}
-                      className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
-                    />
-                    <div>
-                      <span className="font-bold text-dark">UPI (Google Pay, PhonePe, Paytm)</span>
-                      <p className="text-[10px] text-dark/45 mt-0.5">Instant secure payment redirect through your UPI client app.</p>
-                    </div>
-                  </label>
-
-                  {paymentMethod === "upi" && (
-                    <div className="mx-auto sm:ml-7 p-4 border border-dashed border-dark/10 rounded-xl bg-background/30 flex flex-col items-center text-center space-y-2 w-fit">
-                      <div className="w-36 h-36 bg-white p-2.5 border border-dark/5 rounded-2xl shadow-sm flex items-center justify-center">
-                        <img 
-                          src="/images/dummy-qr.svg" 
-                          alt="Dummy UPI QR Code" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-dark text-[11px]">Scan the QR code using any UPI app</p>
-                        <p className="text-[10px] text-primary font-black uppercase tracking-wider">Demo Payment Only</p>
-                        <p className="text-[9px] text-dark/45">No real transaction will be processed</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <label className="flex items-center gap-3 p-3.5 border border-dark/5 rounded-xl hover:bg-background/40 cursor-pointer select-none">
-                  <input 
-                    type="radio" 
-                    name="payment" 
-                    value="card"
-                    checked={paymentMethod === "card"}
-                    onChange={() => setPaymentMethod("card")}
-                    className="text-primary border-dark/15 w-4 h-4 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-bold text-dark">Credit / Debit Card</span>
-                    <p className="text-[10px] text-dark/45 mt-0.5">Visa, MasterCard, RuPay, Maestro accepted. Secure 3D-Redirect.</p>
+                    <span className="font-bold text-dark text-xs sm:text-sm">Cash on Delivery</span>
+                    <p className="text-[10px] text-dark/45 mt-0.5">Pay after delivery</p>
                   </div>
                 </label>
               </div>

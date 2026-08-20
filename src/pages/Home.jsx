@@ -498,35 +498,63 @@ export default function Home() {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden pt-4 md:pt-8 pb-16 md:pb-24 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-white via-[#F0FAF9] to-[#E2F3F0]"
+        className="relative overflow-hidden pt-4 md:pt-6 pb-12 md:pb-16 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-white via-[#F0FAF9] to-[#E2F3F0]"
       >
         {/* Abstract Medical Background Shapes */}
         <div className="absolute top-10 left-10 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none animate-pulse" />
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/5 blur-xl pointer-events-none" />
-
+ 
         <div className="container mx-auto px-4 lg:px-6 w-full relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
             
             {/* Left Column: Heading & CTAs & Glassmorphism Cards */}
-            <div className="md:col-span-7 flex flex-col items-center md:items-start text-center md:text-left space-y-6 w-full">
+            <div className="md:col-span-8 flex flex-col items-center md:items-start text-center md:text-left space-y-4 md:space-y-5 w-full">
               <motion.h1
                 variants={fadeUpVariants}
                 initial="hidden"
                 animate="visible"
-                className="text-4xl sm:text-5xl lg:text-6.5xl font-black tracking-tight text-[#063B44] leading-[1.1] text-center md:text-left"
+                className="text-[28px] min-[360px]:text-4xl sm:text-5xl lg:text-6.5xl font-black tracking-tight text-[#063B44] leading-[1.1] text-center md:text-left hero-heading-320"
               >
                 Trusted Medicines, <br />
                 <span className="text-gradient bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark">Delivered to Your Doorstep.</span>
               </motion.h1>
 
+              <style>{`
+                .hero-desc-short {
+                  display: none;
+                }
+                @media (max-width: 340px) {
+                  .hero-desc-full {
+                    display: none;
+                  }
+                  .hero-desc-short {
+                    display: inline;
+                  }
+                  .hero-heading-320 {
+                    font-size: 23px !important;
+                    line-height: 1.15 !important;
+                  }
+                  .hero-description-320 {
+                    font-size: 12px !important;
+                    line-height: 1.45 !important;
+                    letter-spacing: -0.15px !important;
+                  }
+                }
+              `}</style>
+
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-dark/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-light text-center md:text-left"
+                className="text-dark/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-light text-center md:text-left hero-description-320"
               >
-                Order genuine medicines, healthcare essentials, and wellness products with priority 1-hour delivery. Licensed pharmacists are standing by.
+                <span className="hero-desc-full">
+                  Order genuine medicines, healthcare essentials, and wellness products with priority 1-hour delivery. Licensed pharmacists are standing by.
+                </span>
+                <span className="hero-desc-short">
+                  Genuine medicines and healthcare essentials, delivered to your doorstep in 1 hour.
+                </span>
               </motion.p>
 
               {/* CTA Buttons */}
@@ -536,7 +564,7 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.4 }}
                 className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto justify-center md:justify-start"
               >
-                <Link to="/medicines" className="w-full sm:w-auto">
+                <Link to="/medicines" className="block w-full sm:inline-block sm:w-auto">
                   <Button 
                     variant="primary" 
                     icon={MdKeyboardArrowRight} 
@@ -546,7 +574,7 @@ export default function Home() {
                     Shop Medicines
                   </Button>
                 </Link>
-                <Link to="/upload-prescription" className="w-full sm:w-auto">
+                <Link to="/upload-prescription" className="block w-full sm:inline-block sm:w-auto">
                   <Button 
                     variant="outline" 
                     icon={MdUploadFile} 
@@ -562,7 +590,7 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
-                className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-2 text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none pt-1"
+                className="flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 min-[360px]:gap-x-4 gap-y-2 text-[9px] min-[360px]:text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none pt-1"
               >
                 <span className="flex items-center gap-1.5"><MdVerified className="text-primary text-sm" /> 100% Genuine</span>
                 <span className="flex items-center gap-1.5"><MdPayment className="text-primary text-sm" /> Secure Payments</span>
@@ -575,7 +603,7 @@ export default function Home() {
                 variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
-                className="grid grid-cols-2 gap-3 sm:gap-4 pt-6 w-full max-w-lg"
+                className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-4 pt-3 w-full max-w-xl min-[480px]:max-w-2xl"
               >
                 <motion.div
                   variants={glassCardVariants}
@@ -597,11 +625,25 @@ export default function Home() {
                   className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
                 >
                   <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
+                    <MdLocalOffer className="text-lg" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">500+ Brands</h4>
+                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Trusted health partners</p>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  variants={glassCardVariants}
+                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
+                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
                     <MdVerified className="text-lg" />
                   </div>
                   <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">Genuine Medicines</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">100% verified source</p>
+                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">10K+ Medicines</h4>
+                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Everyday essentials</p>
                   </div>
                 </motion.div>
 
@@ -614,34 +656,20 @@ export default function Home() {
                     <MdMedicalServices className="text-lg" />
                   </div>
                   <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">24/7 Pharmacy</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Always online</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  variants={glassCardVariants}
-                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
-                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
-                    <MdLocalOffer className="text-lg" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">Free Delivery</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Orders above ₹1600</p>
+                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">Certified Doctors</h4>
+                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Expert consultations</p>
                   </div>
                 </motion.div>
               </motion.div>
             </div>
 
-            {/* Right Column: Premium doctor image and floating items */}
-            <div className="md:col-span-5 flex justify-center md:justify-end mt-12 md:mt-0 relative select-none">
+            {/* Right Column: Premium doctor image */}
+            <div className="md:col-span-4 flex justify-center md:justify-end mt-8 md:mt-0 relative select-none">
               <motion.div
                 initial={{ opacity: 0, x: 30, scale: 0.98 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="relative w-full max-w-[280px] sm:max-w-[310px] md:max-w-[340px] lg:max-w-[350px] mr-0 md:mr-6"
+                className="relative w-full max-w-[180px] sm:max-w-[220px] md:max-w-[260px] lg:max-w-[300px] mr-0 md:mr-6"
                 style={{
                   transform: `translate(${mouseCoords.x * 6}px, ${mouseCoords.y * 6}px)`,
                   transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
@@ -654,105 +682,6 @@ export default function Home() {
                   className="w-full h-auto rounded-[32px] shadow-premium object-cover border-4 border-white/80 transition-all duration-500 hover:scale-[1.01]"
                   loading="lazy"
                 />
-
-                {/* Floating elements inside doctor card context */}
-                {/* Badge 1: 1 Hour Delivery */}
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6, duration: 0.8 }}
-                  className="absolute -top-6 -left-8 backdrop-blur-md bg-white/75 border border-white/20 px-3.5 py-2 rounded-2xl shadow-premium flex items-center gap-2"
-                  style={{
-                     transform: `translate(${mouseCoords.x * -7}px, ${mouseCoords.y * -7}px)`,
-                     transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-                  }}
-                >
-                  <span className="text-xs bg-amber-500/10 text-amber-600 w-6 h-6 rounded-lg flex items-center justify-center shrink-0">⚡</span>
-                  <div className="text-left leading-none">
-                    <span className="block text-[10px] font-black text-[#063B44] uppercase tracking-wide">1 Hour Delivery</span>
-                    <span className="block text-[8px] text-dark/45 font-medium mt-0.5">Priority dispatch</span>
-                  </div>
-                </motion.div>
-
-                {/* Badge 2: 10k+ Medicines */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.8 }}
-                  className="absolute bottom-[24%] -right-8 backdrop-blur-md bg-white/75 border border-white/20 px-3.5 py-2 rounded-2xl shadow-premium flex items-center gap-2"
-                  style={{
-                    transform: `translate(${mouseCoords.x * -9}px, ${mouseCoords.y * -9}px)`,
-                    transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-                  }}
-                >
-                  <span className="text-xs bg-primary/10 text-primary w-6 h-6 rounded-lg flex items-center justify-center shrink-0">💊</span>
-                  <div className="text-left leading-none">
-                    <span className="block text-[10px] font-black text-[#063B44] uppercase tracking-wide">10k+ Medicines</span>
-                    <span className="block text-[8px] text-dark/45 font-medium mt-0.5">Everyday essentials</span>
-                  </div>
-                </motion.div>
-
-                {/* Badge 3: Certified Doctors */}
-                <motion.div
-                  initial={{ opacity: 0, y: 25 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8, duration: 0.8 }}
-                  className="absolute -bottom-6 -left-6 backdrop-blur-md bg-white/75 border border-white/20 px-3.5 py-2 rounded-2xl shadow-premium flex items-center gap-2"
-                  style={{
-                    transform: `translate(${mouseCoords.x * -6}px, ${mouseCoords.y * -6}px)`,
-                    transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-                  }}
-                >
-                  <span className="text-xs bg-emerald-500/10 text-emerald-600 w-6 h-6 rounded-lg flex items-center justify-center shrink-0">👨‍⚕️</span>
-                  <div className="text-left leading-none">
-                    <span className="block text-[10px] font-black text-[#063B44] uppercase tracking-wide">Certified Doctors</span>
-                    <span className="block text-[8px] text-dark/45 font-medium mt-0.5">Expert consultations</span>
-                  </div>
-                </motion.div>
-
-                {/* Badge 4: 500+ Brands */}
-                <motion.div
-                  initial={{ opacity: 0, y: 18 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.9, duration: 0.8 }}
-                  className="absolute top-[28%] -right-10 backdrop-blur-md bg-white/75 border border-white/20 px-3.5 py-2 rounded-2xl shadow-premium flex items-center gap-2"
-                  style={{
-                    transform: `translate(${mouseCoords.x * -8}px, ${mouseCoords.y * -8}px)`,
-                    transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-                  }}
-                >
-                  <span className="text-xs bg-[#E3F2FD] text-blue-600 w-6 h-6 rounded-lg flex items-center justify-center shrink-0">🏢</span>
-                  <div className="text-left leading-none">
-                    <span className="block text-[10px] font-black text-[#063B44] uppercase tracking-wide">500+ Brands</span>
-                    <span className="block text-[8px] text-dark/45 font-medium mt-0.5">Trusted health partners</span>
-                  </div>
-                </motion.div>
-
-                {/* Continuous floating visual elements */}
-                <motion.div
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
-                  className="absolute top-[52%] -left-12 text-3xl select-none"
-                >
-                  🚚
-                </motion.div>
-
-                <motion.div
-                  animate={{ y: [0, 6, 0], rotate: [0, 3, 0] }}
-                  transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                  className="absolute top-[48%] -right-14 text-3xl select-none"
-                >
-                  🧴
-                </motion.div>
-
-                <motion.div
-                  animate={{ y: [0, -6, 0], rotate: [0, -3, 0] }}
-                  transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
-                  className="absolute -top-8 right-10 text-3xl select-none"
-                >
-                  🧰
-                </motion.div>
-
               </motion.div>
             </div>
           </div>

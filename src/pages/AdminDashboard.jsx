@@ -97,7 +97,9 @@ export default function AdminDashboard() {
     addCategory,
     updateCategory,
     deleteCategory,
-    updateProductStats
+    updateProductStats,
+    isProductsSynced,
+    productsSyncError
   } = useProducts();
 
   const { systemSettings, deliverySettings, saveSystemSettings, saveDeliverySettings } = useSettings();
@@ -1459,6 +1461,9 @@ Remember that diabetes management is highly individual. Work closely with your h
   const [customerCurrentPage, setCustomerCurrentPage] = useState(1);
   const [customersPerPage] = useState(10);
   const [viewingCustomerOrders, setViewingCustomerOrders] = useState(null);
+  const [dbUsers, setDbUsers] = useState([]);
+  const [customerToBlock, setCustomerToBlock] = useState(null);
+  const [customerToUnblock, setCustomerToUnblock] = useState(null);
 
   // Sync Orders from Firestore (or LocalStorage fallback)
   React.useEffect(() => {
@@ -1643,6 +1648,129 @@ Remember that diabetes management is highly individual. Work closely with your h
     }
   }, []);
 
+  // Sync Users from Firestore (with local fallback if offline or no config)
+  useEffect(() => {
+    if (isConfigValid && db) {
+      const usersRef = collection(db, 'users');
+      const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((doc) => {
+          list.push({ uid: doc.id, ...doc.data() });
+        });
+        setDbUsers(list);
+      }, (error) => {
+        console.error("Error listening to users:", error);
+      });
+      return unsubscribeUsers;
+    } else {
+      const syncMockUsers = () => {
+        const savedUsers = localStorage.getItem('mediquick_users');
+        if (savedUsers) {
+          setDbUsers(JSON.parse(savedUsers));
+        }
+      };
+      syncMockUsers();
+      window.addEventListener('storage', syncMockUsers);
+      return () => window.removeEventListener('storage', syncMockUsers);
+    }
+  }, []);
+
+  const handleConfirmBlock = async (cust) => {
+    try {
+      const emailLower = cust.email.toLowerCase().trim();
+      const matched = dbUsers.find(u => u.email?.toLowerCase().trim() === emailLower);
+      
+      if (isConfigValid && db) {
+        if (matched) {
+          const userRef = doc(db, 'users', matched.uid);
+          await updateDoc(userRef, { isBlocked: true });
+        } else {
+          // If no user exists, create one with isBlocked: true
+          const newUid = `blocked-uid-${Date.now()}`;
+          const userRef = doc(db, 'users', newUid);
+          await setDoc(userRef, {
+            email: cust.email,
+            fullName: cust.name,
+            role: 'user',
+            isBlocked: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+        showToast(`Customer ${cust.name} blocked successfully.`, 'success');
+      } else {
+        // Mock update
+        const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+        const matchedMockIndex = users.findIndex(u => u.email?.toLowerCase().trim() === emailLower);
+        if (matchedMockIndex > -1) {
+          users[matchedMockIndex].isBlocked = true;
+        } else {
+          users.push({
+            uid: `mock-uid-${Date.now()}`,
+            fullName: cust.name,
+            email: cust.email,
+            role: 'user',
+            isBlocked: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+        localStorage.setItem('mediquick_users', JSON.stringify(users));
+        setDbUsers(users);
+        showToast(`Customer ${cust.name} blocked locally.`, 'success');
+      }
+    } catch (err) {
+      console.error("Error blocking customer:", err);
+      showToast(`Failed to block customer: ${err.message}`, 'error');
+    }
+  };
+
+  const handleConfirmUnblock = async (cust) => {
+    try {
+      const emailLower = cust.email.toLowerCase().trim();
+      const matched = dbUsers.find(u => u.email?.toLowerCase().trim() === emailLower);
+      
+      if (isConfigValid && db) {
+        if (matched) {
+          const userRef = doc(db, 'users', matched.uid);
+          await updateDoc(userRef, { isBlocked: false });
+        } else {
+          // If no user exists, create one with isBlocked: false
+          const newUid = `blocked-uid-${Date.now()}`;
+          const userRef = doc(db, 'users', newUid);
+          await setDoc(userRef, {
+            email: cust.email,
+            fullName: cust.name,
+            role: 'user',
+            isBlocked: false,
+            createdAt: new Date().toISOString()
+          });
+        }
+        showToast(`Customer ${cust.name} unblocked successfully.`, 'success');
+      } else {
+        // Mock update
+        const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+        const matchedMockIndex = users.findIndex(u => u.email?.toLowerCase().trim() === emailLower);
+        if (matchedMockIndex > -1) {
+          users[matchedMockIndex].isBlocked = false;
+        } else {
+          users.push({
+            uid: `mock-uid-${Date.now()}`,
+            fullName: cust.name,
+            email: cust.email,
+            role: 'user',
+            isBlocked: false,
+            createdAt: new Date().toISOString()
+          });
+        }
+        localStorage.setItem('mediquick_users', JSON.stringify(users));
+        setDbUsers(users);
+        showToast(`Customer ${cust.name} unblocked locally.`, 'success');
+      }
+    } catch (err) {
+      console.error("Error unblocking customer:", err);
+      showToast(`Failed to unblock customer: ${err.message}`, 'error');
+    }
+  };
+
   const handleAdminUpdatePrescriptionStatus = async (rxId, status, reason = "") => {
     if (isConfigValid && db) {
       try {
@@ -1719,15 +1847,20 @@ Remember that diabetes management is highly individual. Work closely with your h
       const order = orders.find(o => o.orderId === orderId);
       const userId = order?.userId;
 
+      const updateData = { status: newStatus };
+      if (newStatus === 'Delivered' && !order?.deliveredAt) {
+        updateData.deliveredAt = serverTimestamp();
+      }
+
       if (isConfigValid && db) {
         // Update in root orders collection (for Admin Console)
         const orderRef = doc(db, 'orders', orderId);
-        await updateDoc(orderRef, { status: newStatus });
+        await updateDoc(orderRef, updateData);
 
         // Update in user subcollection (for user-side tracking)
         if (userId && userId !== 'guest') {
           const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
-          await updateDoc(userOrderRef, { status: newStatus }).catch(err => {
+          await updateDoc(userOrderRef, updateData).catch(err => {
             console.warn("Could not sync user orders subcollection status (document might not exist):", err);
           });
 
@@ -1743,9 +1876,17 @@ Remember that diabetes management is highly individual. Work closely with your h
           });
         }
       } else {
-        const updated = orders.map(ord => 
-          ord.orderId === orderId ? { ...ord, status: newStatus } : ord
-        );
+        const localDeliveredAt = new Date().toISOString();
+        const updated = orders.map(ord => {
+          if (ord.orderId === orderId) {
+            const up = { ...ord, status: newStatus };
+            if (newStatus === 'Delivered' && !up.deliveredAt) {
+              up.deliveredAt = localDeliveredAt;
+            }
+            return up;
+          }
+          return ord;
+        });
         setOrders(updated);
         localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
 
@@ -1768,6 +1909,88 @@ Remember that diabetes management is highly individual. Work closely with your h
       }
     } catch (err) {
       alert("Failed to update status: " + err.message);
+    }
+  };
+
+  const handleUpdateReturnStatus = async (orderId, newReturnStatus) => {
+    try {
+      const order = orders.find(o => o.orderId === orderId);
+      const userId = order?.userId;
+
+      const updateData = { returnStatus: newReturnStatus };
+
+      if (isConfigValid && db) {
+        // Update in root orders collection
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, updateData);
+
+        // Update in user subcollection
+        if (userId && userId !== 'guest') {
+          const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+          await updateDoc(userOrderRef, updateData).catch(err => {
+            console.warn("Could not sync user orders subcollection status:", err);
+          });
+        }
+      } else {
+        // Update mock local storage
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === orderId ? { ...o, ...updateData } : o
+        );
+        setOrders(updated);
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+      }
+      
+      // Update selectedOrder if open in modal
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      alert(`Return status updated to ${newReturnStatus} successfully.`);
+    } catch (err) {
+      console.error("Error updating return status:", err);
+      alert("Failed to update return status: " + err.message);
+    }
+  };
+
+  const handleMarkAsPaid = async (orderId) => {
+    try {
+      const order = orders.find(o => o.orderId === orderId);
+      const userId = order?.userId;
+
+      const updateData = { paymentStatus: 'Paid' };
+
+      if (isConfigValid && db) {
+        // Update in root orders collection
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, updateData);
+
+        // Update in user subcollection
+        if (userId && userId !== 'guest') {
+          const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+          await updateDoc(userOrderRef, updateData).catch(err => {
+            console.warn("Could not sync user orders subcollection payment status:", err);
+          });
+        }
+      } else {
+        // Update mock local storage
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === orderId ? { ...o, ...updateData } : o
+        );
+        setOrders(updated);
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+      }
+
+      // Update selectedOrder if open in modal
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      alert("Order payment status updated to Paid successfully.");
+    } catch (err) {
+      console.error("Error marking order as paid:", err);
+      alert("Failed to update payment status: " + err.message);
     }
   };
 
@@ -2406,8 +2629,15 @@ Remember that diabetes management is highly individual. Work closely with your h
     const customerList = [];
     const processedEmails = new Set();
 
+    const userMap = {};
+    dbUsers.forEach(u => {
+      if (u.email) {
+        userMap[u.email.toLowerCase().trim()] = u;
+      }
+    });
+
     baseCustomers.forEach(bc => {
-      const emailLower = bc.email.toLowerCase();
+      const emailLower = bc.email.toLowerCase().trim();
       let dynamicOrders = bc.orders;
       let dynamicSpend = bc.spend;
       if (customerOrdersMap[emailLower]) {
@@ -2415,6 +2645,8 @@ Remember that diabetes management is highly individual. Work closely with your h
         dynamicSpend += customerOrdersMap[emailLower].totalSpent;
         processedEmails.add(emailLower);
       }
+      const matchedUser = userMap[emailLower];
+      const isBlocked = matchedUser ? !!matchedUser.isBlocked : false;
       customerList.push({
         id: bc.id,
         name: bc.name,
@@ -2422,15 +2654,19 @@ Remember that diabetes management is highly individual. Work closely with your h
         phone: bc.phone,
         orders: dynamicOrders,
         spend: dynamicSpend,
-        joinedDate: bc.joinedDate
+        joinedDate: bc.joinedDate,
+        isBlocked: isBlocked
       });
     });
 
     let nextIdNum = 7;
     Object.entries(customerOrdersMap).forEach(([email, details]) => {
-      if (processedEmails.has(email)) return;
+      const emailLower = email.toLowerCase().trim();
+      if (processedEmails.has(emailLower)) return;
       const idStr = `CUS-${String(nextIdNum).padStart(3, '0')}`;
       nextIdNum++;
+      const matchedUser = userMap[emailLower];
+      const isBlocked = matchedUser ? !!matchedUser.isBlocked : false;
       customerList.push({
         id: idStr,
         name: details.name,
@@ -2438,7 +2674,8 @@ Remember that diabetes management is highly individual. Work closely with your h
         phone: details.phone,
         orders: details.ordersCount,
         spend: details.totalSpent,
-        joinedDate: new Date(details.lastOrderDate).toISOString().slice(0, 10)
+        joinedDate: new Date(details.lastOrderDate).toISOString().slice(0, 10),
+        isBlocked: isBlocked
       });
     });
 
@@ -2684,18 +2921,20 @@ Remember that diabetes management is highly individual. Work closely with your h
               <MdMenu className="text-2xl" />
             </button>
             <div>
-              <h1 className="text-lg md:text-xl font-bold text-dark tracking-tight">
-              {activeTab === 'overview' ? 'Dashboard' : (
-                activeTab === 'medicines' ? 'Medicine Inventory Management' : (
-                  activeTab === 'categories' ? 'Store Categories Catalog' : (
-                    activeTab === 'prescriptions' ? 'Prescription Verification Console' : (
-                      activeTab === 'orders' ? 'Order Management & Fulfillment' : (
-                        activeTab === 'customers' ? 'Customers' : (
-                          activeTab === 'coupons' ? 'Coupons & Offers' : (
-                            activeTab === 'reviews' ? 'Product Reviews Moderation' : (
-                              activeTab === 'blogs' ? 'Health Blogs & Guides Management' : (
-                                activeTab === 'delivery' ? 'Delivery Configuration' : (
-                                  activeTab === 'system' ? 'System Configuration' : 'Control Panel'
+              <h1 className="text-lg md:text-xl font-bold text-dark tracking-tight flex items-center gap-2">
+                <span>
+                {activeTab === 'overview' ? 'Dashboard' : (
+                  activeTab === 'medicines' ? 'Medicine Inventory Management' : (
+                    activeTab === 'categories' ? 'Store Categories Catalog' : (
+                      activeTab === 'prescriptions' ? 'Prescription Verification Console' : (
+                        activeTab === 'orders' ? 'Order Management & Fulfillment' : (
+                          activeTab === 'customers' ? 'Customers' : (
+                            activeTab === 'coupons' ? 'Coupons & Offers' : (
+                              activeTab === 'reviews' ? 'Product Reviews Moderation' : (
+                                activeTab === 'blogs' ? 'Health Blogs & Guides Management' : (
+                                  activeTab === 'delivery' ? 'Delivery Configuration' : (
+                                    activeTab === 'system' ? 'System Configuration' : 'Control Panel'
+                                  )
                                 )
                               )
                             )
@@ -2705,6 +2944,13 @@ Remember that diabetes management is highly individual. Work closely with your h
                     )
                   )
                 )
+              }
+              </span>
+              {!isProductsSynced && (
+                <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full flex items-center gap-1 select-none shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Offline
+                </span>
               )}
             </h1>
             <p className="text-xs text-dark/50 mt-1">
@@ -2743,6 +2989,13 @@ Remember that diabetes management is highly individual. Work closely with your h
             )}
           </div>
         </header>
+
+        {!isProductsSynced && productsSyncError && (
+          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 text-xs text-amber-800 flex items-center gap-2">
+            <span className="font-semibold shrink-0">Sync Alert:</span>
+            <span>Firestore database is currently unreachable ({productsSyncError}). Any updates made now will not be persisted to the server.</span>
+          </div>
+        )}
 
         {/* TAB WORKSPACES */}
         <div className="p-6 md:p-8 flex-grow">
@@ -3622,6 +3875,14 @@ Remember that diabetes management is highly individual. Work closely with your h
                                 }`}>
                                   {order.paymentStatus}
                                 </span>
+                                {order.paymentMethod === 'COD' && order.paymentStatus === 'Pending' && (
+                                  <button
+                                    onClick={() => handleMarkAsPaid(order.orderId)}
+                                    className="mt-1.5 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all block cursor-pointer select-none"
+                                  >
+                                    Mark Paid
+                                  </button>
+                                )}
                               </td>
 
                               {/* Order Date */}
@@ -3644,6 +3905,51 @@ Remember that diabetes management is highly individual. Work closely with your h
                                   <option value="Delivered">Delivered</option>
                                   <option value="Cancelled">Cancelled</option>
                                 </select>
+                                {order.returnStatus && (
+                                  <div className="mt-2 space-y-1 bg-amber-50/40 p-2 rounded-lg border border-amber-100/50">
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase inline-block border ${
+                                      order.returnStatus === 'requested'
+                                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                        : order.returnStatus === 'approved'
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                                    }`}>
+                                      Return {order.returnStatus}
+                                    </span>
+                                    <p className="text-[9px] text-dark/65 font-medium leading-tight">
+                                      Reason: <strong className="text-dark font-bold">{order.returnReason}</strong>
+                                    </p>
+                                    <p className="text-[9px] text-dark/65 font-medium leading-tight">
+                                      Requested: <strong className="text-dark font-semibold">{new Date(order.returnRequestedAt).toLocaleDateString('en-IN')}</strong>
+                                    </p>
+                                    {order.returnStatus === 'requested' && (
+                                      <div className="flex gap-1.5 mt-1.5">
+                                        <button
+                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'approved')}
+                                          className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer"
+                                        >
+                                          Approve
+                                        </button>
+                                        <button
+                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'completed')}
+                                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer"
+                                        >
+                                          Complete
+                                        </button>
+                                      </div>
+                                    )}
+                                    {order.returnStatus === 'approved' && (
+                                      <div className="mt-1">
+                                        <button
+                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'completed')}
+                                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer w-full text-center"
+                                        >
+                                          Mark Completed
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </td>
 
                             </tr>
@@ -3763,6 +4069,7 @@ Remember that diabetes management is highly individual. Work closely with your h
                         <th className="px-6 py-4">Orders</th>
                         <th className="px-6 py-4">Lifetime spend</th>
                         <th className="px-6 py-4">Joined Date</th>
+                        <th className="px-6 py-4 text-center">Status</th>
                         <th className="px-6 py-4 text-center">Actions</th>
                       </tr>
                     </thead>
@@ -3814,14 +4121,44 @@ Remember that diabetes management is highly individual. Work closely with your h
                               {cust.joinedDate}
                             </td>
 
+                            {/* Status */}
+                            <td className="px-6 py-3.5 text-center select-none">
+                              {cust.isBlocked ? (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-red-50 text-red-600 border border-red-100 uppercase tracking-wider">
+                                  Blocked
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wider">
+                                  Active
+                                </span>
+                              )}
+                            </td>
+
                             {/* View / Actions */}
                             <td className="px-6 py-3.5 text-center">
-                              <button 
-                                onClick={() => setViewingCustomerOrders(cust)}
-                                className="text-primary hover:text-primary-dark font-extrabold hover:underline cursor-pointer"
-                              >
-                                View
-                              </button>
+                              <div className="flex items-center justify-center gap-3">
+                                <button 
+                                  onClick={() => setViewingCustomerOrders(cust)}
+                                  className="text-primary hover:text-primary-dark font-extrabold hover:underline cursor-pointer"
+                                >
+                                  View
+                                </button>
+                                {!cust.isBlocked ? (
+                                  <button 
+                                    onClick={() => setCustomerToBlock(cust)}
+                                    className="text-red-600 hover:text-red-800 font-extrabold hover:underline cursor-pointer"
+                                  >
+                                    Block
+                                  </button>
+                                ) : (
+                                  <button 
+                                    onClick={() => setCustomerToUnblock(cust)}
+                                    className="text-[#009688] hover:text-[#00796B] font-extrabold hover:underline cursor-pointer"
+                                  >
+                                    Unblock
+                                  </button>
+                                )}
+                              </div>
                             </td>
 
                           </tr>
@@ -3829,7 +4166,7 @@ Remember that diabetes management is highly individual. Work closely with your h
                       })}
                       {filteredCustomers.length === 0 && (
                         <tr>
-                          <td colSpan="6" className="px-6 py-12 text-center text-dark/30 font-medium select-none">No customers found matching query.</td>
+                          <td colSpan="7" className="px-6 py-12 text-center text-dark/30 font-medium select-none">No customers found matching query.</td>
                         </tr>
                       )}
                     </tbody>
@@ -5807,13 +6144,23 @@ Remember that diabetes management is highly individual. Work closely with your h
                   </div>
                   <div className="flex justify-between items-center bg-background p-2 rounded-xl border border-dark/5">
                     <span className="text-dark/50">Payment Status:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                      selectedOrder.paymentStatus === 'Paid'
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
-                        : 'bg-amber-50 text-amber-500 border border-amber-100/30'
-                    }`}>
-                      {selectedOrder.paymentStatus}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                        selectedOrder.paymentStatus === 'Paid'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
+                          : 'bg-amber-50 text-amber-500 border border-amber-100/30'
+                      }`}>
+                        {selectedOrder.paymentStatus}
+                      </span>
+                      {selectedOrder.paymentMethod === 'COD' && selectedOrder.paymentStatus === 'Pending' && (
+                        <button
+                          onClick={() => handleMarkAsPaid(selectedOrder.orderId)}
+                          className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer select-none"
+                        >
+                          Mark Paid
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center bg-background p-2 rounded-xl border border-dark/5">
                     <span className="text-dark/50">Order Date:</span>
@@ -5859,6 +6206,45 @@ Remember that diabetes management is highly individual. Work closely with your h
                 );
               })()}
             </div>
+
+            {/* Return Details (Admin View) */}
+            {selectedOrder.returnStatus && (
+              <div className="p-4 bg-amber-50/50 border border-amber-200/50 rounded-2xl space-y-2">
+                <h4 className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Return Request Details</h4>
+                <div className="grid grid-cols-2 gap-4 text-[11px]">
+                  <div>
+                    <p className="text-dark/60">Status:</p>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase inline-block mt-1 border ${
+                      selectedOrder.returnStatus === 'requested'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : selectedOrder.returnStatus === 'approved'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-blue-100 text-blue-800 border-blue-200'
+                    }`}>
+                      {selectedOrder.returnStatus}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-dark/60">Requested Date:</p>
+                    <p className="font-bold text-dark mt-1">
+                      {new Date(selectedOrder.returnRequestedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                    </p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-dark/60">Reason for Return:</p>
+                    <p className="font-bold text-dark mt-0.5">{selectedOrder.returnReason}</p>
+                  </div>
+                  {selectedOrder.returnDetails && (
+                    <div className="col-span-2">
+                      <p className="text-dark/60">Comments / Details:</p>
+                      <p className="font-medium text-dark/80 bg-white p-2.5 rounded-xl border border-dark/5 mt-0.5 leading-relaxed">
+                        {selectedOrder.returnDetails}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end pt-2">
@@ -6442,6 +6828,88 @@ Remember that diabetes management is highly individual. Work closely with your h
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+      {/* 🚀 CUSTOMER BLOCKING CONFIRMATION MODAL */}
+      {customerToBlock && (
+        <div className="fixed inset-0 z-[120] bg-dark/70 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fadeIn">
+          <div className="absolute inset-0 cursor-pointer" onClick={() => setCustomerToBlock(null)} />
+          
+          <div className="bg-white rounded-[24px] shadow-premium max-w-md w-full p-6 border border-dark/5 relative z-10 flex flex-col space-y-4 text-left animate-scaleIn">
+            <div className="flex items-center gap-3 text-red-500">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-lg shrink-0">
+                ⚠️
+              </div>
+              <h3 className="text-base font-extrabold text-dark leading-tight">
+                Are you sure you want to block this customer?
+              </h3>
+            </div>
+            
+            <p className="text-xs text-dark/65 leading-relaxed font-light">
+              Blocking <strong>{customerToBlock.name}</strong> ({customerToBlock.email}) will permanently prevent them from logging in, checking out, or using their account. Their existing orders and profile data will be preserved.
+            </p>
+            
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCustomerToBlock(null)}
+                className="flex-grow py-2.5 bg-background hover:bg-dark/5 text-dark/70 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleConfirmBlock(customerToBlock);
+                  setCustomerToBlock(null);
+                }}
+                className="flex-grow py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer border-none"
+              >
+                Block Customer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 🚀 CUSTOMER UNBLOCKING CONFIRMATION MODAL */}
+      {customerToUnblock && (
+        <div className="fixed inset-0 z-[120] bg-dark/70 backdrop-blur-sm flex items-center justify-center p-4 select-none animate-fadeIn">
+          <div className="absolute inset-0 cursor-pointer" onClick={() => setCustomerToUnblock(null)} />
+          
+          <div className="bg-white rounded-[24px] shadow-premium max-w-md w-full p-6 border border-dark/5 relative z-10 flex flex-col space-y-4 text-left animate-scaleIn">
+            <div className="flex items-center gap-3 text-[#009688]">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#009688] flex items-center justify-center text-lg shrink-0">
+                ✔️
+              </div>
+              <h3 className="text-base font-extrabold text-dark leading-tight">
+                Are you sure you want to unblock this customer?
+              </h3>
+            </div>
+            
+            <p className="text-xs text-dark/65 leading-relaxed font-light">
+              Unblocking <strong>{customerToUnblock.name}</strong> ({customerToUnblock.email}) will restore their full access to the website, allowing them to login, place orders, and manage their account.
+            </p>
+            
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setCustomerToUnblock(null)}
+                className="flex-grow py-2.5 bg-background hover:bg-dark/5 text-dark/70 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer border-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleConfirmUnblock(customerToUnblock);
+                  setCustomerToUnblock(null);
+                }}
+                className="flex-grow py-2.5 bg-[#009688] hover:bg-[#00796B] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md cursor-pointer border-none"
+              >
+                Unblock Customer
+              </button>
+            </div>
           </div>
         </div>
       )}
