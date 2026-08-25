@@ -279,6 +279,10 @@ export default function AdminDashboard() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // COD Confirmation Modal States
+  const [confirmCodModalOpen, setConfirmCodModalOpen] = useState(false);
+  const [codOrderIdToConfirm, setCodOrderIdToConfirm] = useState(null);
+
   // --- COUPONS TAB STATES & ACTIONS ---
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(true);
@@ -1847,9 +1851,17 @@ Remember that diabetes management is highly individual. Work closely with your h
       const order = orders.find(o => o.orderId === orderId);
       const userId = order?.userId;
 
+      // Rule: For COD orders, the order must NOT become Delivered until the Admin confirms payment.
+      const isCOD = order?.paymentMethod === 'COD' || order?.paymentMethod === 'Cash on Delivery (COD)';
+      if (newStatus === 'Delivered' && isCOD && order?.paymentStatus !== 'Paid') {
+        alert("Please confirm COD payment before marking this order as delivered.");
+        return;
+      }
+
       const updateData = { status: newStatus };
       if (newStatus === 'Delivered' && !order?.deliveredAt) {
         updateData.deliveredAt = serverTimestamp();
+        updateData.returnEligibleUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       }
 
       if (isConfigValid && db) {
@@ -1882,6 +1894,7 @@ Remember that diabetes management is highly individual. Work closely with your h
             const up = { ...ord, status: newStatus };
             if (newStatus === 'Delivered' && !up.deliveredAt) {
               up.deliveredAt = localDeliveredAt;
+              up.returnEligibleUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
             }
             return up;
           }
@@ -1917,7 +1930,17 @@ Remember that diabetes management is highly individual. Work closely with your h
       const order = orders.find(o => o.orderId === orderId);
       const userId = order?.userId;
 
+      if (newReturnStatus === 'approved') {
+        const confirmApprove = window.confirm("Are you sure you want to approve this return?");
+        if (!confirmApprove) return;
+      }
+
       const updateData = { returnStatus: newReturnStatus };
+      if (newReturnStatus === 'approved') {
+        updateData.returnApprovedAt = new Date().toISOString();
+        updateData.refundStatus = 'Refund Not Started';
+        updateData.refundAmount = Number(order.totalAmount || 0);
+      }
 
       if (isConfigValid && db) {
         // Update in root orders collection
@@ -1950,6 +1973,209 @@ Remember that diabetes management is highly individual. Work closely with your h
     } catch (err) {
       console.error("Error updating return status:", err);
       alert("Failed to update return status: " + err.message);
+    }
+  };
+
+  const handleMarkRefundSuccessful = async (orderId) => {
+    try {
+      // Authorization Check: Ensure current user is admin
+      if (!currentUser || currentUser.role !== 'admin') {
+        alert("Unauthorized. Only administrators can perform this action.");
+        return;
+      }
+
+      const order = orders.find(o => o.orderId === orderId);
+      if (!order) {
+        alert("Order not found.");
+        return;
+      }
+      const userId = order.userId;
+
+      // Prevent duplicate refunds
+      if (order.refundStatus === 'Refund Successful' || order.refundStatus === 'successful') {
+        alert("Refund has already been processed and marked as successful.");
+        return;
+      }
+
+      // Show confirmation dialog
+      const confirmRefund = window.confirm("Are you sure you want to mark this refund as successful?");
+      if (!confirmRefund) return;
+
+      const localTimestamp = new Date().toISOString();
+      const updateData = {
+        refundStatus: 'Refund Successful',
+        refundProcessedAt: isConfigValid && db ? serverTimestamp() : localTimestamp,
+        returnStatus: 'completed'
+      };
+
+      if (isConfigValid && db) {
+        // Update in root orders collection
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, updateData);
+
+        // Update in user orders subcollection for completeness
+        if (userId && userId !== 'guest') {
+          const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+          await updateDoc(userOrderRef, updateData).catch(err => {
+            console.warn("Could not sync user orders subcollection refund info:", err);
+          });
+
+          // Generate notification in Firestore
+          await addDoc(collection(db, 'notifications'), {
+            userId: userId,
+            title: 'Refund Processed',
+            message: `The refund of ₹${order.totalAmount} for your return request on order #${orderId} was processed successfully.`,
+            type: 'order_status',
+            isRead: false,
+            createdAt: serverTimestamp(),
+            actionUrl: '/order-tracking'
+          });
+        }
+      } else {
+        // Update mock local storage
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === orderId ? { ...o, ...updateData } : o
+        );
+        setOrders(updated);
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+
+        // Add local mock notification
+        if (userId && userId !== 'guest') {
+          const mockNotif = {
+            id: `local-refund-${Date.now()}`,
+            userId: userId,
+            title: 'Refund Processed',
+            message: `The refund of ₹${order.totalAmount} for your return request on order #${orderId} was processed successfully.`,
+            type: 'order_status',
+            isRead: false,
+            createdAt: localTimestamp,
+            actionUrl: '/order-tracking'
+          };
+          const savedNotifs = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
+          savedNotifs.unshift(mockNotif);
+          localStorage.setItem('mediquick_local_notifications', JSON.stringify(savedNotifs));
+        }
+      }
+
+      // Update selectedOrder modal if open
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      alert("Refund marked as successful and return completed.");
+    } catch (err) {
+      console.error("Error marking refund as successful:", err);
+      alert("Failed to update refund status: " + err.message);
+    }
+  };
+
+  const handleProcessRefund = async (orderId) => {
+    try {
+      const order = orders.find(o => o.orderId === orderId);
+      if (!order) return;
+      const userId = order.userId;
+
+      // Prevent duplicate refunds
+      if (order.refundStatus === 'completed') {
+        alert("Refund Already Completed");
+        return;
+      }
+
+      const isCOD = order.paymentMethod === 'COD' || order.paymentMethod === 'Cash on Delivery (COD)';
+      let updateData = {};
+
+      if (isCOD) {
+        // For COD, verify refund details are provided
+        if (!order.refundMethod) {
+          alert("Waiting for customer to provide refund details.");
+          return;
+        }
+
+        const maskedAcc = order.refundDetails?.accountNumber 
+          ? 'XXXXXX' + order.refundDetails.accountNumber.slice(-4)
+          : 'N/A';
+        const detailsStr = order.refundMethod === 'UPI' 
+          ? `UPI ID: ${order.refundDetails?.upiId}`
+          : `Bank: ${order.refundDetails?.bankName || 'N/A'}, Account: ${maskedAcc}, Name: ${order.refundDetails?.accountHolderName}`;
+
+        const confirmRefund = window.confirm(
+          `Confirm refunding ₹${order.totalAmount} to customer via ${order.refundMethod}?\nDetails: ${detailsStr}`
+        );
+        if (!confirmRefund) return;
+
+        updateData = {
+          refundStatus: 'completed',
+          refundCompletedAt: new Date().toISOString(),
+          returnStatus: 'completed',
+          refundTransactionId: 'ref_cod_' + Math.random().toString(36).substr(2, 9)
+        };
+      } else {
+        // Online refund - call server-side function
+        const confirmOnlineRefund = window.confirm(
+          `Are you sure you want to trigger payment gateway refund of ₹${order.totalAmount} for order #${orderId}?`
+        );
+        if (!confirmOnlineRefund) return;
+
+        // Perform HTTP POST to secure backend handler
+        const response = await fetch('/api/process-refund', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            orderId: orderId,
+            refundAmount: order.totalAmount
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || 'Payment gateway refund failed.');
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Payment gateway refund rejected.');
+        }
+
+        updateData = {
+          refundStatus: 'completed',
+          refundCompletedAt: data.refundedAt || new Date().toISOString(),
+          returnStatus: 'completed',
+          refundTransactionId: data.refundTransactionId
+        };
+      }
+
+      // Persist updates to DB
+      if (isConfigValid && db) {
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, updateData);
+
+        if (userId && userId !== 'guest') {
+          const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+          await updateDoc(userOrderRef, updateData).catch(err => {
+            console.warn("Could not sync user orders subcollection refund info:", err);
+          });
+        }
+      } else {
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === orderId ? { ...o, ...updateData } : o
+        );
+        setOrders(updated);
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+      }
+
+      // Update selectedOrder modal if open
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder(prev => ({ ...prev, ...updateData }));
+      }
+
+      alert("Refund processed successfully and marked as completed.");
+    } catch (err) {
+      console.error("Refund error:", err);
+      alert("Failed to process refund: " + err.message);
     }
   };
 
@@ -1991,6 +2217,102 @@ Remember that diabetes management is highly individual. Work closely with your h
     } catch (err) {
       console.error("Error marking order as paid:", err);
       alert("Failed to update payment status: " + err.message);
+    }
+  };
+
+  const handleRequestCodConfirmation = (orderId) => {
+    setCodOrderIdToConfirm(orderId);
+    setConfirmCodModalOpen(true);
+  };
+
+  const handleConfirmCodPayment = async (orderId) => {
+    try {
+      const order = orders.find(o => o.orderId === orderId);
+      const userId = order?.userId;
+      const localTimestamp = new Date().toISOString();
+      const localReturnEligibleUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      const updateData = { 
+        paymentStatus: 'Paid',
+        paymentConfirmedAt: isConfigValid && db ? serverTimestamp() : localTimestamp,
+        status: 'Delivered',
+        deliveredAt: isConfigValid && db ? serverTimestamp() : localTimestamp,
+        returnEligibleUntil: localReturnEligibleUntil
+      };
+
+      if (isConfigValid && db) {
+        // Update in root orders collection
+        const orderRef = doc(db, 'orders', orderId);
+        await updateDoc(orderRef, updateData);
+
+        // Update in user subcollection
+        if (userId && userId !== 'guest') {
+          const userOrderRef = doc(db, 'users', userId, 'orders', orderId);
+          await updateDoc(userOrderRef, updateData).catch(err => {
+            console.warn("Could not sync user orders subcollection payment and status:", err);
+          });
+
+          // Generate notification in Firestore
+          await addDoc(collection(db, 'notifications'), {
+            userId: userId,
+            title: `Payment Confirmed & Order Delivered`,
+            message: `Your payment of ₹${order.totalAmount} for order #${orderId} was confirmed. Status: Delivered.`,
+            type: 'order_status',
+            isRead: false,
+            createdAt: serverTimestamp(),
+            actionUrl: '/order-tracking'
+          });
+        }
+      } else {
+        // Update mock local storage
+        const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
+        const updated = stored.map(o => 
+          o.orderId === orderId ? { 
+            ...o, 
+            paymentStatus: 'Paid',
+            paymentConfirmedAt: localTimestamp,
+            status: 'Delivered',
+            deliveredAt: localTimestamp,
+            returnEligibleUntil: localReturnEligibleUntil
+          } : o
+        );
+        setOrders(updated);
+        localStorage.setItem('mediquick_local_orders', JSON.stringify(updated));
+
+        // Add local mock notification
+        if (userId && userId !== 'guest') {
+          const mockNotif = {
+            id: `local-cod-${Date.now()}`,
+            userId: userId,
+            title: `Payment Confirmed & Order Delivered`,
+            message: `Your payment of ₹${order.totalAmount} for order #${orderId} was confirmed. Status: Delivered.`,
+            type: 'order_status',
+            isRead: false,
+            createdAt: localTimestamp,
+            actionUrl: '/order-tracking'
+          };
+          const savedNotifs = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
+          savedNotifs.unshift(mockNotif);
+          localStorage.setItem('mediquick_local_notifications', JSON.stringify(savedNotifs));
+        }
+      }
+
+      // Update selectedOrder if open in modal
+      if (selectedOrder && selectedOrder.orderId === orderId) {
+        setSelectedOrder(prev => ({ 
+          ...prev, 
+          paymentStatus: 'Paid',
+          paymentConfirmedAt: localTimestamp,
+          status: 'Delivered',
+          deliveredAt: localTimestamp,
+          returnEligibleUntil: localReturnEligibleUntil
+        }));
+      }
+
+      alert("COD payment confirmed. Order status updated to Delivered successfully.");
+    } catch (err) {
+      console.error("Error confirming COD payment:", err);
+      alert("Failed to confirm COD payment: " + err.message);
     }
   };
 
@@ -3868,20 +4190,42 @@ Remember that diabetes management is highly individual. Work closely with your h
                               {/* Payment details */}
                               <td className="px-5 py-3">
                                 <p className="font-semibold text-dark/70 text-[11px]">{order.paymentMethod}</p>
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold inline-block mt-1 ${
-                                  order.paymentStatus === 'Paid'
-                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
-                                    : 'bg-amber-50 text-amber-500 border border-amber-100/30'
-                                }`}>
-                                  {order.paymentStatus}
-                                </span>
-                                {order.paymentMethod === 'COD' && order.paymentStatus === 'Pending' && (
-                                  <button
-                                    onClick={() => handleMarkAsPaid(order.orderId)}
-                                    className="mt-1.5 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all block cursor-pointer select-none"
-                                  >
-                                    Mark Paid
-                                  </button>
+                                
+                                {order.paymentMethod === 'COD' || order.paymentMethod === 'Cash on Delivery (COD)' ? (
+                                  <>
+                                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold inline-block mt-1 ${
+                                      order.paymentStatus === 'Paid'
+                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
+                                        : 'bg-amber-50 text-amber-500 border border-amber-100/30'
+                                    }`}>
+                                      Payment Status: {order.paymentStatus === 'Paid' ? 'Paid' : 'Pending'}
+                                    </span>
+                                    {order.paymentStatus !== 'Paid' ? (
+                                      <button
+                                        onClick={() => handleRequestCodConfirmation(order.orderId)}
+                                        className="mt-1.5 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all block cursor-pointer select-none"
+                                      >
+                                        ✓ Mark Payment as Confirmed
+                                      </button>
+                                    ) : (
+                                      <div className="mt-1.5 space-y-0.5 text-left">
+                                        <span className="text-[8px] font-extrabold text-emerald-600 uppercase block">✓ Payment Confirmed</span>
+                                        {order.paymentConfirmedAt && (
+                                          <span className="text-[8px] text-dark/45 block font-light leading-tight">
+                                            Confirmed on: {new Date(order.paymentConfirmedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold inline-block mt-1 ${
+                                    order.paymentStatus === 'Paid'
+                                      ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
+                                      : 'bg-amber-50 text-amber-500 border border-amber-100/30'
+                                  }`}>
+                                    {order.paymentStatus}
+                                  </span>
                                 )}
                               </td>
 
@@ -3923,29 +4267,58 @@ Remember that diabetes management is highly individual. Work closely with your h
                                       Requested: <strong className="text-dark font-semibold">{new Date(order.returnRequestedAt).toLocaleDateString('en-IN')}</strong>
                                     </p>
                                     {order.returnStatus === 'requested' && (
-                                      <div className="flex gap-1.5 mt-1.5">
-                                        <button
-                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'approved')}
-                                          className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer"
-                                        >
-                                          Approve
-                                        </button>
-                                        <button
-                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'completed')}
-                                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer"
-                                        >
-                                          Complete
-                                        </button>
+                                      <div className="flex flex-col gap-1.5 mt-1.5">
+                                        {order.refundStatus !== 'Refund Successful' && order.refundStatus !== 'successful' && order.refundStatus !== 'completed' ? (
+                                          <button
+                                            onClick={() => handleMarkRefundSuccessful(order.orderId)}
+                                            className="w-full px-2 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer text-center block"
+                                          >
+                                            Refund Successful
+                                          </button>
+                                        ) : (
+                                          <span className="w-full px-2 py-1 bg-emerald-50 border border-emerald-200 text-emerald-600 text-[8px] font-extrabold uppercase rounded text-center block select-none">
+                                            ✓ Refund Successful
+                                          </span>
+                                        )}
+                                        <div className="flex gap-1.5">
+                                          <button
+                                            onClick={() => handleUpdateReturnStatus(order.orderId, 'approved')}
+                                            className="flex-1 px-1.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer text-center"
+                                          >
+                                            Approve
+                                          </button>
+                                          <button
+                                            onClick={() => handleUpdateReturnStatus(order.orderId, 'completed')}
+                                            className="flex-1 px-1.5 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer text-center"
+                                          >
+                                            Complete
+                                          </button>
+                                        </div>
                                       </div>
                                     )}
                                     {order.returnStatus === 'approved' && (
-                                      <div className="mt-1">
-                                        <button
-                                          onClick={() => handleUpdateReturnStatus(order.orderId, 'completed')}
-                                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer w-full text-center"
-                                        >
-                                          Mark Completed
-                                        </button>
+                                      <div className="mt-1.5 space-y-1">
+                                        {order.refundStatus === 'completed' ? (
+                                          <div className="space-y-0.5">
+                                            <span className="text-[8px] font-extrabold text-emerald-600 uppercase block">✓ Refund Completed</span>
+                                            {order.refundTransactionId && (
+                                              <span className="text-[7px] font-mono text-dark/45 block truncate max-w-[120px]">ID: {order.refundTransactionId}</span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <>
+                                            {(order.paymentMethod === 'COD' || order.paymentMethod === 'Cash on Delivery (COD)') && !order.refundMethod ? (
+                                              <span className="text-[7.5px] font-semibold text-amber-600 block italic leading-tight">Waiting for customer details</span>
+                                            ) : (
+                                              <button
+                                                onClick={() => handleProcessRefund(order.orderId)}
+                                                className="w-full px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer text-center"
+                                              >
+                                                Process Refund
+                                              </button>
+                                            )}
+                                          </>
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -6003,6 +6376,48 @@ Remember that diabetes management is highly individual. Work closely with your h
         </form>
       </Modal>
 
+      {/* ================== MODAL: CONFIRM COD PAYMENT ================== */}
+      <Modal
+        isOpen={confirmCodModalOpen}
+        onClose={() => {
+          setConfirmCodModalOpen(false);
+          setCodOrderIdToConfirm(null);
+        }}
+        title="Confirm COD Payment"
+        size="xs"
+      >
+        <div className="text-left space-y-4 select-none">
+          <p className="text-xs sm:text-sm text-dark/65 leading-relaxed font-light">
+            Has the customer paid the cash amount for this order?
+          </p>
+          <div className="flex items-center justify-end gap-3.5 pt-2">
+            <Button
+              onClick={() => {
+                setConfirmCodModalOpen(false);
+                setCodOrderIdToConfirm(null);
+              }}
+              variant="ghost"
+              className="px-4 py-2 text-xs font-semibold rounded-lg border border-dark/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (codOrderIdToConfirm) {
+                  await handleConfirmCodPayment(codOrderIdToConfirm);
+                }
+                setConfirmCodModalOpen(false);
+                setCodOrderIdToConfirm(null);
+              }}
+              variant="primary"
+              className="px-5 py-2 text-xs font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
+            >
+              Confirm Payment
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* ================== MODAL: CONFIRM DELETE MEDICINE ================== */}
       <Modal 
         isOpen={deleteMedConfirmOpen} 
@@ -6142,25 +6557,40 @@ Remember that diabetes management is highly individual. Work closely with your h
                     <span className="text-dark/50">Payment Method:</span>
                     <span className="font-bold text-dark">{selectedOrder.paymentMethod}</span>
                   </div>
-                  <div className="flex justify-between items-center bg-background p-2 rounded-xl border border-dark/5">
-                    <span className="text-dark/50">Payment Status:</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                        selectedOrder.paymentStatus === 'Paid'
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
-                          : 'bg-amber-50 text-amber-500 border border-amber-100/30'
-                      }`}>
-                        {selectedOrder.paymentStatus}
-                      </span>
-                      {selectedOrder.paymentMethod === 'COD' && selectedOrder.paymentStatus === 'Pending' && (
-                        <button
-                          onClick={() => handleMarkAsPaid(selectedOrder.orderId)}
-                          className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer select-none"
-                        >
-                          Mark Paid
-                        </button>
-                      )}
+                  <div className="flex flex-col bg-background p-2.5 rounded-xl border border-dark/5 gap-1">
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-dark/50 text-xs">Payment Status:</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                          selectedOrder.paymentStatus === 'Paid'
+                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100/30'
+                            : 'bg-amber-50 text-amber-500 border border-amber-100/30'
+                        }`}>
+                          {selectedOrder.paymentMethod === 'COD' || selectedOrder.paymentMethod === 'Cash on Delivery (COD)'
+                            ? `Payment Status: ${selectedOrder.paymentStatus === 'Paid' ? 'Paid' : 'Pending'}`
+                            : selectedOrder.paymentStatus
+                          }
+                        </span>
+                        {(selectedOrder.paymentMethod === 'COD' || selectedOrder.paymentMethod === 'Cash on Delivery (COD)') && selectedOrder.paymentStatus !== 'Paid' && (
+                          <button
+                            onClick={() => handleRequestCodConfirmation(selectedOrder.orderId)}
+                            className="px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[8px] font-extrabold uppercase rounded transition-all cursor-pointer select-none"
+                          >
+                            ✓ Mark Payment as Confirmed
+                          </button>
+                        )}
+                      </div>
                     </div>
+                    {(selectedOrder.paymentMethod === 'COD' || selectedOrder.paymentMethod === 'Cash on Delivery (COD)') && selectedOrder.paymentStatus === 'Paid' && (
+                      <div className="flex flex-col text-right items-end text-[10px] mt-1 border-t border-dark/5 pt-1.5 w-full leading-tight">
+                        <span className="font-extrabold text-emerald-600 uppercase">✓ Payment Confirmed</span>
+                        {selectedOrder.paymentConfirmedAt && (
+                          <span className="text-dark/45">
+                            Confirmed on: {new Date(selectedOrder.paymentConfirmedAt).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-between items-center bg-background p-2 rounded-xl border border-dark/5">
                     <span className="text-dark/50">Order Date:</span>
@@ -6207,14 +6637,44 @@ Remember that diabetes management is highly individual. Work closely with your h
               })()}
             </div>
 
-            {/* Return Details (Admin View) */}
+            {/* Return / Refund Details (Admin View) */}
             {selectedOrder.returnStatus && (
-              <div className="p-4 bg-amber-50/50 border border-amber-200/50 rounded-2xl space-y-2">
-                <h4 className="text-[10px] font-black uppercase text-amber-700 tracking-wider">Return Request Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-[11px]">
+              <div className="p-4 bg-amber-50/50 border border-amber-200/50 rounded-2xl space-y-3">
+                <h4 className="text-[10px] font-black uppercase text-amber-700 tracking-wider border-b border-amber-100 pb-1">Return / Refund Details</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 text-[11px]">
                   <div>
-                    <p className="text-dark/60">Status:</p>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase inline-block mt-1 border ${
+                    <span className="text-dark/50 block font-semibold">Customer Name:</span>
+                    <span className="font-bold text-dark">{selectedOrder.customerName}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">Customer Email:</span>
+                    <span className="font-bold text-dark">{selectedOrder.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">User ID:</span>
+                    <span className="font-mono text-dark select-all">{selectedOrder.userId || "guest"}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">Order ID:</span>
+                    <span className="font-mono font-bold text-dark select-all">{selectedOrder.orderId}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">Order Amount:</span>
+                    <span className="font-extrabold text-primary">₹{selectedOrder.totalAmount}</span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">Requested Date/Time:</span>
+                    <span className="font-bold text-dark">
+                      {selectedOrder.returnRequestedAt 
+                        ? new Date(selectedOrder.returnRequestedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) 
+                        : "N/A"
+                      }
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-dark/50 block font-semibold">Return Status:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase inline-block mt-0.5 border ${
                       selectedOrder.returnStatus === 'requested'
                         ? 'bg-amber-100 text-amber-800 border-amber-200'
                         : selectedOrder.returnStatus === 'approved'
@@ -6225,24 +6685,98 @@ Remember that diabetes management is highly individual. Work closely with your h
                     </span>
                   </div>
                   <div>
-                    <p className="text-dark/60">Requested Date:</p>
-                    <p className="font-bold text-dark mt-1">
-                      {new Date(selectedOrder.returnRequestedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
-                    </p>
+                    <span className="text-dark/50 block font-semibold">Refund Status:</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase inline-block mt-0.5 border ${
+                      selectedOrder.refundStatus === 'successful'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : selectedOrder.refundStatus === 'pending'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : 'bg-slate-100 text-slate-800 border-slate-200'
+                    }`}>
+                      {selectedOrder.refundStatus || "pending"}
+                    </span>
                   </div>
-                  <div className="col-span-2">
-                    <p className="text-dark/60">Reason for Return:</p>
+                  <div className="md:col-span-2">
+                    <span className="text-dark/50 block font-semibold">Return Reason:</span>
                     <p className="font-bold text-dark mt-0.5">{selectedOrder.returnReason}</p>
                   </div>
-                  {selectedOrder.returnDetails && (
-                    <div className="col-span-2">
-                      <p className="text-dark/60">Comments / Details:</p>
-                      <p className="font-medium text-dark/80 bg-white p-2.5 rounded-xl border border-dark/5 mt-0.5 leading-relaxed">
-                        {selectedOrder.returnDetails}
+                  {(selectedOrder.returnDescription || selectedOrder.returnDetails) && (
+                    <div className="md:col-span-2">
+                      <span className="text-dark/50 block font-semibold">Return Description:</span>
+                      <p className="font-medium text-dark/80 bg-white p-2.5 rounded-xl border border-dark/5 mt-0.5 leading-relaxed text-xs">
+                        {selectedOrder.returnDescription || selectedOrder.returnDetails}
                       </p>
                     </div>
                   )}
+                  {selectedOrder.returnImages && selectedOrder.returnImages.length > 0 && (
+                    <div className="md:col-span-2">
+                      <span className="text-dark/50 block font-semibold mb-1">Uploaded Photos:</span>
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {selectedOrder.returnImages.map((imgUrl, i) => (
+                          <a href={imgUrl} target="_blank" rel="noreferrer" key={i} className="relative block shrink-0 border border-dark/5 rounded-lg overflow-hidden bg-background">
+                            <img src={imgUrl} alt={`Return Item ${i+1}`} className="w-12 h-12 object-contain" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customer-provided details for COD refunds if return is approved and not yet completed */}
+                  {selectedOrder.returnStatus === 'approved' && selectedOrder.refundMethod && selectedOrder.refundStatus !== 'successful' && (
+                    <div className="col-span-2 bg-background p-2.5 rounded-xl border border-dark/5 space-y-1 mt-2">
+                      <p className="text-[9px] text-dark/45 font-bold uppercase tracking-wide">Customer Refund Destination ({selectedOrder.refundMethod})</p>
+                      {selectedOrder.refundMethod === 'UPI' ? (
+                        <p className="font-mono text-[10px] text-dark select-all">UPI ID: {selectedOrder.refundDetails?.upiId}</p>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-1 text-[9px] text-dark">
+                          <p><span className="text-dark/45">Holder:</span> <strong className="font-semibold">{selectedOrder.refundDetails?.accountHolderName}</strong></p>
+                          <p><span className="text-dark/45">Bank:</span> <strong className="font-semibold">{selectedOrder.refundDetails?.bankName || 'N/A'}</strong></p>
+                          <p><span className="text-dark/45">Account:</span> <strong className="font-mono font-semibold select-all">
+                            {selectedOrder.refundDetails?.accountNumber 
+                              ? `XXXXXX${selectedOrder.refundDetails.accountNumber.slice(-4)}`
+                              : 'N/A'
+                            }
+                          </strong></p>
+                          <p><span className="text-dark/45">IFSC:</span> <strong className="font-mono font-semibold select-all">{selectedOrder.refundDetails?.ifscCode}</strong></p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                 {/* Refund Action Button */}
+                 <div className="pt-2.5 border-t border-amber-100/50 flex justify-end items-center gap-3">
+                   {selectedOrder.returnStatus === 'requested' && selectedOrder.refundStatus !== 'Refund Successful' && selectedOrder.refundStatus !== 'successful' ? (
+                     <button
+                       onClick={() => handleMarkRefundSuccessful(selectedOrder.orderId)}
+                       className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold uppercase rounded-xl transition-all cursor-pointer shadow-md select-none"
+                     >
+                       Refund Successful
+                     </button>
+                   ) : selectedOrder.refundStatus === 'Refund Successful' || selectedOrder.refundStatus === 'successful' ? (
+                     <div className="text-right">
+                       <span className="text-[10px] font-black text-emerald-600 uppercase block">✓ Refund Successful</span>
+                       {selectedOrder.refundProcessedAt && (
+                         <span className="text-[8px] text-dark/45 block">
+                           Processed on: {new Date(selectedOrder.refundProcessedAt).toLocaleString('en-IN')}
+                         </span>
+                       )}
+                     </div>
+                   ) : selectedOrder.returnStatus === 'approved' && selectedOrder.refundStatus !== 'completed' && selectedOrder.refundStatus !== 'successful' && selectedOrder.refundStatus !== 'Refund Successful' ? (
+                     <>
+                       {(selectedOrder.paymentMethod === 'COD' || selectedOrder.paymentMethod === 'Cash on Delivery (COD)') && !selectedOrder.refundMethod ? (
+                         <span className="text-[10px] text-amber-600 font-semibold italic">Waiting for customer to provide refund details</span>
+                       ) : (
+                         <button
+                           onClick={() => handleProcessRefund(selectedOrder.orderId)}
+                           className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold uppercase rounded-xl transition-all cursor-pointer shadow"
+                         >
+                           Process Refund
+                         </button>
+                       )}
+                     </>
+                   ) : null}
+                 </div>
               </div>
             )}
 

@@ -177,16 +177,7 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-2">
           <h2 className="text-xl sm:text-2xl font-bold text-dark text-left">{title}</h2>
-          {viewMoreUrl && products.length > 10 ? (
-            <Link
-              to={viewMoreUrl}
-              className="text-primary hover:underline text-xs sm:text-sm font-semibold flex items-center gap-0.5 select-none cursor-pointer"
-            >
-              View More <MdKeyboardArrowRight className="text-lg" />
-            </Link>
-          ) : (
-            <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
-          )}
+          <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 pb-4 select-none">
@@ -305,6 +296,17 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
           ))}
         </div>
 
+        {viewMoreUrl && products.length > 10 && (
+          <div className="flex justify-center mt-8">
+            <Link
+              to={viewMoreUrl}
+              className="text-primary hover:underline text-xs sm:text-sm font-semibold flex items-center gap-0.5 select-none cursor-pointer"
+            >
+              View More <MdKeyboardArrowRight className="text-lg" />
+            </Link>
+          </div>
+        )}
+
       </div>
     </section>
   );
@@ -346,7 +348,7 @@ export default function Home() {
 
   // Filter products by category/subcategory dynamically
   const featured = productsData.slice(0, 10);
-  const bestSellers = productsData.filter(p => p.category === "Medicines" || p.category === "OTC Medicines").slice(10, 20);
+  const bestSellers = productsData.filter(p => p.category === "Medicines" || p.category === "OTC Medicines").slice(10);
   const diabetes = productsData.filter(p => p.category === "Diabetes Care");
   const heart = productsData.filter(p => p.category === "Heart Care");
   const baby = productsData.filter(p => p.category === "Baby Care");
@@ -498,7 +500,7 @@ export default function Home() {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden pt-4 md:pt-6 pb-12 md:pb-16 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-white via-[#F0FAF9] to-[#E2F3F0]"
+        className="relative overflow-hidden pt-10 sm:pt-14 md:pt-20 pb-8 md:pb-12 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0]"
       >
         {/* Abstract Medical Background Shapes */}
         <div className="absolute top-10 left-10 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none animate-pulse" />
@@ -506,10 +508,10 @@ export default function Home() {
         <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/5 blur-xl pointer-events-none" />
  
         <div className="container mx-auto px-4 lg:px-6 w-full relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center">
+          <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-center justify-between">
             
-            {/* Left Column: Heading & CTAs & Glassmorphism Cards */}
-            <div className="md:col-span-8 flex flex-col items-center md:items-start text-center md:text-left space-y-4 md:space-y-5 w-full">
+            {/* Left Column: Heading & CTAs */}
+            <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-3 sm:space-y-4">
               <motion.h1
                 variants={fadeUpVariants}
                 initial="hidden"
@@ -517,12 +519,33 @@ export default function Home() {
                 className="text-[28px] min-[360px]:text-4xl sm:text-5xl lg:text-6.5xl font-black tracking-tight text-[#063B44] leading-[1.1] text-center md:text-left hero-heading-320"
               >
                 Trusted Medicines, <br />
-                <span className="text-gradient bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark">Delivered to Your Doorstep.</span>
+                <span className="text-gradient bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary-dark xl:inline-block xl:whitespace-nowrap">Delivered to Your Doorstep.</span>
               </motion.h1>
 
               <style>{`
                 .hero-desc-short {
                   display: none;
+                }
+                @keyframes floatSlow {
+                  0%, 100% { transform: translateY(0px) rotate(0deg); }
+                  50% { transform: translateY(-8px) rotate(1.5deg); }
+                }
+                @keyframes floatMedium {
+                  0%, 100% { transform: translateY(0px) rotate(0deg); }
+                  50% { transform: translateY(-6px) rotate(-1.5deg); }
+                }
+                @keyframes floatFast {
+                  0%, 100% { transform: translateY(0px) rotate(0deg); }
+                  50% { transform: translateY(-4px) rotate(0.8deg); }
+                }
+                .animate-float-slow {
+                  animation: floatSlow 6s ease-in-out infinite;
+                }
+                .animate-float-medium {
+                  animation: floatMedium 5s ease-in-out infinite;
+                }
+                .animate-float-fast {
+                  animation: floatFast 4s ease-in-out infinite;
                 }
                 @media (max-width: 340px) {
                   .hero-desc-full {
@@ -541,13 +564,21 @@ export default function Home() {
                     letter-spacing: -0.15px !important;
                   }
                 }
+                @media (max-width: 320px) {
+                  .hero-heading-320 {
+                    font-size: 21px !important;
+                    font-weight: 900 !important;
+                    line-height: 1.22 !important;
+                    letter-spacing: -0.025em !important;
+                  }
+                }
               `}</style>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-dark/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-light text-center md:text-left hero-description-320"
+                className="text-dark/70 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl xl:max-w-[620px] font-light text-center md:text-left hero-description-320"
               >
                 <span className="hero-desc-full">
                   Order genuine medicines, healthcare essentials, and wellness products with priority 1-hour delivery. Licensed pharmacists are standing by.
@@ -562,7 +593,7 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex flex-col sm:flex-row gap-3 pt-2 w-full sm:w-auto justify-center md:justify-start"
+                className="flex flex-col sm:flex-row gap-3 pt-1 w-full sm:w-auto justify-center md:justify-start"
               >
                 <Link to="/medicines" className="block w-full sm:inline-block sm:w-auto">
                   <Button 
@@ -597,92 +628,118 @@ export default function Home() {
                 <span className="flex items-center gap-1.5"><MdAssignmentReturn className="text-primary text-sm" /> Easy Returns</span>
                 <span className="flex items-center gap-1.5"><MdMedicalServices className="text-primary text-sm" /> Licensed Pharmacists</span>
               </motion.div>
-
-              {/* Glassmorphism Feature Cards Grid */}
-              <motion.div
-                variants={staggerContainer}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 min-[480px]:grid-cols-2 gap-3 sm:gap-4 pt-3 w-full max-w-xl min-[480px]:max-w-2xl"
-              >
-                <motion.div
-                  variants={glassCardVariants}
-                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
-                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
-                    <MdLocalShipping className="text-lg" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">1 Hour Delivery</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Priority dispatch</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  variants={glassCardVariants}
-                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
-                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
-                    <MdLocalOffer className="text-lg" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">500+ Brands</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Trusted health partners</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  variants={glassCardVariants}
-                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
-                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
-                    <MdVerified className="text-lg" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">10K+ Medicines</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Everyday essentials</p>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  variants={glassCardVariants}
-                  whileHover={{ y: -6, scale: 1.02, boxShadow: "0 20px 25px -5px rgba(0, 150, 136, 0.08)" }}
-                  className="backdrop-blur-md bg-white/45 border border-white/20 p-4 rounded-[20px] shadow-soft flex items-center gap-3 transition-all duration-300 select-none group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg shadow-inner shrink-0 group-hover:rotate-12 transition-transform duration-300">
-                    <MdMedicalServices className="text-lg" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="font-bold text-xs sm:text-sm text-[#063B44] leading-tight">Certified Doctors</h4>
-                    <p className="text-[10px] sm:text-xs text-dark/50 font-light mt-0.5 leading-none">Expert consultations</p>
-                  </div>
-                </motion.div>
-              </motion.div>
             </div>
 
-            {/* Right Column: Premium doctor image */}
-            <div className="md:col-span-4 flex justify-center md:justify-end mt-8 md:mt-0 relative select-none">
-              <motion.div
-                initial={{ opacity: 0, x: 30, scale: 0.98 }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="relative w-full max-w-[180px] sm:max-w-[220px] md:max-w-[260px] lg:max-w-[300px] mr-0 md:mr-6"
-                style={{
-                  transform: `translate(${mouseCoords.x * 6}px, ${mouseCoords.y * 6}px)`,
-                  transition: "transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-                }}
-              >
-                {/* Main realistic Indian doctor photo */}
-                <img
-                  src="/images/hero-doctor.jpg"
-                  alt="Professional Indian Doctor smiling warmly"
-                  className="w-full h-auto rounded-[32px] shadow-premium object-cover border-4 border-white/80 transition-all duration-500 hover:scale-[1.01]"
-                  loading="lazy"
-                />
-              </motion.div>
+            {/* Right Column: Complete Healthcare Visual Section */}
+            <div className="w-full md:w-[53%] xl:w-[46%] flex flex-col justify-center items-center md:items-end mt-6 md:mt-0 select-none md:pr-10 lg:pr-16">
+              <div className="w-full max-w-[170px] min-[340px]:max-w-[190px] min-[360px]:max-w-[220px] min-[400px]:max-w-[240px] sm:max-w-[300px] md:max-w-[340px] lg:max-w-[350px]">
+                
+                {/* Doctor Photo Wrapper (Positioning Parent) */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative w-full mx-auto"
+                >
+                  {/* Doctor Image Card */}
+                  <div className="relative aspect-[3/4] w-full rounded-[24px] sm:rounded-[32px] overflow-hidden border-[6px] sm:border-[8px] border-white shadow-[0_20px_50px_rgba(0,150,136,0.12)] bg-white z-10">
+                    <img
+                      src="/images/hero-doctor.jpg"
+                      alt="Professional Healthcare Doctor"
+                      className="w-full h-full object-cover object-[center_top] transition-all duration-500 hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  {/* Floating Card 1: 1 Hour Delivery (Top-Left) */}
+                  <div className="absolute top-[-8%] left-[-16%] max-[360px]:left-[-22%] z-20 select-none animate-float-slow">
+                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
+                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0 shadow-inner">
+                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11 21h-1l1.5-7h-5l6-12h1l-1.5 7h5z" />
+                        </svg>
+                      </div>
+                      <div className="text-left text-nowrap">
+                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">1 Hour Delivery</span>
+                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Priority dispatch</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Card 2: 500+ Brands (Right-Middle) */}
+                  <div className="absolute top-[22%] right-[-26%] max-[360px]:right-[-32%] z-20 select-none animate-float-medium">
+                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
+                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center shrink-0 shadow-inner">
+                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-sky-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 4H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V8h2v4h4v2z" />
+                        </svg>
+                      </div>
+                      <div className="text-left text-nowrap">
+                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">500+ Brands</span>
+                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Trusted health partners</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Card 3: 10K+ Medicines (Right-Lower) */}
+                  <div className="absolute bottom-[22%] right-[-22%] max-[360px]:right-[-28%] z-20 select-none animate-float-slow">
+                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
+                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 shadow-inner">
+                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 3h12a3 3 0 0 1 3 3v4H3V6a3 3 0 0 1 3-3zm15 9v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6h18z" />
+                        </svg>
+                      </div>
+                      <div className="text-left text-nowrap">
+                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">10K+ Medicines</span>
+                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Everyday essentials</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating Card 4: Certified Doctors (Bottom-Left) */}
+                  <div className="absolute bottom-[-8%] left-[-12%] max-[360px]:left-[-18%] z-20 select-none animate-float-medium">
+                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
+                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 shadow-inner">
+                        <svg className="w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 sm:w-4.5 sm:h-4.5 text-teal-600" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                        </svg>
+                      </div>
+                      <div className="text-left text-nowrap">
+                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">Certified Doctors</span>
+                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Expert consultations</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Decorative Element 1: Medical Bag (Top-Right) */}
+                  <div className="absolute top-[-8%] right-[12%] z-20 select-none animate-float-slow hidden min-[400px]:block">
+                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
+                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-pink-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-10-2h4v2h-4V4zm6 10h-3v3h-2v-3H8v-2h3V9h2v3h3v2z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Decorative Element 2: Delivery Truck (Middle-Left) */}
+                  <div className="absolute top-[48%] left-[-14%] z-20 select-none animate-float-medium hidden sm:block">
+                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
+                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-7.5h-2.5V9h2.5v2z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Decorative Element 3: Medicine Bottle (Middle-Right) */}
+                  <div className="absolute top-[48%] right-[-14%] z-20 select-none animate-float-slow hidden sm:block">
+                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
+                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-pink-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2a4 4 0 0 0-4 4v2h8V6a4 4 0 0 0-4-4zm-4 8h8v10a2 2 0 0 1-2 2h-4a2 2 0 1 0-2-2V10zm4 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                </motion.div>
+              </div>
             </div>
           </div>
         </div>
@@ -753,7 +810,7 @@ export default function Home() {
 
       {/* 💊 DYNAMIC HOMEPAGE PRODUCT SECTIONS */}
       <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} />
-      <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} />
+      <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" />
       <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=diabetes" />
       <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=heart" />
       <ProductSection title="Baby Care" products={baby} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=babycare" />
