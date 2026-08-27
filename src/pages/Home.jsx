@@ -165,7 +165,7 @@ const FAQS = [
   }
 ];
 
-function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl }) {
+function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { cartItems, addToCart, updateQuantity } = useCart();
   if (!products || products.length === 0) return null;
@@ -173,9 +173,9 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
   const displayedProducts = products.slice(0, 10);
   
   return (
-    <section className="py-12 bg-white border-t border-dark/5">
+    <section className="py-12 max-[320px]:py-5 bg-white border-t border-dark/5">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-2">
+        <div className="flex items-center justify-between mb-8 max-[320px]:mb-4 flex-wrap gap-2">
           <h2 className="text-xl sm:text-2xl font-bold text-dark text-left">{title}</h2>
           <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
         </div>
@@ -296,8 +296,8 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
           ))}
         </div>
 
-        {viewMoreUrl && products.length > 10 && (
-          <div className="flex justify-center mt-8">
+        {viewMoreUrl && (alwaysShowViewMore || products.length > 10) && (
+          <div className="flex justify-center mt-8 max-[320px]:mt-4">
             <Link
               to={viewMoreUrl}
               className="text-primary hover:underline text-xs sm:text-sm font-semibold flex items-center gap-0.5 select-none cursor-pointer"
@@ -778,9 +778,9 @@ export default function Home() {
       </div>
 
       {/* 📦 5. MEDICINE CATEGORIES */}
-      <section className="py-12 bg-[#F8FCFC] relative z-10 select-none">
+      <section className="py-12 max-[320px]:py-5 bg-[#F8FCFC] relative z-10 select-none">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-8 max-[320px]:mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-dark text-left">Medicine Categories</h2>
             <Link to="/categories" className="text-primary hover:underline text-xs sm:text-sm font-semibold flex items-center gap-0.5">
               View All Categories <MdKeyboardArrowRight className="text-lg" />
@@ -809,7 +809,7 @@ export default function Home() {
       </section>
 
       {/* 💊 DYNAMIC HOMEPAGE PRODUCT SECTIONS */}
-      <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} />
+      <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" alwaysShowViewMore={true} />
       <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" />
       <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=diabetes" />
       <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=heart" />
