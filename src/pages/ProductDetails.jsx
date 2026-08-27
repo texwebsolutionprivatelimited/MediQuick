@@ -997,7 +997,7 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
               {recommendedProducts.map((p) => (
                 <div
                   key={p.id}
-                  className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft hover:shadow-hover hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full min-h-[340px] w-full text-left animate-fade-in"
+                  className="relative bg-white border border-dark/5 rounded-xl p-3.5 sm:p-4 shadow-soft premium-card-hover flex flex-col justify-between h-full min-h-[340px] w-full text-left animate-fade-in"
                 >
                   {/* Prescription Required Tag */}
                   {p.prescription_required && (

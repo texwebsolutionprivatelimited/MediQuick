@@ -8,7 +8,10 @@ import {
   MdSecurity, 
   MdPayment,
   MdMail,
-  MdPhone
+  MdPhone,
+  MdBusiness,
+  MdPeople,
+  MdHeadsetMic
 } from 'react-icons/md';
 import { 
   FaFacebookF, 
@@ -22,6 +25,11 @@ export default function Footer() {
   const { systemSettings } = useSettings();
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState(null);
+
+  const handleToggle = (section) => {
+    setActiveSection(prev => prev === section ? null : section);
+  };
 
   const getDoctorConsultUrl = () => {
     let targetPhone = systemSettings?.supportPhone || "+1 (555) 019-2834";
@@ -39,21 +47,21 @@ export default function Footer() {
     <footer className="w-full bg-[#063B44] text-white/80 select-none font-sans border-t border-white/5">
       
       {/* 🚀 TOP FOOTER COLUMNS */}
-      <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 text-center sm:text-left">
+      <div className="container mx-auto px-4 py-12 md:py-16 max-[320px]:py-6 max-[320px]:px-5">
+        <div className="grid grid-cols-1 max-[320px]:gap-y-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 text-center sm:text-left">
           
           {/* Column 1: Brand Info */}
-          <div className="sm:col-span-2 md:col-span-3 lg:col-span-2 flex flex-col items-center sm:items-start space-y-4">
-            <Link to="/" className="flex items-center gap-2 text-white justify-center sm:justify-start">
+          <div className="sm:col-span-2 md:col-span-3 lg:col-span-2 flex flex-col items-center sm:items-start space-y-4 max-[320px]:space-y-3 max-[320px]:pb-5 max-[320px]:w-full">
+            <Link to="/" className="flex items-center gap-2 text-white justify-center sm:justify-start max-[320px]:hidden">
               <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-bold">
                 +
               </div>
               <span className="text-lg font-black tracking-tight">MediQuick</span>
             </Link>
-            <p className="text-xs text-white/50 leading-relaxed font-light pr-4 max-w-sm">
-              Your trusted partner in health and wellness. Bringing authentic medicines, healthcare devices, and online consultations straight to your doorstep in under 1 hour.
+            <p className="text-xs text-white/50 leading-relaxed font-light pr-4 max-w-sm max-[320px]:pr-0 max-[320px]:text-[11px] max-[320px]:leading-normal text-center sm:text-left">
+              <span className="max-[320px]:hidden">Your trusted partner in health and wellness. </span>Bringing authentic medicines, healthcare devices, and online consultations straight to your doorstep in under 1 hour.
             </p>
-            <div className="flex items-center gap-3 pt-2 justify-center sm:justify-start">
+            <div className="flex items-center gap-3 pt-2 justify-center sm:justify-start max-[320px]:pt-1 max-[320px]:gap-4">
               <span className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white flex items-center justify-center cursor-pointer transition-colors text-sm">
                 <FaFacebookF />
               </span>
@@ -70,9 +78,26 @@ export default function Footer() {
           </div>
 
           {/* Column 2: Company */}
-          <div className="space-y-3 text-center sm:text-left">
-            <h4 className="text-sm font-bold text-white tracking-wider uppercase">Company</h4>
-            <ul className="space-y-2 text-xs font-light">
+          <div className="space-y-3 max-[320px]:space-y-0 text-center sm:text-left max-[320px]:border-b max-[320px]:border-white/10 max-[320px]:w-full">
+            <div 
+              onClick={() => handleToggle('company')}
+              className="max-[320px]:cursor-pointer max-[320px]:flex max-[320px]:items-center max-[320px]:gap-4 max-[320px]:py-3.5 select-none text-center sm:text-left max-[320px]:text-left"
+            >
+              <div className="hidden max-[320px]:flex w-11 h-11 rounded-full bg-white/5 items-center justify-center text-[#00C896] text-xl shrink-0">
+                <MdBusiness />
+              </div>
+              <div className="flex-grow flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white tracking-wider uppercase">Company</h4>
+                <span className="hidden max-[320px]:inline-block text-base font-bold select-none text-white/60 w-6 text-right">
+                  {activeSection === 'company' ? '−' : '+'}
+                </span>
+              </div>
+            </div>
+            <ul className={`space-y-2 text-xs font-light transition-all duration-300 max-[320px]:overflow-hidden text-center sm:text-left max-[320px]:text-left max-[320px]:pl-[60px] ${
+              activeSection === 'company' 
+                ? 'max-[320px]:max-h-40 max-[320px]:pb-4 max-[320px]:opacity-100' 
+                : 'max-[320px]:max-h-0 max-[320px]:opacity-0 max-[320px]:pointer-events-none'
+            }`}>
               <li>
                 <Link to="/about" className="hover:text-primary transition-colors">About Us</Link>
               </li>
@@ -86,9 +111,26 @@ export default function Footer() {
           </div>
 
           {/* Column 3: Customer Care */}
-          <div className="space-y-3 text-center sm:text-left">
-            <h4 className="text-sm font-bold text-white tracking-wider uppercase">Customer</h4>
-            <ul className="space-y-2 text-xs font-light">
+          <div className="space-y-3 max-[320px]:space-y-0 text-center sm:text-left max-[320px]:border-b max-[320px]:border-white/10 max-[320px]:w-full">
+            <div 
+              onClick={() => handleToggle('customer')}
+              className="max-[320px]:cursor-pointer max-[320px]:flex max-[320px]:items-center max-[320px]:gap-4 max-[320px]:py-3.5 select-none text-center sm:text-left max-[320px]:text-left"
+            >
+              <div className="hidden max-[320px]:flex w-11 h-11 rounded-full bg-white/5 items-center justify-center text-[#00C896] text-xl shrink-0">
+                <MdPeople />
+              </div>
+              <div className="flex-grow flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white tracking-wider uppercase">Customer</h4>
+                <span className="hidden max-[320px]:inline-block text-base font-bold select-none text-white/60 w-6 text-right">
+                  {activeSection === 'customer' ? '−' : '+'}
+                </span>
+              </div>
+            </div>
+            <ul className={`space-y-2 text-xs font-light transition-all duration-300 max-[320px]:overflow-hidden text-center sm:text-left max-[320px]:text-left max-[320px]:pl-[60px] ${
+              activeSection === 'customer' 
+                ? 'max-[320px]:max-h-40 max-[320px]:pb-4 max-[320px]:opacity-100' 
+                : 'max-[320px]:max-h-0 max-[320px]:opacity-0 max-[320px]:pointer-events-none'
+            }`}>
               <li>
                 <Link to="/order-tracking" className="hover:text-primary transition-colors">Track Orders</Link>
               </li>
@@ -102,9 +144,26 @@ export default function Footer() {
           </div>
 
           {/* Column 4: Services */}
-          <div className="space-y-3 text-center sm:text-left">
-            <h4 className="text-sm font-bold text-white tracking-wider uppercase">Services</h4>
-            <ul className="space-y-2 text-xs font-light">
+          <div className="space-y-3 max-[320px]:space-y-0 text-center sm:text-left max-[320px]:border-b max-[320px]:border-white/10 max-[320px]:w-full">
+            <div 
+              onClick={() => handleToggle('services')}
+              className="max-[320px]:cursor-pointer max-[320px]:flex max-[320px]:items-center max-[320px]:gap-4 max-[320px]:py-3.5 select-none text-center sm:text-left max-[320px]:text-left"
+            >
+              <div className="hidden max-[320px]:flex w-11 h-11 rounded-full bg-white/5 items-center justify-center text-[#00C896] text-xl shrink-0">
+                <MdHeadsetMic />
+              </div>
+              <div className="flex-grow flex items-center justify-between">
+                <h4 className="text-sm font-bold text-white tracking-wider uppercase">Services</h4>
+                <span className="hidden max-[320px]:inline-block text-base font-bold select-none text-white/60 w-6 text-right">
+                  {activeSection === 'services' ? '−' : '+'}
+                </span>
+              </div>
+            </div>
+            <ul className={`space-y-2 text-xs font-light transition-all duration-300 max-[320px]:overflow-hidden text-center sm:text-left max-[320px]:text-left max-[320px]:pl-[60px] ${
+              activeSection === 'services' 
+                ? 'max-[320px]:max-h-40 max-[320px]:pb-4 max-[320px]:opacity-100' 
+                : 'max-[320px]:max-h-0 max-[320px]:opacity-0 max-[320px]:pointer-events-none'
+            }`}>
               <li>
                 <Link to="/medicines" className="hover:text-primary transition-colors leading-normal">Medicines</Link>
               </li>
@@ -125,8 +184,8 @@ export default function Footer() {
         </div>
 
         {/* Column 5: Legal & Contact details wrapper for mobile responsiveness */}
-        <div className="mt-12 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4 items-center text-center md:text-left">
-          <div className="flex flex-wrap gap-4 text-xs font-light justify-center md:justify-start">
+        <div className="mt-12 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4 items-center text-center md:text-left max-[320px]:mt-6 max-[320px]:pt-6 max-[320px]:gap-y-3">
+          <div className="flex flex-wrap gap-4 text-xs font-light justify-center md:justify-start max-[320px]:text-[11px] max-[320px]:gap-2">
             <span 
               onClick={() => setIsPrivacyOpen(true)}
               className="hover:text-primary transition-colors cursor-pointer"
@@ -141,13 +200,13 @@ export default function Footer() {
               Terms & Conditions
             </span>
           </div>
-          <div className="flex flex-wrap gap-6 justify-center md:justify-end text-xs text-white/50">
+          <div className="flex flex-wrap gap-6 justify-center md:justify-end text-xs text-white/50 max-[320px]:flex-col max-[320px]:gap-2 max-[320px]:items-center max-[320px]:text-[11px]">
             <div className="flex items-center gap-1.5 justify-center">
-              <MdPhone className="text-primary text-base" />
+              <MdPhone className="text-primary text-base shrink-0" />
               <span>{systemSettings?.supportPhone || "+1 (555) 019-2834"}</span>
             </div>
-            <div className="flex items-center gap-1.5 justify-center">
-              <MdMail className="text-primary text-base" />
+            <div className="flex items-center gap-1.5 justify-center truncate max-w-full">
+              <MdMail className="text-primary text-base shrink-0" />
               <span>{systemSettings?.supportEmail || "support@mediquick.com"}</span>
             </div>
           </div>
@@ -156,10 +215,15 @@ export default function Footer() {
       </div>
 
       {/* 🚀 BOTTOM ROW BAR (Copyright / Payments) */}
-      <div className="w-full bg-[#032025] py-4 text-center">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-white/40">
-          <p>&copy; {new Date().getFullYear()} MediQuick. All rights reserved. Sourced under pharma licensing norms.</p>
-          <div className="flex items-center gap-1">
+      <div className="w-full bg-[#032025] py-4 text-center max-[320px]:py-3.5">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-white/40 max-[320px]:flex-row max-[320px]:justify-center max-[320px]:gap-3 max-[320px]:px-5">
+          <div className="hidden max-[320px]:flex w-9 h-9 rounded-full border border-white/10 items-center justify-center text-[#00C896] shrink-0">
+            <MdSecurity className="text-base" />
+          </div>
+          <div className="text-center sm:text-left max-[320px]:text-left leading-normal">
+            <p>&copy; {new Date().getFullYear()} MediQuick. All rights reserved. <span className="max-[320px]:block">Sourced under pharma licensing norms.</span></p>
+          </div>
+          <div className="flex items-center gap-1 max-[320px]:hidden">
             <MdSecurity className="text-base text-primary/60" />
             <span className="uppercase tracking-widest">100% Secure Transaction Guarantee</span>
           </div>

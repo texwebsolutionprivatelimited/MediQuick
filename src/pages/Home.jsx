@@ -168,9 +168,22 @@ const FAQS = [
 function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { cartItems, addToCart, updateQuantity } = useCart();
+
+  const [isSmallMobile, setIsSmallMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallMobile(window.innerWidth <= 320);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!products || products.length === 0) return null;
   
-  const displayedProducts = products.slice(0, 10);
+  const limit = isSmallMobile ? 4 : 10;
+  const displayedProducts = products.slice(0, limit);
   
   return (
     <section className="py-12 max-[320px]:py-5 bg-white border-t border-dark/5">
@@ -296,7 +309,7 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
           ))}
         </div>
 
-        {viewMoreUrl && (alwaysShowViewMore || products.length > 10) && (
+        {viewMoreUrl && (alwaysShowViewMore || products.length > limit) && (
           <div className="flex justify-center mt-8 max-[320px]:mt-4">
             <Link
               to={viewMoreUrl}
@@ -500,7 +513,7 @@ export default function Home() {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden pt-10 sm:pt-14 md:pt-20 pb-8 md:pb-12 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0]"
+        className="relative overflow-hidden pt-4 sm:pt-6 md:pt-8 pb-8 md:pb-12 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0] max-[320px]:pt-2 max-[320px]:pb-4"
       >
         {/* Abstract Medical Background Shapes */}
         <div className="absolute top-10 left-10 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none animate-pulse" />
@@ -508,7 +521,7 @@ export default function Home() {
         <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/5 blur-xl pointer-events-none" />
  
         <div className="container mx-auto px-4 lg:px-6 w-full relative z-10">
-          <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-center justify-between">
+          <div className="flex flex-col md:flex-row gap-3 sm:gap-6 md:gap-8 lg:gap-12 items-center justify-between">
             
             {/* Left Column: Heading & CTAs */}
             <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-3 sm:space-y-4">
@@ -547,6 +560,151 @@ export default function Home() {
                 .animate-float-fast {
                   animation: floatFast 4s ease-in-out infinite;
                 }
+                
+                .hero-badges-container {
+                  position: absolute;
+                  inset: 0;
+                  z-index: 20;
+                  pointer-events: none;
+                }
+                .hero-badge-wrap {
+                  position: absolute;
+                  z-index: 20;
+                  pointer-events: auto;
+                }
+                .hb-pos-1 { top: 4%; left: 4%; }
+                .hb-pos-2 { top: 4%; right: 4%; }
+                .hb-pos-3 { top: 45%; left: 4%; }
+                .hb-pos-4 { top: 45%; right: 4%; }
+                .hb-pos-5 { bottom: 4%; left: 50%; transform: translateX(-50%); }
+
+                /* Default Styles for Hero Badges */
+                .hero-badge-pill {
+                  background-color: rgba(255, 255, 255, 0.95);
+                  border: 1px solid #E2F3F0;
+                  box-shadow: 0 8px 30px rgba(0,150,136,0.08);
+                  padding: 10px 14px;
+                  border-radius: 9999px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  transition: transform 300ms ease;
+                }
+                .hero-badge-pill:hover {
+                  transform: scale(1.03);
+                }
+                .hero-badge-icon-wrap {
+                  width: 28px;
+                  height: 28px;
+                  border-radius: 9999px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+                }
+                .hero-badge-icon-svg {
+                  width: 14px;
+                  height: 14px;
+                }
+                .hero-badge-title {
+                  display: block;
+                  font-size: 9.5px;
+                  font-weight: 900;
+                  color: #063B44;
+                  text-transform: uppercase;
+                  line-height: 1;
+                  letter-spacing: 0.05em;
+                }
+                .hero-badge-subtitle {
+                  display: block;
+                  font-size: 7.5px;
+                  color: rgba(6, 59, 68, 0.55);
+                  font-weight: 500;
+                  line-height: 1;
+                }
+
+                /* Mobile Sizing: 360px to 414px viewports */
+                @media (max-width: 450px) {
+                  .hero-doctor-img {
+                    object-position: 28% top !important;
+                  }
+                  .hero-badges-container {
+                    top: 50% !important;
+                    right: 6px !important;
+                    left: auto !important;
+                    bottom: auto !important;
+                    transform: translateY(-50%) !important;
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 5px !important;
+                    width: auto !important;
+                    height: auto !important;
+                  }
+                  .hero-badge-wrap {
+                    position: relative !important;
+                    top: auto !important;
+                    bottom: auto !important;
+                    left: auto !important;
+                    right: auto !important;
+                    transform: none !important;
+                  }
+                  .hero-badge-pill {
+                    padding: 5px 8px;
+                    gap: 5px;
+                    border-radius: 9999px;
+                    max-width: 120px;
+                  }
+                  .hero-badge-icon-wrap {
+                    width: 20px;
+                    height: 20px;
+                  }
+                  .hero-badge-icon-svg {
+                    width: 10px;
+                    height: 10px;
+                  }
+                  .hero-badge-title {
+                    font-size: 7.5px;
+                  }
+                  .hero-badge-subtitle {
+                    font-size: 6px;
+                    margin-top: 1px;
+                  }
+                }
+
+                /* Extreme Mobile Sizing: 320px viewport */
+                @media (max-width: 320px) {
+                  .hero-doctor-img {
+                    object-position: 25% top !important;
+                  }
+                  .hero-badges-container {
+                    right: 4px !important;
+                    gap: 4px !important;
+                  }
+                  .hero-badge-pill {
+                    padding: 3.5px 5px !important;
+                    gap: 3px !important;
+                    border-radius: 12px !important;
+                    max-width: 90px !important;
+                  }
+                  .hero-badge-icon-wrap {
+                    width: 16px !important;
+                    height: 16px !important;
+                  }
+                  .hero-badge-icon-svg {
+                    width: 8px !important;
+                    height: 8px !important;
+                  }
+                  .hero-badge-title {
+                    font-size: 6.5px !important;
+                    letter-spacing: 0.005em !important;
+                  }
+                  .hero-badge-subtitle {
+                    font-size: 5px !important;
+                    margin-top: 0px !important;
+                  }
+                }
+
                 @media (max-width: 340px) {
                   .hero-desc-full {
                     display: none;
@@ -631,8 +789,8 @@ export default function Home() {
             </div>
 
             {/* Right Column: Complete Healthcare Visual Section */}
-            <div className="w-full md:w-[53%] xl:w-[46%] flex flex-col justify-center items-center md:items-end mt-6 md:mt-0 select-none md:pr-10 lg:pr-16">
-              <div className="w-full max-w-[170px] min-[340px]:max-w-[190px] min-[360px]:max-w-[220px] min-[400px]:max-w-[240px] sm:max-w-[300px] md:max-w-[340px] lg:max-w-[350px]">
+            <div className="w-full md:w-[50%] xl:w-[45%] flex flex-col justify-center items-center md:items-end mt-2 md:mt-0 select-none">
+              <div className="w-full max-w-[220px] min-[340px]:max-w-[240px] min-[360px]:max-w-[260px] min-[400px]:max-w-[290px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[410px] xl:max-w-[440px]">
                 
                 {/* Doctor Photo Wrapper (Positioning Parent) */}
                 <motion.div
@@ -646,96 +804,88 @@ export default function Home() {
                     <img
                       src="/images/hero-doctor.jpg"
                       alt="Professional Healthcare Doctor"
-                      className="w-full h-full object-cover object-[center_top] transition-all duration-500 hover:scale-[1.02]"
+                      className="w-full h-full object-cover object-[center_top] transition-all duration-500 hover:scale-[1.02] hero-doctor-img"
                       loading="lazy"
                     />
-                  </div>
 
-                  {/* Floating Card 1: 1 Hour Delivery (Top-Left) */}
-                  <div className="absolute top-[-8%] left-[-16%] max-[360px]:left-[-22%] z-20 select-none animate-float-slow">
-                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
-                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center shrink-0 shadow-inner">
-                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-orange-500" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M11 21h-1l1.5-7h-5l6-12h1l-1.5 7h5z" />
-                        </svg>
+                    {/* Wrapper Container for Responsive Placement */}
+                    <div className="hero-badges-container">
+                      {/* Floating Card 1: 1 Hour Delivery (Top-Left) */}
+                      <div className="hero-badge-wrap hb-pos-1 animate-float-slow">
+                        <div className="hero-badge-pill">
+                          <div className="hero-badge-icon-wrap bg-orange-50 text-orange-500">
+                            <svg className="hero-badge-icon-svg text-orange-500" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M11 21h-1l1.5-7h-5l6-12h1l-1.5 7h5z" />
+                            </svg>
+                          </div>
+                          <div className="text-left text-nowrap">
+                            <span className="hero-badge-title">1 Hour Delivery</span>
+                            <span className="hero-badge-subtitle">Priority dispatch</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-left text-nowrap">
-                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">1 Hour Delivery</span>
-                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Priority dispatch</span>
+
+                      {/* Floating Card 2: 100% Genuine (Top-Right) */}
+                      <div className="hero-badge-wrap hb-pos-2 animate-float-fast">
+                        <div className="hero-badge-pill">
+                          <div className="hero-badge-icon-wrap bg-emerald-50 text-emerald-500">
+                            <svg className="hero-badge-icon-svg text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                          </div>
+                          <div className="text-left text-nowrap">
+                            <span className="hero-badge-title">100% Genuine</span>
+                            <span className="hero-badge-subtitle">Original & authentic</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Floating Card 3: 10K+ Medicines (Middle-Left) */}
+                      <div className="hero-badge-wrap hb-pos-3 animate-float-slow">
+                        <div className="hero-badge-pill">
+                          <div className="hero-badge-icon-wrap bg-amber-50 text-amber-500">
+                            <svg className="hero-badge-icon-svg text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M6 3h12a3 3 0 0 1 3 3v4H3V6a3 3 0 0 1 3-3zm15 9v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6h18z" />
+                            </svg>
+                          </div>
+                          <div className="text-left text-nowrap">
+                            <span className="hero-badge-title">10K+ Medicines</span>
+                            <span className="hero-badge-subtitle">Everyday essentials</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Floating Card 4: 500+ Brands (Middle-Right) */}
+                      <div className="hero-badge-wrap hb-pos-4 animate-float-medium">
+                        <div className="hero-badge-pill">
+                          <div className="hero-badge-icon-wrap bg-sky-50 text-sky-500">
+                            <svg className="hero-badge-icon-svg text-sky-500" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M19 4H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V8h2v4h4v2z" />
+                            </svg>
+                          </div>
+                          <div className="text-left text-nowrap">
+                            <span className="hero-badge-title">500+ Brands</span>
+                            <span className="hero-badge-subtitle">Trusted health partners</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Floating Card 5: Certified Doctors (Bottom-Center) */}
+                      <div className="hero-badge-wrap hb-pos-5 animate-float-medium">
+                        <div className="hero-badge-pill">
+                          <div className="hero-badge-icon-wrap bg-teal-50 text-teal-600">
+                            <svg className="hero-badge-icon-svg text-teal-600" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                            </svg>
+                          </div>
+                          <div className="text-left text-nowrap">
+                            <span className="hero-badge-title">Certified Doctors</span>
+                            <span className="hero-badge-subtitle">Expert consultations</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Floating Card 2: 500+ Brands (Right-Middle) */}
-                  <div className="absolute top-[22%] right-[-26%] max-[360px]:right-[-32%] z-20 select-none animate-float-medium">
-                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
-                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-sky-50 text-sky-500 flex items-center justify-center shrink-0 shadow-inner">
-                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-sky-500" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M19 4H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V8h2v4h4v2z" />
-                        </svg>
-                      </div>
-                      <div className="text-left text-nowrap">
-                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">500+ Brands</span>
-                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Trusted health partners</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Floating Card 3: 10K+ Medicines (Right-Lower) */}
-                  <div className="absolute bottom-[22%] right-[-22%] max-[360px]:right-[-28%] z-20 select-none animate-float-slow">
-                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
-                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0 shadow-inner">
-                        <svg className="w-2.5 h-2.5 min-[360px]:w-3 min-[360px]:h-3 sm:w-3.5 sm:h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M6 3h12a3 3 0 0 1 3 3v4H3V6a3 3 0 0 1 3-3zm15 9v6a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-6h18z" />
-                        </svg>
-                      </div>
-                      <div className="text-left text-nowrap">
-                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">10K+ Medicines</span>
-                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Everyday essentials</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Floating Card 4: Certified Doctors (Bottom-Left) */}
-                  <div className="absolute bottom-[-8%] left-[-12%] max-[360px]:left-[-18%] z-20 select-none animate-float-medium">
-                    <div className="bg-white border border-[#E2F3F0] shadow-[0_8px_30px_rgba(0,150,136,0.08)] py-1 px-2 min-[360px]:py-1.5 min-[360px]:px-3 sm:py-2.5 sm:px-3.5 rounded-full flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 transition-transform hover:scale-[1.03]">
-                      <div className="w-4.5 h-4.5 min-[360px]:w-5.5 min-[360px]:h-5.5 sm:w-7 sm:h-7 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 shadow-inner">
-                        <svg className="w-3 h-3 min-[360px]:w-3.5 min-[360px]:h-3.5 sm:w-4.5 sm:h-4.5 text-teal-600" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                        </svg>
-                      </div>
-                      <div className="text-left text-nowrap">
-                        <span className="block text-[6.5px] min-[360px]:text-[7.5px] sm:text-[8.5px] font-black tracking-wider text-[#063B44] uppercase leading-none">Certified Doctors</span>
-                        <span className="block text-[5px] min-[360px]:text-[5.5px] sm:text-[7.5px] text-dark/45 font-medium mt-0.5 leading-none">Expert consultations</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Decorative Element 1: Medical Bag (Top-Right) */}
-                  <div className="absolute top-[-8%] right-[12%] z-20 select-none animate-float-slow hidden min-[400px]:block">
-                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
-                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-pink-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-10-2h4v2h-4V4zm6 10h-3v3h-2v-3H8v-2h3V9h2v3h3v2z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* Decorative Element 2: Delivery Truck (Middle-Left) */}
-                  <div className="absolute top-[48%] left-[-14%] z-20 select-none animate-float-medium hidden sm:block">
-                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
-                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm12 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-7.5h-2.5V9h2.5v2z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {/* Decorative Element 3: Medicine Bottle (Middle-Right) */}
-                  <div className="absolute top-[48%] right-[-14%] z-20 select-none animate-float-slow hidden sm:block">
-                    <div className="w-7 h-7 sm:w-9.5 sm:h-9.5 rounded-xl bg-white/90 backdrop-blur-sm border border-[#E2F3F0] shadow-[0_8px_20px_rgba(0,150,136,0.06)] flex items-center justify-center transition-transform hover:scale-[1.1] duration-300">
-                      <svg className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-pink-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2a4 4 0 0 0-4 4v2h8V6a4 4 0 0 0-4-4zm-4 8h8v10a2 2 0 0 1-2 2h-4a2 2 0 1 0-2-2V10zm4 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
-                      </svg>
-                    </div>
                   </div>
 
                 </motion.div>
@@ -832,7 +982,7 @@ export default function Home() {
           <h2 className="text-2xl font-bold text-dark mb-10">Why Choose MediQuick?</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
+            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
               <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 shadow-soft flex items-center justify-center text-xl">
                 ✔️
               </div>
@@ -840,7 +990,7 @@ export default function Home() {
               <p className="text-[11px] text-dark/55 leading-relaxed font-light">100% genuine pharmaceutical stock batches.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
+            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
               <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 shadow-soft flex items-center justify-center text-xl">
                 🛡️
               </div>
@@ -848,7 +998,7 @@ export default function Home() {
               <p className="text-[11px] text-dark/55 leading-relaxed font-light">Operated by registered medical pharmacists.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
+            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
               <div className="w-12 h-12 rounded-full bg-cyan-50 text-cyan-600 shadow-soft flex items-center justify-center text-xl">
                 ⚡
               </div>
@@ -856,7 +1006,7 @@ export default function Home() {
               <p className="text-[11px] text-dark/55 leading-relaxed font-light">Lightning priority shipping under 1 hour.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
+            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
               <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 shadow-soft flex items-center justify-center text-xl">
                 🔒
               </div>
@@ -864,7 +1014,7 @@ export default function Home() {
               <p className="text-[11px] text-dark/55 leading-relaxed font-light">Fully encrypted checkouts and UPI options.</p>
             </div>
 
-            <div className="col-span-2 lg:col-span-1 flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5">
+            <div className="sm:col-span-2 md:col-span-1 lg:col-span-1 flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
               <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 shadow-soft flex items-center justify-center text-xl">
                 📞
               </div>

@@ -152,13 +152,15 @@ html, body {
 
 /* Premium Product Card Hover Animation */
 .premium-card-hover {
-  transition: transform 250ms ease-in-out, box-shadow 250ms ease-in-out;
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), border-color 300ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, box-shadow;
 }
 
-.premium-card-hover:hover {
-  transform: translateY(-6px) scale(1.03);
-  box-shadow: 0 10px 25px -5px rgba(6, 59, 68, 0.1), 0 8px 16px -4px rgba(6, 59, 68, 0.05);
+@media (hover: hover) {
+  .premium-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px -4px rgba(6, 59, 68, 0.06), 0 4px 12px -3px rgba(6, 59, 68, 0.03);
+  }
 }
 
 /* Standardized Product Image Container */
@@ -190,13 +192,15 @@ html, body {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transform: scale(1.05); /* Slightly scale up to reduce excessive transparent margins/edges */
-  transition: transform 300ms ease-in-out;
+  transform: scale(1.02);
+  transition: transform 300ms ease;
   will-change: transform;
 }
 
-.premium-card-hover:hover .product-image-container img {
-  transform: scale(1.08); /* Zoom only the product image slightly (3%) on card hover */
+@media (hover: hover) {
+  .premium-card-hover:hover .product-image-container img {
+    transform: scale(1.08);
+  }
 }
 
 /* Samsung Galaxy S8+ (360px width) navbar overrides */
@@ -281,10 +285,6 @@ html, body {
     transform: scale(1) !important;
     object-fit: contain !important;
   }
-  /* Allow slight zoom transition on hover for tiny devices */
-  .premium-card-hover:hover .product-image-container img {
-    transform: scale(1.04) !important;
-  }
 }
 
 /* Responsive Product Image Frame Scaling for 344px and 360px on Product Details page */
@@ -323,12 +323,6 @@ html, body {
   will-change: transform, box-shadow;
 }
 
-/* Reduced card hover lift on mobile to avoid overlapping */
-@media (max-width: 640px) {
-  .premium-card-hover:hover {
-    transform: translateY(-4px) scale(1.01) !important;
-  }
-}
 
 /* 2. QuantityStepper mount scale pop-in */
 @keyframes popIn {
