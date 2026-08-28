@@ -196,7 +196,7 @@ export default function Navigation() {
       
       {/* 🚀 DESKTOP/TABLET HEADER (Hidden on small mobile screens below md) */}
       <div className="hidden md:block w-full bg-white/95 backdrop-blur-md border-b border-dark/5 py-4 lg:py-5 relative z-10">
-        <div className="container mx-auto px-4 lg:px-6 flex flex-row items-center justify-between gap-4 lg:gap-8">
+        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 flex flex-row items-center justify-between gap-4 lg:gap-8">
           
           {/* Left section: Logo + Search */}
           <div className="flex flex-row items-center justify-between gap-3 sm:gap-4 flex-grow w-full lg:w-auto">
@@ -995,7 +995,7 @@ export default function Navigation() {
 
       {/* 🚀 NAVIGATION BAR (Emerald-Green Strip) (Hidden on mobile) */}
       <div className="hidden md:block w-full bg-[#00897B] text-white relative">
-        <div className="container mx-auto px-4 flex items-center gap-4 h-11 text-xs sm:text-sm font-semibold">
+        <div className="max-w-[1440px] w-full mx-auto px-4 flex items-center gap-4 h-11 text-xs sm:text-sm font-semibold">
           
           {/* Categories dropdown tab (Fixed, no overflow clipping) */}
           <div 
@@ -1082,7 +1082,7 @@ export default function Navigation() {
           </AnimatePresence>
           </div>
 
-          <div className="flex items-center justify-between overflow-visible h-full flex-grow pl-6 lg:pl-12">
+          <div className="flex items-center justify-start gap-4 lg:gap-8 xl:gap-14 overflow-visible h-full flex-grow pl-6 lg:pl-12">
             <Link to="/" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isHomeActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Home</Link>
             <Link to="/medicines" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isMedicinesActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Medicines</Link>
             <Link to="/medicines?category=Lab%20Tests" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isLabTestsActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Lab Tests</Link>

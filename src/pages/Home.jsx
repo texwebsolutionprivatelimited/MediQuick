@@ -513,18 +513,18 @@ export default function Home() {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden pt-4 sm:pt-6 md:pt-8 pb-8 md:pb-12 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0] max-[320px]:pt-2 max-[320px]:pb-4"
+        className="relative overflow-hidden pt-1.5 sm:pt-2 md:pt-2.5 pb-12 md:pb-16 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0] max-[320px]:pt-1 max-[320px]:pb-2"
       >
         {/* Abstract Medical Background Shapes */}
         <div className="absolute top-10 left-10 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none animate-pulse" />
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/5 blur-xl pointer-events-none" />
  
-        <div className="container mx-auto px-4 lg:px-6 w-full relative z-10">
+        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 relative z-10">
           <div className="flex flex-col md:flex-row gap-3 sm:gap-6 md:gap-8 lg:gap-12 items-center justify-between">
             
             {/* Left Column: Heading & CTAs */}
-            <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-3 sm:space-y-4">
+            <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-2 md:space-y-3">
               <motion.h1
                 variants={fadeUpVariants}
                 initial="hidden"
@@ -572,11 +572,11 @@ export default function Home() {
                   z-index: 20;
                   pointer-events: auto;
                 }
-                .hb-pos-1 { top: 4%; left: 4%; }
-                .hb-pos-2 { top: 4%; right: 4%; }
-                .hb-pos-3 { top: 45%; left: 4%; }
-                .hb-pos-4 { top: 45%; right: 4%; }
-                .hb-pos-5 { bottom: 4%; left: 50%; transform: translateX(-50%); }
+                .hb-pos-1 { top: 6%; left: 4%; }
+                .hb-pos-2 { top: 6%; right: 4%; }
+                .hb-pos-3 { top: 50%; left: 4%; }
+                .hb-pos-4 { top: 50%; right: 4%; }
+                .hb-pos-5 { bottom: 6%; right: 4%; }
 
                 /* Default Styles for Hero Badges */
                 .hero-badge-pill {
@@ -751,7 +751,7 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex flex-col sm:flex-row gap-3 pt-1 w-full sm:w-auto justify-center md:justify-start"
+                className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center md:justify-start"
               >
                 <Link to="/medicines" className="block w-full sm:inline-block sm:w-auto">
                   <Button 
@@ -779,7 +779,7 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
-                className="flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 min-[360px]:gap-x-4 gap-y-2 text-[9px] min-[360px]:text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none pt-1"
+                className="flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 min-[360px]:gap-x-4 gap-y-2 text-[9px] min-[360px]:text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none"
               >
                 <span className="flex items-center gap-1.5"><MdVerified className="text-primary text-sm" /> 100% Genuine</span>
                 <span className="flex items-center gap-1.5"><MdPayment className="text-primary text-sm" /> Secure Payments</span>
@@ -789,8 +789,8 @@ export default function Home() {
             </div>
 
             {/* Right Column: Complete Healthcare Visual Section */}
-            <div className="w-full md:w-[50%] xl:w-[45%] flex flex-col justify-center items-center md:items-end mt-2 md:mt-0 select-none">
-              <div className="w-full max-w-[220px] min-[340px]:max-w-[240px] min-[360px]:max-w-[260px] min-[400px]:max-w-[290px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[410px] xl:max-w-[440px]">
+            <div className="w-full md:w-[50%] xl:w-[48%] flex flex-col justify-center items-center md:items-end mt-2 md:mt-0 select-none">
+              <div className="w-full max-w-[260px] min-[340px]:max-w-[280px] min-[360px]:max-w-[300px] min-[400px]:max-w-[320px] sm:max-w-[390px] md:max-w-[450px] lg:max-w-[490px] xl:max-w-[540px]">
                 
                 {/* Doctor Photo Wrapper (Positioning Parent) */}
                 <motion.div
@@ -800,7 +800,7 @@ export default function Home() {
                   className="relative w-full mx-auto"
                 >
                   {/* Doctor Image Card */}
-                  <div className="relative aspect-[3/4] w-full rounded-[24px] sm:rounded-[32px] overflow-hidden border-[6px] sm:border-[8px] border-white shadow-[0_20px_50px_rgba(0,150,136,0.12)] bg-white z-10">
+                  <div className="relative aspect-[4/3] w-full rounded-[24px] sm:rounded-[32px] overflow-hidden border-[6px] sm:border-[8px] border-white shadow-[0_20px_50px_rgba(0,150,136,0.12)] bg-white z-10">
                     <img
                       src="/images/hero-doctor.jpg"
                       alt="Professional Healthcare Doctor"
@@ -897,7 +897,7 @@ export default function Home() {
 
       {/* 🚀 4. PREMIUM STATISTICS BAR */}
       <div className="border-b border-dark/5 bg-white py-8 select-none">
-        <div className="container mx-auto px-4 lg:px-6 w-full">
+        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x-0 md:divide-x divide-dark/5">
             <div className="space-y-1">
               <span className="block text-2xl sm:text-3xl font-extrabold text-[#063B44]">
