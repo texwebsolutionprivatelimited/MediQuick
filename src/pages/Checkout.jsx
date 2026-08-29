@@ -5,7 +5,8 @@ import { useLocation } from '../context/LocationContext';
 import { useSettings } from '../context/SettingsContext';
 import { useAuth } from '../context/AuthContext';
 import { db, isConfigValid } from '../firebase/firebase';
-import { doc, setDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { useProducts } from '../context/ProductsContext';
 import Card from '../components/Card';
 import { 
   MdChevronRight, 
@@ -26,6 +27,7 @@ export default function Checkout() {
   const { address, detectLocation, loading: locLoading, error: locError, distance, deliveryType, calculateDeliveryFee } = useLocation();
   const { systemSettings, deliverySettings } = useSettings();
   const { currentUser } = useAuth();
+  const { deductLocalStock } = useProducts();
 
   // Buy Now flow context items resolving
   const buyNowProduct = routerLocation.state?.buyNowProduct;
@@ -384,26 +386,79 @@ export default function Checkout() {
 
     try {
       if (isConfigValid && db) {
-        // Write to root orders collection (Admin Dashboard queries this)
-        await setDoc(doc(db, 'orders', orderId), newOrder);
-        
-        // Write to user specific orders subcollection (for user-side queries)
-        if (currentUser?.uid) {
-          await setDoc(doc(db, 'users', currentUser.uid, 'orders', orderId), newOrder);
-          
-          // Generate notification for order placement in Firestore
-          await addDoc(collection(db, 'notifications'), {
-            userId: currentUser.uid,
-            title: 'Order Placed Successfully!',
-            message: `Your order has been placed successfully. Reference: ${orderId}`,
-            type: 'order_confirmed',
-            isRead: false,
-            createdAt: serverTimestamp(),
-            actionUrl: '/order-tracking'
-          });
-        }
+        // Run atomic Firestore transaction to check & deduct stock and save order
+        await runTransaction(db, async (transaction) => {
+          // 1. Read all product documents first
+          const productDocs = [];
+          for (const item of checkoutItems) {
+            const productRef = doc(db, 'products', item.id);
+            const productSnap = await transaction.get(productRef);
+            if (!productSnap.exists()) {
+              throw new Error(`Product ${item.medicine_name} not found in database.`);
+            }
+            productDocs.push({
+              ref: productRef,
+              snap: productSnap,
+              item: item
+            });
+          }
+
+          // 2. Validate stock for all products
+          const stockUpdates = [];
+          for (const { ref, snap, item } of productDocs) {
+            const data = snap.data();
+            const currentStock = Number(data.stock !== undefined ? data.stock : 0);
+            if (currentStock < item.quantity) {
+              throw new Error(`Only ${currentStock} items available for ${item.medicine_name}.`);
+            }
+            stockUpdates.push({
+              ref,
+              newStock: currentStock - item.quantity
+            });
+          }
+
+          // 3. Perform stock updates
+          for (const { ref, newStock } of stockUpdates) {
+            transaction.update(ref, { stock: newStock });
+          }
+
+          // 4. Create the main order document
+          const orderRef = doc(db, 'orders', orderId);
+          transaction.set(orderRef, newOrder);
+
+          // 5. Create user order document and notification
+          if (currentUser?.uid) {
+            const userOrderRef = doc(db, 'users', currentUser.uid, 'orders', orderId);
+            transaction.set(userOrderRef, newOrder);
+
+            const notifRef = doc(collection(db, 'notifications'));
+            transaction.set(notifRef, {
+              userId: currentUser.uid,
+              title: 'Order Placed Successfully!',
+              message: `Your order has been placed successfully. Reference: ${orderId}`,
+              type: 'order_confirmed',
+              isRead: false,
+              createdAt: serverTimestamp(),
+              actionUrl: '/order-tracking'
+            });
+          }
+        });
       } else {
-        // Mock LocalStorage placement for offline mock mode
+        // Fallback for Local/Mock Mode
+        // 1. Validate local stock first
+        const localMedicines = JSON.parse(localStorage.getItem('mediquick_local_medicines') || '[]');
+        for (const item of checkoutItems) {
+          const localProd = localMedicines.find(p => p.id === item.id);
+          const currentStock = localProd ? Number(localProd.stock !== undefined ? localProd.stock : 0) : 0;
+          if (currentStock < item.quantity) {
+            throw new Error(`Only ${currentStock} items available for ${item.medicine_name}.`);
+          }
+        }
+
+        // 2. Deduct stock locally
+        deductLocalStock(checkoutItems);
+
+        // 3. Save mock order
         const stored = JSON.parse(localStorage.getItem('mediquick_local_orders') || '[]');
         stored.unshift(newOrder);
         localStorage.setItem('mediquick_local_orders', JSON.stringify(stored));
@@ -434,7 +489,11 @@ export default function Checkout() {
       }, 2500);
     } catch (err) {
       console.error("Error saving order: ", err);
-      alert("Failed to record order: " + err.message);
+      if (err.message && (err.message.includes("items available") || err.message.includes("not found"))) {
+        alert(err.message);
+      } else {
+        alert("Failed to record order: " + err.message);
+      }
     } finally {
       setIsPlacing(false);
     }

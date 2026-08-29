@@ -79,6 +79,7 @@ export default function Medicines() {
   // Local states
   const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [sortBy, setSortBy] = useState("Popularity");
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
 
@@ -419,7 +420,7 @@ export default function Medicines() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* 🛡️ SIDEBAR FILTERS (DESKTOP) */}
-          <aside className="hidden lg:block bg-white border border-dark/5 px-6 py-4 rounded-[24px] shadow-soft space-y-4 h-fit sticky top-24 select-none">
+          <aside className="hidden lg:block bg-white border border-dark/5 px-6 py-4 rounded-[24px] shadow-soft space-y-4 h-fit sticky top-24 select-none max-h-[calc(100vh-140px)] overflow-y-auto overscroll-y-contain scrollbar-thin">
             <div className="flex items-center justify-between border-b border-dark/5 pb-2">
               <h3 className="font-bold text-dark flex items-center gap-1.5">
                 <MdFilterList className="text-primary text-xl" /> Filters
@@ -564,7 +565,7 @@ export default function Medicines() {
           </aside>
 
           {/* 🧪 PRODUCT LIST SECTION */}
-          <main className="lg:col-span-3">
+          <main className="lg:col-span-3 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:overscroll-y-contain scrollbar-thin lg:pr-2">
             
             {/* 🏷️ HORIZONTAL CATEGORY QUICK-NAV */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none select-none -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -596,7 +597,13 @@ export default function Medicines() {
                         : 'bg-white text-dark/70 border-dark/10 hover:bg-background'
                     }`}
                   >
-                    <span>{icon}</span> {cat}
+                    <span className="flex items-center justify-center w-4 h-4 overflow-hidden select-none">
+                      {icon && (icon.startsWith('http') || icon.startsWith('/')) ? (
+                        <img src={icon} alt={cat} className="w-full h-full object-contain" />
+                      ) : (
+                        icon
+                      )}
+                    </span> {cat}
                   </button>
                 );
               })}
@@ -622,17 +629,42 @@ export default function Medicines() {
                 </button>
 
                 {/* Sort selector */}
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 relative">
                   <MdSort className="text-dark/45 text-lg" />
-                  <select 
-                    value={sortBy} 
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="border border-dark/10 bg-white text-xs font-bold text-dark/70 rounded-xl py-2 px-3 outline-none cursor-pointer hover:bg-background"
+                  <button 
+                    type="button"
+                    onClick={() => setIsSortOpen(!isSortOpen)}
+                    className="border border-dark/10 bg-white text-xs font-bold text-dark/70 rounded-xl py-2 px-3 outline-none cursor-pointer hover:bg-background flex items-center justify-between gap-2.5 select-none min-w-[155px]"
                   >
-                    {["Popularity", "Price Low to High", "Price High to Low", "Best Selling", "Discount", "New Arrivals"].map((opt) => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
+                    <span>{sortBy}</span>
+                    <span className="text-dark/80 font-black text-sm select-none leading-none">{isSortOpen ? "⌃" : "⌄"}</span>
+                  </button>
+
+                  {isSortOpen && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-30" 
+                        onClick={() => setIsSortOpen(false)} 
+                      />
+                      <div className="absolute right-0 top-full mt-1.5 bg-white border border-dark/10 rounded-xl shadow-premium py-1.5 z-40 min-w-[155px] text-xs font-bold text-dark/70 select-none">
+                        {["Popularity", "Price Low to High", "Price High to Low", "Best Selling", "Discount", "New Arrivals"].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              setSortBy(opt);
+                              setIsSortOpen(false);
+                            }}
+                            className={`w-full text-left px-3.5 py-2 hover:bg-background transition-colors ${
+                              sortBy === opt ? "text-primary bg-primary/5" : ""
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

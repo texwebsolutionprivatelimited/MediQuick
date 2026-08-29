@@ -103,15 +103,38 @@ export function CartProvider({ children }) {
       navigate('/login', { state: { from: location } });
       return;
     }
+
+    const latestProduct = products?.find(p => p.id === item.id) || item;
+    const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+
+    if (currentStock <= 0) {
+      alert("Out of Stock");
+      return;
+    }
+
+    let limitExceeded = false;
+
     setRawCartItems((prevItems) => {
       const existing = prevItems.find((i) => i.id === item.id);
+      const currentQty = existing ? existing.quantity : 0;
+      const targetQty = currentQty + qty;
+
+      if (targetQty > currentStock) {
+        limitExceeded = true;
+        return prevItems;
+      }
+
       if (existing) {
         return prevItems.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + qty } : i
+          i.id === item.id ? { ...i, quantity: targetQty } : i
         );
       }
       return [...prevItems, { ...item, quantity: qty }];
     });
+
+    if (limitExceeded) {
+      alert(`Only ${currentStock} items available`);
+    }
   };
 
   const removeFromCart = (id) => {
@@ -123,6 +146,15 @@ export function CartProvider({ children }) {
       removeFromCart(id);
       return;
     }
+
+    const latestProduct = products?.find(p => p.id === id);
+    const currentStock = latestProduct ? Number(latestProduct.stock !== undefined ? latestProduct.stock : 0) : 9999;
+
+    if (qty > currentStock) {
+      alert(`Only ${currentStock} items available`);
+      return;
+    }
+
     setRawCartItems((prevItems) =>
       prevItems.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
     );

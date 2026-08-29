@@ -196,7 +196,7 @@ export default function Navigation() {
       
       {/* 🚀 DESKTOP/TABLET HEADER (Hidden on small mobile screens below md) */}
       <div className="hidden md:block w-full bg-white/95 backdrop-blur-md border-b border-dark/5 py-4 lg:py-5 relative z-10">
-        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 flex flex-row items-center justify-between gap-4 lg:gap-8">
+        <div className="container mx-auto px-4 lg:px-6 flex flex-row items-center justify-between gap-4 lg:gap-8">
           
           {/* Left section: Logo + Search */}
           <div className="flex flex-row items-center justify-between gap-3 sm:gap-4 flex-grow w-full lg:w-auto">
@@ -875,7 +875,13 @@ export default function Navigation() {
                               onClick={() => setMobileMenuOpen(false)}
                               className="flex items-center gap-2 text-xs font-bold text-dark/85 hover:text-primary transition-colors"
                             >
-                              <span className="text-sm select-none">{cat.icon || '📦'}</span>
+                              <span className="text-sm select-none flex items-center justify-center w-5 h-5 overflow-hidden">
+                                {cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/')) ? (
+                                  <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                                ) : (
+                                  cat.icon || '📦'
+                                )}
+                              </span>
                               <span className="truncate">{cat.name}</span>
                             </Link>
                             
@@ -995,7 +1001,7 @@ export default function Navigation() {
 
       {/* 🚀 NAVIGATION BAR (Emerald-Green Strip) (Hidden on mobile) */}
       <div className="hidden md:block w-full bg-[#00897B] text-white relative">
-        <div className="max-w-[1440px] w-full mx-auto px-4 flex items-center gap-4 h-11 text-xs sm:text-sm font-semibold">
+        <div className="container mx-auto px-4 flex items-center gap-4 h-11 text-xs sm:text-sm font-semibold">
           
           {/* Categories dropdown tab (Fixed, no overflow clipping) */}
           <div 
@@ -1005,7 +1011,6 @@ export default function Navigation() {
           >
             <button 
               type="button"
-              onClick={() => setCategoriesDropdownOpen(!categoriesDropdownOpen)}
               className="flex items-center gap-1 px-4 bg-[#00695C] hover:bg-[#004D40] h-full text-xs font-bold uppercase transition-colors outline-none cursor-pointer select-none"
             >
               <MdMenu className="text-base" />
@@ -1015,9 +1020,7 @@ export default function Navigation() {
 
             <AnimatePresence>
               {categoriesDropdownOpen && (
-                <>
-                  <div onClick={() => setCategoriesDropdownOpen(false)} className="fixed inset-0 z-30" />
-                  <motion.div
+                <motion.div
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 15 }}
@@ -1034,7 +1037,7 @@ export default function Navigation() {
                       onClick={() => setCategoriesDropdownOpen(false)} 
                       className="text-xs font-bold text-primary hover:underline"
                     >
-                      View Catalog Catalog →
+                      View Catalog →
                     </Link>
                   </div>
                   
@@ -1048,7 +1051,13 @@ export default function Navigation() {
                             onClick={() => setCategoriesDropdownOpen(false)} 
                             className="flex items-center gap-2 text-dark font-black hover:text-primary transition-colors pb-1 border-b border-dark/5"
                           >
-                            <span className="text-sm select-none">{cat.icon || '📦'}</span>
+                            <span className="text-sm select-none flex items-center justify-center w-5 h-5 overflow-hidden">
+                              {cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/')) ? (
+                                <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                              ) : (
+                                cat.icon || '📦'
+                              )}
+                            </span>
                             <span className="truncate">{cat.name}</span>
                           </Link>
                           
@@ -1077,12 +1086,11 @@ export default function Navigation() {
                     )}
                   </div>
                 </motion.div>
-              </>
             )}
           </AnimatePresence>
           </div>
 
-          <div className="flex items-center justify-start gap-4 lg:gap-8 xl:gap-14 overflow-visible h-full flex-grow pl-6 lg:pl-12">
+          <div className="flex items-center justify-between overflow-visible h-full flex-grow pl-6 lg:pl-12">
             <Link to="/" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isHomeActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Home</Link>
             <Link to="/medicines" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isMedicinesActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Medicines</Link>
             <Link to="/medicines?category=Lab%20Tests" className={`w-28 h-8.5 inline-flex items-center justify-center text-center rounded-lg transition-colors shrink-0 ${isLabTestsActive ? "bg-[#00695C] text-white font-bold" : "text-white/85 hover:text-white hover:bg-[#00796B]/50"}`}>Lab Tests</Link>

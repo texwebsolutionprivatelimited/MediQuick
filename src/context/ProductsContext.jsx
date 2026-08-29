@@ -144,6 +144,8 @@ export function ProductsProvider({ children }) {
             composition: data.composition || '',
             uses: data.uses || '',
             image_url: data.image_url || '',
+            image_url_2: data.image_url_2 || '',
+            image_url_3: data.image_url_3 || '',
             discount_percentage: Number(data.discount_percentage || 0),
             last_updated: lastUpdatedStr
           });
@@ -218,10 +220,15 @@ export function ProductsProvider({ children }) {
     for (const prod of initialMedicines) {
       const docRef = doc(db, 'products', prod.id);
       let existingImageUrl = '';
+      let existingImageUrl2 = '';
+      let existingImageUrl3 = '';
       try {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          existingImageUrl = docSnap.data().image_url || '';
+          const docData = docSnap.data();
+          existingImageUrl = docData.image_url || '';
+          existingImageUrl2 = docData.image_url_2 || '';
+          existingImageUrl3 = docData.image_url_3 || '';
         }
       } catch (err) {
         console.warn(`Failed to check existing product ${prod.id} during seed:`, err);
@@ -229,6 +236,8 @@ export function ProductsProvider({ children }) {
       await setDoc(docRef, {
         ...prod,
         image_url: existingImageUrl || prod.image_url || '',
+        image_url_2: existingImageUrl2 || prod.image_url_2 || '',
+        image_url_3: existingImageUrl3 || prod.image_url_3 || '',
         last_updated: serverTimestamp()
       });
     }
@@ -359,6 +368,8 @@ export function ProductsProvider({ children }) {
         composition: medData.composition || dbExisting.composition || existing.composition || 'Active ingredients',
         uses: medData.uses || dbExisting.uses || existing.uses || 'General wellness',
         image_url: finalImageUrl,
+        image_url_2: medData.image_url_2 !== undefined ? medData.image_url_2 : (dbExisting.image_url_2 || existing.image_url_2 || ''),
+        image_url_3: medData.image_url_3 !== undefined ? medData.image_url_3 : (dbExisting.image_url_3 || existing.image_url_3 || ''),
         discount_percentage: calculatedDiscount,
         last_updated: new Date().toISOString()
       };
@@ -560,6 +571,20 @@ export function ProductsProvider({ children }) {
     }
   };
 
+  const deductLocalStock = (items) => {
+    setProducts((prev) => {
+      const updated = prev.map((p) => {
+        const orderItem = items.find((item) => item.id === p.id);
+        if (orderItem) {
+          return { ...p, stock: Math.max(0, p.stock - orderItem.quantity) };
+        }
+        return p;
+      });
+      localStorage.setItem('mediquick_local_medicines', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const updateProductStats = async (productId, averageRating, reviewCount) => {
     if (isConfigValid && db) {
       try {
@@ -591,6 +616,7 @@ export function ProductsProvider({ children }) {
     updateCategory,
     deleteCategory,
     updateProductStats,
+    deductLocalStock,
     isProductsSynced,
     productsSyncError,
     seedDatabase,

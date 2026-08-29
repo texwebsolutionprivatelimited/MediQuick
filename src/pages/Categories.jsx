@@ -46,8 +46,12 @@ export default function Categories() {
                 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-primary/5 text-primary text-xl flex items-center justify-center shadow-sm">
-                      {cat.icon}
+                    <span className="w-10 h-10 rounded-xl bg-primary/5 text-primary text-xl flex items-center justify-center shadow-sm overflow-hidden p-1">
+                      {cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/')) ? (
+                        <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                      ) : (
+                        cat.icon
+                      )}
                     </span>
                     <div>
                       <h3 className="font-bold text-dark text-sm sm:text-base hover:text-primary transition-colors">

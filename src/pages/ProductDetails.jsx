@@ -193,6 +193,12 @@ export default function ProductDetails() {
           if (pending.type === 'BUY_NOW' && pending.payload.product?.id === product.id) {
             localStorage.removeItem('mediquick_pending_action');
             const targetQty = pending.payload.quantity || quantity || 1;
+            const latestProduct = productsData?.find(p => p.id === product.id) || product;
+            const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+            if (targetQty > currentStock) {
+              alert(`Only ${currentStock} items available`);
+              return;
+            }
             if (product.prescription_required && !prescriptionUploaded) {
               setShowPrescriptionModal(true);
             } else {
@@ -207,6 +213,12 @@ export default function ProductDetails() {
           } else if (pending.type === 'ADD_TO_CART' && pending.payload.item?.id === product.id) {
             localStorage.removeItem('mediquick_pending_action');
             const targetQty = pending.payload.qty || quantity || 1;
+            const latestProduct = productsData?.find(p => p.id === product.id) || product;
+            const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+            if (targetQty > currentStock) {
+              alert(`Only ${currentStock} items available`);
+              return;
+            }
             const existingItem = cartItems.find(i => i.id === product.id);
             if (!existingItem) {
               addToCart(product, targetQty);
@@ -219,7 +231,7 @@ export default function ProductDetails() {
         }
       }
     }
-  }, [currentUser, product, prescriptionUploaded, addToCart, navigate, quantity, cartItems, updateQuantity]);
+  }, [currentUser, product, prescriptionUploaded, addToCart, navigate, quantity, cartItems, updateQuantity, productsData]);
 
 
   // Load reviews from Firestore or LocalStorage
@@ -503,10 +515,18 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       navigate('/login', { state: { from: location } });
       return;
     }
+    
+    const targetQty = quantity || 1;
+    const latestProduct = productsData?.find(p => p.id === product.id) || product;
+    const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+    if (targetQty > currentStock) {
+      alert(`Only ${currentStock} items available`);
+      return;
+    }
+
     if (product.prescription_required && !prescriptionUploaded) {
       setShowPrescriptionModal(true);
     } else {
-      const targetQty = quantity || 1;
       const existingItem = cartItems.find(i => i.id === product.id);
       if (!existingItem) {
         addToCart(product, targetQty);
@@ -533,6 +553,12 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       setPrescriptionFile(selectedFile);
       setShowPrescriptionModal(false);
       const targetQty = quantity || 1;
+      const latestProduct = productsData?.find(p => p.id === product.id) || product;
+      const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+      if (targetQty > currentStock) {
+        alert(`Only ${currentStock} items available`);
+        return;
+      }
       const existingItem = cartItems.find(i => i.id === product.id);
       if (!existingItem) {
         addToCart(product, targetQty);
@@ -563,7 +589,7 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
           {/* Left: Product Image Frame */}
           <div className="product-detail-image-frame md:col-span-5 flex items-center justify-center bg-white border border-dark/5 p-4 rounded-2xl min-h-[300px] overflow-hidden select-none">
             <div className="product-image-container product-detail-image-container drop-shadow-premium">
-              <MedicineImage product={product} />
+              <MedicineImage product={product} enableLightbox={true} />
             </div>
           </div>
 

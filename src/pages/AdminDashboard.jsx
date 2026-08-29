@@ -2368,7 +2368,9 @@ Remember that diabetes management is highly individual. Work closely with your h
     manufacturer: '',
     composition: '',
     uses: '',
-    image_url: ''
+    image_url: '',
+    image_url_2: '',
+    image_url_3: ''
   });
   const [editMedImageFile, setEditMedImageFile] = useState(null);
   const [editMedImagePreview, setEditMedImagePreview] = useState(null);
@@ -2601,6 +2603,30 @@ Remember that diabetes management is highly individual. Work closely with your h
       }
     }
 
+    if (editMedData.image_url_2) {
+      if (!validateImageUrl(editMedData.image_url_2)) {
+        setEditMedError("Please provide a valid image URL 2 (starting with http://, https://, or a local path like /).");
+        return;
+      }
+      const isLoaded = await testImageLoad(editMedData.image_url_2);
+      if (!isLoaded) {
+        setEditMedError("The image URL 2 could not be loaded. This can happen if the host website blocks hotlinking/cross-site requests, if the URL has expired or requires authentication, or if it is not a valid image format.");
+        return;
+      }
+    }
+
+    if (editMedData.image_url_3) {
+      if (!validateImageUrl(editMedData.image_url_3)) {
+        setEditMedError("Please provide a valid image URL 3 (starting with http://, https://, or a local path like /).");
+        return;
+      }
+      const isLoaded = await testImageLoad(editMedData.image_url_3);
+      if (!isLoaded) {
+        setEditMedError("The image URL 3 could not be loaded. This can happen if the host website blocks hotlinking/cross-site requests, if the URL has expired or requires authentication, or if it is not a valid image format.");
+        return;
+      }
+    }
+
     try {
       await updateMedicine(editingMedId, editMedData, editMedImageFile);
       setEditMedSuccess("Medicine profile updated successfully!");
@@ -2718,7 +2744,9 @@ Remember that diabetes management is highly individual. Work closely with your h
       manufacturer: med.manufacturer || '',
       composition: med.composition || '',
       uses: med.uses || '',
-      image_url: med.image_url || ''
+      image_url: med.image_url || '',
+      image_url_2: med.image_url_2 || '',
+      image_url_3: med.image_url_3 || ''
     });
     setEditMedImagePreview(med.image_url);
     setEditMedModalOpen(true);
@@ -3918,8 +3946,12 @@ Remember that diabetes management is highly individual. Work closely with your h
                             
                             {/* Icon */}
                             <td className="px-6 py-4 text-center w-20 select-none">
-                              <span className="w-10 h-10 rounded-xl bg-primary/5 text-primary text-xl flex items-center justify-center mx-auto shadow-sm">
-                                {cat.icon || '💊'}
+                              <span className="w-10 h-10 rounded-xl bg-primary/5 text-primary text-xl flex items-center justify-center mx-auto shadow-sm overflow-hidden p-1">
+                                {cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/')) ? (
+                                  <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" />
+                                ) : (
+                                  cat.icon || '💊'
+                                )}
                               </span>
                             </td>
 
@@ -6093,11 +6125,35 @@ Remember that diabetes management is highly individual. Work closely with your h
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Direct Image URL Link</label>
+                  <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Image URL 1</label>
                   <input 
                     type="url" 
                     name="image_url" 
                     value={editMedData.image_url} 
+                    onChange={handleEditMedChange} 
+                    className="w-full text-xs px-3.5 py-3 bg-background border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Image URL 2</label>
+                  <input 
+                    type="url" 
+                    name="image_url_2" 
+                    placeholder="Enter additional image URL"
+                    value={editMedData.image_url_2} 
+                    onChange={handleEditMedChange} 
+                    className="w-full text-xs px-3.5 py-3 bg-background border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Image URL 3</label>
+                  <input 
+                    type="url" 
+                    name="image_url_3" 
+                    placeholder="Enter additional image URL"
+                    value={editMedData.image_url_3} 
                     onChange={handleEditMedChange} 
                     className="w-full text-xs px-3.5 py-3 bg-background border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium"
                   />
@@ -6305,17 +6361,17 @@ Remember that diabetes management is highly individual. Work closely with your h
               />
             </div>
 
-            {/* Category Icon */}
+            {/* Category / Symbol Image URL */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Category Symbol / Icon *</label>
-              <select 
+              <label className="text-[10px] font-bold text-dark/65 uppercase tracking-wide">Category / Symbol Image URL *</label>
+              <input 
+                type="text" 
+                placeholder="Enter image URL"
                 value={editCatData.icon} 
                 onChange={(e) => setEditCatData(prev => ({ ...prev, icon: e.target.value }))}
-                className="w-full text-xs px-3.5 py-3 bg-background border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium cursor-pointer"
+                className="w-full text-xs px-3.5 py-3 bg-background border border-dark/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-dark font-medium"
                 required
-              >
-                {iconList.map(icon => <option key={icon} value={icon}>{icon} Symbol</option>)}
-              </select>
+              />
             </div>
 
             {/* Description */}

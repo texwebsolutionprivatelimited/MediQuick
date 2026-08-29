@@ -165,7 +165,7 @@ const FAQS = [
   }
 ];
 
-function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false }) {
+function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false, customCount }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { cartItems, addToCart, updateQuantity } = useCart();
 
@@ -190,7 +190,7 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8 max-[320px]:mb-4 flex-wrap gap-2">
           <h2 className="text-xl sm:text-2xl font-bold text-dark text-left">{title}</h2>
-          <span className="text-xs font-semibold text-dark/45">{products.length} Products</span>
+          <span className="text-xs font-semibold text-dark/45">{customCount ? customCount : `${products.length} Products`}</span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 pb-4 select-none">
@@ -338,7 +338,7 @@ export default function Home() {
     address
   } = useLocation();
   const navigate = useNavigate();
-  const { products: productsData } = useProducts();
+  const { products: productsData, categories } = useProducts();
   const { systemSettings } = useSettings();
 
   // Search filter
@@ -513,18 +513,18 @@ export default function Home() {
       <section 
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative overflow-hidden pt-1.5 sm:pt-2 md:pt-2.5 pb-12 md:pb-16 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0] max-[320px]:pt-1 max-[320px]:pb-2"
+        className="relative overflow-hidden pt-4 sm:pt-6 md:pt-8 pb-8 md:pb-12 text-center md:text-left select-none border-b border-dark/5 bg-gradient-to-tr from-[#F4FAF9] via-[#EDF8F6] to-[#E2F4F0] max-[320px]:pt-2 max-[320px]:pb-4"
       >
         {/* Abstract Medical Background Shapes */}
         <div className="absolute top-10 left-10 w-44 h-44 rounded-full bg-primary/5 blur-2xl pointer-events-none animate-pulse" />
         <div className="absolute bottom-20 right-10 w-64 h-64 rounded-full bg-secondary/5 blur-3xl pointer-events-none" />
         <div className="absolute top-1/3 right-1/4 w-32 h-32 rounded-full bg-primary/5 blur-xl pointer-events-none" />
  
-        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6 relative z-10">
+        <div className="container mx-auto px-4 lg:px-6 w-full relative z-10">
           <div className="flex flex-col md:flex-row gap-3 sm:gap-6 md:gap-8 lg:gap-12 items-center justify-between">
             
             {/* Left Column: Heading & CTAs */}
-            <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-2 md:space-y-3">
+            <div className="w-full md:w-[47%] xl:w-[52%] flex flex-col items-center md:items-start text-center md:text-left space-y-3 sm:space-y-4">
               <motion.h1
                 variants={fadeUpVariants}
                 initial="hidden"
@@ -572,30 +572,30 @@ export default function Home() {
                   z-index: 20;
                   pointer-events: auto;
                 }
-                .hb-pos-1 { top: 6%; left: 4%; }
-                .hb-pos-2 { top: 6%; right: 4%; }
-                .hb-pos-3 { top: 50%; left: 4%; }
-                .hb-pos-4 { top: 50%; right: 4%; }
-                .hb-pos-5 { bottom: 6%; right: 4%; }
+                .hb-pos-1 { top: 4%; left: 4%; }
+                .hb-pos-2 { top: 4%; right: 4%; }
+                .hb-pos-3 { top: 45%; left: 4%; }
+                .hb-pos-4 { top: 45%; right: 4%; }
+                .hb-pos-5 { bottom: 4%; left: 50%; transform: translateX(-50%); }
 
                 /* Default Styles for Hero Badges */
                 .hero-badge-pill {
                   background-color: rgba(255, 255, 255, 0.95);
                   border: 1px solid #E2F3F0;
                   box-shadow: 0 8px 30px rgba(0,150,136,0.08);
-                  padding: 10px 14px;
+                  padding: 7px 10px;
                   border-radius: 9999px;
                   display: flex;
                   align-items: center;
-                  gap: 8px;
+                  gap: 6px;
                   transition: transform 300ms ease;
                 }
                 .hero-badge-pill:hover {
                   transform: scale(1.03);
                 }
                 .hero-badge-icon-wrap {
-                  width: 28px;
-                  height: 28px;
+                  width: 22px;
+                  height: 22px;
                   border-radius: 9999px;
                   display: flex;
                   align-items: center;
@@ -604,12 +604,12 @@ export default function Home() {
                   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
                 }
                 .hero-badge-icon-svg {
-                  width: 14px;
-                  height: 14px;
+                  width: 11px;
+                  height: 11px;
                 }
                 .hero-badge-title {
                   display: block;
-                  font-size: 9.5px;
+                  font-size: 8.5px;
                   font-weight: 900;
                   color: #063B44;
                   text-transform: uppercase;
@@ -618,73 +618,117 @@ export default function Home() {
                 }
                 .hero-badge-subtitle {
                   display: block;
-                  font-size: 7.5px;
+                  font-size: 6.5px;
                   color: rgba(6, 59, 68, 0.55);
                   font-weight: 500;
                   line-height: 1;
                 }
 
-                /* Mobile Sizing: 360px to 414px viewports */
-                @media (max-width: 450px) {
-                  .hero-doctor-img {
-                    object-position: 28% top !important;
-                  }
-                  .hero-badges-container {
-                    top: 50% !important;
-                    right: 6px !important;
-                    left: auto !important;
-                    bottom: auto !important;
-                    transform: translateY(-50%) !important;
-                    display: flex !important;
-                    flex-direction: column !important;
-                    gap: 5px !important;
-                    width: auto !important;
-                    height: auto !important;
-                  }
+                @media (min-width: 451px) {
                   .hero-badge-wrap {
-                    position: relative !important;
-                    top: auto !important;
-                    bottom: auto !important;
-                    left: auto !important;
-                    right: auto !important;
-                    transform: none !important;
+                    opacity: 0;
+                    transform: scale(0.9) translateY(4px);
+                    transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
                   }
-                  .hero-badge-pill {
-                    padding: 5px 8px;
-                    gap: 5px;
-                    border-radius: 9999px;
-                    max-width: 120px;
+                  .hb-pos-5 {
+                    transform: translateX(-50%) scale(0.9) translateY(4px);
                   }
-                  .hero-badge-icon-wrap {
-                    width: 20px;
-                    height: 20px;
+                  .hero-doctor-card-container:hover .hero-badge-wrap {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
                   }
-                  .hero-badge-icon-svg {
-                    width: 10px;
-                    height: 10px;
-                  }
-                  .hero-badge-title {
-                    font-size: 7.5px;
-                  }
-                  .hero-badge-subtitle {
-                    font-size: 6px;
-                    margin-top: 1px;
+                  .hero-doctor-card-container:hover .hb-pos-5 {
+                    transform: translateX(-50%) scale(1) translateY(0);
                   }
                 }
 
-                /* Extreme Mobile Sizing: 320px viewport */
-                @media (max-width: 320px) {
+                /* Mobile Sizing: Mobile-S, Mobile-M, Mobile-L viewports */
+                @media (max-width: 450px) {
+                  .hero-desc-full {
+                    display: none !important;
+                  }
+                  .hero-desc-short {
+                    display: inline !important;
+                  }
+                  .hero-heading-320 {
+                    font-size: 21px !important;
+                    font-weight: 900 !important;
+                    line-height: 1.22 !important;
+                    letter-spacing: -0.025em !important;
+                  }
+                  .hero-description-320 {
+                    font-size: 12px !important;
+                    line-height: 1.45 !important;
+                    letter-spacing: -0.15px !important;
+                  }
+                  .hero-doctor-card-container {
+                    aspect-ratio: 4 / 5 !important;
+                    border-width: 2px !important;
+                    padding: 0 !important;
+                  }
                   .hero-doctor-img {
-                    object-position: 25% top !important;
+                    object-fit: contain !important;
+                    object-position: center top !important;
+                    width: 100% !important;
+                    height: 100% !important;
                   }
                   .hero-badges-container {
-                    right: 4px !important;
-                    gap: 4px !important;
+                    position: absolute !important;
+                    inset: 0 !important;
+                    display: block !important;
+                    transform: none !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    z-index: 20 !important;
+                    pointer-events: none !important;
+                  }
+                  .hero-badge-wrap {
+                    position: absolute !important;
+                    pointer-events: auto !important;
+                    z-index: 20 !important;
+                    opacity: 0 !important;
+                    transform: scale(0.85) translateY(3px) !important;
+                    transition: opacity 200ms ease, transform 200ms ease !important;
+                  }
+                  .hb-pos-1 { 
+                    top: 4% !important; 
+                    left: 4% !important; 
+                    right: auto !important; 
+                    bottom: auto !important; 
+                    transform: none !important; 
+                  }
+                  .hb-pos-2 { 
+                    top: 4% !important; 
+                    right: 4% !important; 
+                    left: auto !important; 
+                    bottom: auto !important; 
+                    transform: none !important; 
+                  }
+                  .hb-pos-3 { 
+                    top: 45% !important; 
+                    left: 4% !important; 
+                    right: auto !important; 
+                    bottom: auto !important; 
+                    transform: none !important; 
+                  }
+                  .hb-pos-4 { 
+                    top: 45% !important; 
+                    right: 4% !important; 
+                    left: auto !important; 
+                    bottom: auto !important; 
+                    transform: none !important; 
+                  }
+                  .hb-pos-5 { 
+                    bottom: 4% !important; 
+                    left: 50% !important; 
+                    transform: translateX(-50%) scale(0.85) translateY(3px) !important; 
+                    top: auto !important; 
+                    right: auto !important; 
                   }
                   .hero-badge-pill {
-                    padding: 3.5px 5px !important;
-                    gap: 3px !important;
-                    border-radius: 12px !important;
+                    padding: 4px 6px !important;
+                    gap: 4px !important;
+                    border-radius: 9999px !important;
                     max-width: 90px !important;
                   }
                   .hero-badge-icon-wrap {
@@ -696,38 +740,19 @@ export default function Home() {
                     height: 8px !important;
                   }
                   .hero-badge-title {
-                    font-size: 6.5px !important;
-                    letter-spacing: 0.005em !important;
+                    font-size: 6px !important;
+                    letter-spacing: 0.002em !important;
                   }
                   .hero-badge-subtitle {
-                    font-size: 5px !important;
+                    font-size: 4.5px !important;
                     margin-top: 0px !important;
                   }
-                }
-
-                @media (max-width: 340px) {
-                  .hero-desc-full {
-                    display: none;
+                  .hero-doctor-card-container:hover .hero-badge-wrap {
+                    opacity: 1 !important;
+                    transform: scale(1) translateY(0) !important;
                   }
-                  .hero-desc-short {
-                    display: inline;
-                  }
-                  .hero-heading-320 {
-                    font-size: 23px !important;
-                    line-height: 1.15 !important;
-                  }
-                  .hero-description-320 {
-                    font-size: 12px !important;
-                    line-height: 1.45 !important;
-                    letter-spacing: -0.15px !important;
-                  }
-                }
-                @media (max-width: 320px) {
-                  .hero-heading-320 {
-                    font-size: 21px !important;
-                    font-weight: 900 !important;
-                    line-height: 1.22 !important;
-                    letter-spacing: -0.025em !important;
+                  .hero-doctor-card-container:hover .hb-pos-5 {
+                    transform: translateX(-50%) scale(1) translateY(0) !important;
                   }
                 }
               `}</style>
@@ -751,7 +776,7 @@ export default function Home() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto justify-center md:justify-start"
+                className="flex flex-col sm:flex-row gap-3 pt-1 w-full sm:w-auto justify-center md:justify-start"
               >
                 <Link to="/medicines" className="block w-full sm:inline-block sm:w-auto">
                   <Button 
@@ -779,7 +804,7 @@ export default function Home() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
-                className="flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 min-[360px]:gap-x-4 gap-y-2 text-[9px] min-[360px]:text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none"
+                className="flex flex-wrap items-center justify-center md:justify-start gap-x-2.5 min-[360px]:gap-x-4 gap-y-2 text-[9px] min-[360px]:text-[10px] font-bold text-dark/45 uppercase tracking-wider select-none pt-1"
               >
                 <span className="flex items-center gap-1.5"><MdVerified className="text-primary text-sm" /> 100% Genuine</span>
                 <span className="flex items-center gap-1.5"><MdPayment className="text-primary text-sm" /> Secure Payments</span>
@@ -789,8 +814,8 @@ export default function Home() {
             </div>
 
             {/* Right Column: Complete Healthcare Visual Section */}
-            <div className="w-full md:w-[50%] xl:w-[48%] flex flex-col justify-center items-center md:items-end mt-2 md:mt-0 select-none">
-              <div className="w-full max-w-[260px] min-[340px]:max-w-[280px] min-[360px]:max-w-[300px] min-[400px]:max-w-[320px] sm:max-w-[390px] md:max-w-[450px] lg:max-w-[490px] xl:max-w-[540px]">
+            <div className="w-full md:w-[50%] xl:w-[45%] flex flex-col justify-center items-center md:items-end mt-2 md:mt-0 select-none">
+              <div className="w-full max-w-[220px] min-[340px]:max-w-[240px] min-[360px]:max-w-[260px] min-[400px]:max-w-[290px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[410px] xl:max-w-[440px]">
                 
                 {/* Doctor Photo Wrapper (Positioning Parent) */}
                 <motion.div
@@ -800,11 +825,11 @@ export default function Home() {
                   className="relative w-full mx-auto"
                 >
                   {/* Doctor Image Card */}
-                  <div className="relative aspect-[4/3] w-full rounded-[24px] sm:rounded-[32px] overflow-hidden border-[6px] sm:border-[8px] border-white shadow-[0_20px_50px_rgba(0,150,136,0.12)] bg-white z-10">
+                  <div className="relative aspect-[4/5] w-full rounded-[24px] sm:rounded-[32px] overflow-hidden border-[6px] sm:border-[8px] border-white shadow-[0_20px_50px_rgba(0,150,136,0.12)] bg-white z-10 hero-doctor-card-container">
                     <img
                       src="/images/hero-doctor.jpg"
                       alt="Professional Healthcare Doctor"
-                      className="w-full h-full object-cover object-[center_top] transition-all duration-500 hover:scale-[1.02] hero-doctor-img"
+                      className="w-full h-full object-contain object-[center_top] transition-all duration-500 hover:scale-[1.02] hero-doctor-img"
                       loading="lazy"
                     />
 
@@ -897,7 +922,7 @@ export default function Home() {
 
       {/* 🚀 4. PREMIUM STATISTICS BAR */}
       <div className="border-b border-dark/5 bg-white py-8 select-none">
-        <div className="max-w-[1440px] w-full mx-auto px-4 lg:px-6">
+        <div className="container mx-auto px-4 lg:px-6 w-full">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x-0 md:divide-x divide-dark/5">
             <div className="space-y-1">
               <span className="block text-2xl sm:text-3xl font-extrabold text-[#063B44]">
@@ -938,37 +963,45 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-            {CATEGORIES.map((cat) => (
-              <Link key={cat.id} to={`/medicines?category=${cat.query}`} className="w-full">
-                <motion.div whileHover={{ y: -6, scale: 1.02 }} className="cursor-pointer">
-                  <Card 
-                    hoverable={false}
-                    padding="p-4"
-                    className="flex flex-col items-center justify-center h-28 border border-dark/5 bg-white shadow-soft text-center animate-fade-in"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center text-2xl mb-3 shadow-sm">
-                      {cat.icon}
-                    </div>
-                    <span className="text-xs font-bold text-dark/80 line-clamp-1 truncate w-full px-1">{cat.name}</span>
-                  </Card>
-                </motion.div>
-              </Link>
-            ))}
+            {CATEGORIES.map((cat) => {
+              const dbCat = categories?.find(c => c.name.toLowerCase() === cat.name.toLowerCase());
+              const currentIcon = dbCat?.icon || cat.icon;
+              return (
+                <Link key={cat.id} to={`/medicines?category=${cat.query}`} className="w-full">
+                  <motion.div whileHover={{ y: -6, scale: 1.02 }} className="cursor-pointer">
+                    <Card 
+                      hoverable={false}
+                      padding="p-4"
+                      className="flex flex-col items-center justify-center h-28 border border-dark/5 bg-white shadow-soft text-center animate-fade-in"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-primary/5 text-primary flex items-center justify-center text-2xl mb-3 shadow-sm overflow-hidden p-1.5">
+                        {currentIcon && (currentIcon.startsWith('http') || currentIcon.startsWith('/')) ? (
+                          <img src={currentIcon} alt={cat.name} className="w-full h-full object-contain" />
+                        ) : (
+                          currentIcon
+                        )}
+                      </div>
+                      <span className="text-xs font-bold text-dark/80 line-clamp-1 truncate w-full px-1">{cat.name}</span>
+                    </Card>
+                  </motion.div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>
 
       {/* 💊 DYNAMIC HOMEPAGE PRODUCT SECTIONS */}
-      <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" alwaysShowViewMore={true} />
-      <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" />
-      <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=diabetes" />
-      <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=heart" />
-      <ProductSection title="Baby Care" products={baby} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=babycare" />
-      <ProductSection title="Personal Care" products={personal} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=personalcare" />
-      <ProductSection title="Ayurvedic Products" products={ayurveda} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=ayurvedic" />
+      <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" alwaysShowViewMore={true} customCount="10+ products" />
+      <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" customCount="40+ products" />
+      <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=diabetes" customCount="10+ products" />
+      <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=heart" customCount="10+ products" />
+      <ProductSection title="Baby Care" products={baby} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=babycare" customCount="15+ products" />
+      <ProductSection title="Personal Care" products={personal} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=personalcare" customCount="25+ products" />
+      <ProductSection title="Ayurvedic Products" products={ayurveda} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=ayurvedic" customCount="10+ products" />
       <ProductSection title="Vitamins & Supplements" products={vitamins} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=supplements" />
-      <ProductSection title="Medical Devices" products={devices} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=devices" />
-      <ProductSection title="OTC Medicines" products={otc} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=healthcare" />
+      <ProductSection title="Medical Devices" products={devices} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=devices" customCount="10+ products" />
+      <ProductSection title="OTC Medicines" products={otc} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=healthcare" customCount="25+ products" />
       <ProductSection title="Pain Relief" products={painRelief} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?subcategory=Pain Relief" />
       <ProductSection title="Women's Health" products={womensHealth} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=Women's Health" />
       <ProductSection title="Men's Health" products={mensHealth} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=Men's Health" />
