@@ -8,9 +8,9 @@ import {
   MdArrowBack,
   MdHelpOutline
 } from 'react-icons/md';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth, isConfigValid } from '../firebase/firebase';
-import { uploadToImageKit } from '../utils/imageUpload';
+import { submitPrescriptionRequest } from '../utils/prescriptionService';
 
 export default function UploadPrescription() {
   const navigate = useNavigate();
@@ -30,17 +30,19 @@ export default function UploadPrescription() {
       const unsubscribe = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          const currentStatus = (data.status || data.reviewStatus || 'pending').toLowerCase();
           setPrescriptionFile(prev => {
             if (!prev || prev.id !== prescriptionFile.id) return prev;
             return {
               ...prev,
-              reviewStatus: data.reviewStatus || 'under_review',
+              reviewStatus: currentStatus,
+              status: currentStatus,
               rejectionReason: data.rejectionReason || ''
             };
           });
         }
       }, (err) => {
-        console.error("Firestore onSnapshot error:", err);
+        console.error("Firestore onSnapshot error in UploadPrescription:", err);
       });
       return unsubscribe;
     }
@@ -53,11 +55,11 @@ export default function UploadPrescription() {
     
     const lowerName = file.name.toLowerCase();
     const fileExtension = '.' + lowerName.split('.').pop();
-    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
     
     // 1. Validate File Extension
     if (!allowedExtensions.includes(fileExtension)) {
-      setError("Unsupported file type. Please upload a PDF, JPG, JPEG, or PNG file.");
+      setError("Unsupported file type. Please upload a PDF, JPG, JPEG, PNG, or WEBP file.");
       return;
     }
     
@@ -68,104 +70,27 @@ export default function UploadPrescription() {
       return;
     }
     
-    // 3. Prescription Content Validation
-    const blacklist = [
-      'selfie', 'nature', 'animal', 'food', 'wallpaper', 'screenshot', 'screen_', 
-      'avatar', 'profile', 'cat', 'dog', 'pet', 'background', 'banner', 'logo', 
-      'vacation', 'trip', 'me', 'face', 'sunset', 'beach', 'forest', 'mountain', 
-      'car', 'bike', 'party', 'meme', 'joke', 'funny'
-    ];
-    
-    if (blacklist.some(term => lowerName.includes(term))) {
-      setError("The uploaded document is clearly not a prescription. Please upload a valid medical prescription containing doctor details, patient name, and medicine details.");
-      return;
-    }
-    
-    const medicalKeywords = [
-      'prescription', 'rx', 'medical', 'dr', 'doctor', 'hospital', 'clinic', 'report', 
-      'dolo', 'tablet', 'medicine', 'calpol', 'slip', 'receipt', 'diagnosis', 'health', 'patient'
-    ];
-    const genericCameraPrefixes = ['img', 'dsc', 'photo', 'scan', 'capture', 'whatsapp', 'image', 'file'];
-    
-    const hasMedicalKeyword = medicalKeywords.some(kw => lowerName.includes(kw));
-    const hasGenericPrefix = genericCameraPrefixes.some(pref => lowerName.includes(pref)) || /^\d+$/.test(lowerName.split('.')[0]);
-    
-    if (!hasMedicalKeyword && !hasGenericPrefix) {
-      setError("The uploaded document could not be verified as a prescription. Please ensure it clearly contains the Doctor's Name, Registration Number, Signature, and Patient details.");
-      return;
-    }
-    
     // Start scanning & uploading animation
     setIsUploading(true);
     setIsScanning(true);
     setUploadStage("scanning");
     setUploadProgress(0);
     
-    // Simulated prescription text/stamp OCR scan delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     setIsScanning(false);
     setUploadStage("uploading");
     
-    let downloadUrl = "";
-    const rxId = `rx-${Date.now()}`;
-    const userId = auth.currentUser ? auth.currentUser.uid : 'guest';
-    const timestamp = Date.now();
-    
     try {
-      if (isConfigValid && db) {
-        // Enforce user-scoped structured path prescriptions/{userId}
-        const folderPath = `prescriptions/${userId}`;
-        
-        // Wrap ImageKit upload with a timeout
-        const uploadPromise = uploadToImageKit(file, folderPath, setUploadProgress);
-        
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Storage upload timed out. Please check your network connection.")), 20000)
-        );
-        
-        const uploadResult = await Promise.race([uploadPromise, timeoutPromise]);
-        downloadUrl = uploadResult.url;
-        
-        setUploadStage("saving"); // Progress stage changes to saving info
+      const savedRx = await submitPrescriptionRequest({
+        file,
+        currentUser: auth?.currentUser || null,
+        onProgress: setUploadProgress
+      });
 
-        // Save metadata document to Firestore using setDoc with pre-generated document ID rxId
-        const metadata = {
-          id: rxId,
-          fileName: file.name,
-          uploadTime: new Date().toISOString(),
-          userId: userId,
-          fileType: file.type,
-          fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB",
-          downloadUrl: downloadUrl,
-          uploadStatus: 'success',
-          reviewStatus: 'under_review',
-          rejectionReason: '',
-          imagekitFileId: uploadResult.fileId || ''
-        };
-        
-        const firestorePromise = setDoc(doc(db, 'prescriptions', rxId), metadata);
-        const firestoreTimeout = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Firestore write timed out after 5 seconds")), 5000)
-        );
-        await Promise.race([firestorePromise, firestoreTimeout]);
-
-        setSuccessMsg("Prescription uploaded successfully!");
-        setPrescriptionFile({
-          id: rxId,
-          name: file.name,
-          size: (file.size / 1024 / 1024).toFixed(2) + " MB",
-          type: file.type,
-          previewUrl: downloadUrl,
-          downloadUrl: downloadUrl,
-          reviewStatus: 'under_review',
-          rejectionReason: ''
-        });
-      } else {
-        throw new Error("Firebase configuration is missing or invalid.");
-      }
+      setSuccessMsg("Prescription uploaded successfully. Waiting for approval.");
+      setPrescriptionFile(savedRx);
     } catch (err) {
-      console.error("Firebase Storage/Firestore upload failed:", err);
-      // Remove any local state fallback as required: display error, allow retry
+      console.error("Prescription upload error:", err);
       setError(`Upload failed: ${err.message}. Please check your connection and try again.`);
       setPrescriptionFile(null);
     } finally {
@@ -202,10 +127,10 @@ export default function UploadPrescription() {
 
   // Helper to get normalized status state
   const getNormalizedStatus = () => {
-    const raw = (prescriptionFile?.reviewStatus || 'under_review').toLowerCase();
+    const raw = (prescriptionFile?.status || prescriptionFile?.reviewStatus || 'pending').toLowerCase();
     if (raw === 'approved') return 'approved';
     if (raw === 'rejected') return 'rejected';
-    return 'under_review';
+    return 'pending';
   };
 
   const normStatus = getNormalizedStatus();
@@ -285,9 +210,9 @@ export default function UploadPrescription() {
                           🔴 Rejected
                         </span>
                       )}
-                      {normStatus === 'under_review' && (
+                      {normStatus === 'pending' && (
                         <span className="bg-amber-50 text-amber-700 font-extrabold px-3 py-1 rounded-full border border-amber-100 flex items-center gap-1 animate-pulse">
-                          🟡 Under Review
+                          🟡 Pending Approval
                         </span>
                       )}
                     </div>
@@ -339,7 +264,7 @@ export default function UploadPrescription() {
                       </div>
                     )}
 
-                    {normStatus === 'under_review' && (
+                    {normStatus === 'pending' && (
                       <div className="p-4 bg-amber-50/30 rounded-xl border border-amber-100/40 text-center">
                         <p className="text-[11px] text-amber-800/90 leading-relaxed font-semibold">
                           Our certified pharmacists are currently verifying your prescription. We will notify you once approved.

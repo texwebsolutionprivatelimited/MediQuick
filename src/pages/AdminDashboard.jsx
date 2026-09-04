@@ -1625,30 +1625,68 @@ Remember that diabetes management is highly individual. Work closely with your h
     if (isConfigValid && db) {
       setPrescriptionsLoading(true);
       const prescriptionsRef = collection(db, 'prescriptions');
-      const q = query(prescriptionsRef, orderBy('uploadTime', 'desc'));
       
-      const unsubscribe = onSnapshot(q, (snapshot) => {
+      const unsubscribe = onSnapshot(prescriptionsRef, (snapshot) => {
         const list = [];
-        snapshot.forEach((doc) => {
-          list.push({ ...doc.data(), id: doc.id });
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const currentStatus = (data.status || data.reviewStatus || 'pending').toLowerCase() === 'under_review' ? 'pending' : (data.status || data.reviewStatus || 'pending').toLowerCase();
+          list.push({ 
+            ...data, 
+            id: docSnap.id,
+            prescriptionId: data.prescriptionId || docSnap.id,
+            status: currentStatus,
+            reviewStatus: currentStatus,
+            uploadTime: data.uploadTime || (data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt) || new Date().toISOString()
+          });
         });
+
+        // Sort descending by uploadTime/createdAt
+        list.sort((a, b) => {
+          const timeA = new Date(a.uploadTime || a.createdAt || 0).getTime();
+          const timeB = new Date(b.uploadTime || b.createdAt || 0).getTime();
+          return timeB - timeA;
+        });
+
         setPrescriptions(list);
         setPrescriptionsLoading(false);
       }, (error) => {
-        console.error("Error listening to prescriptions:", error);
+        console.error("Error listening to prescriptions collection:", error);
+        const saved = localStorage.getItem('mediquick_local_prescriptions');
+        if (saved) {
+          setPrescriptions(JSON.parse(saved));
+        }
         setPrescriptionsLoading(false);
       });
       
       return unsubscribe;
     } else {
-      setPrescriptionsLoading(true);
-      const savedPrescriptions = localStorage.getItem('mediquick_local_prescriptions');
-      if (savedPrescriptions) {
-        setPrescriptions(JSON.parse(savedPrescriptions));
-      } else {
-        setPrescriptions([]);
-      }
-      setPrescriptionsLoading(false);
+      const loadLocal = () => {
+        setPrescriptionsLoading(true);
+        const savedPrescriptions = localStorage.getItem('mediquick_local_prescriptions');
+        if (savedPrescriptions) {
+          const parsed = JSON.parse(savedPrescriptions);
+          parsed.sort((a, b) => new Date(b.uploadTime || b.createdAt || 0).getTime() - new Date(a.uploadTime || a.createdAt || 0).getTime());
+          setPrescriptions(parsed);
+        } else {
+          setPrescriptions([]);
+        }
+        setPrescriptionsLoading(false);
+      };
+
+      loadLocal();
+      const handleStorageChange = (e) => {
+        if (e.key === 'mediquick_local_prescriptions') {
+          loadLocal();
+        }
+      };
+      window.addEventListener('storage', handleStorageChange);
+      const interval = setInterval(loadLocal, 1500);
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        clearInterval(interval);
+      };
     }
   }, []);
 
@@ -1776,24 +1814,117 @@ Remember that diabetes management is highly individual. Work closely with your h
   };
 
   const handleAdminUpdatePrescriptionStatus = async (rxId, status, reason = "") => {
+    const targetRx = prescriptions.find(r => r.id === rxId) || (selectedRx?.id === rxId ? selectedRx : null);
+    const targetUserId = targetRx?.userId || 'all';
+    const fileName = targetRx?.fileName || targetRx?.name || 'Prescription';
+
+    const normalizedStatus = status === 'under_review' ? 'pending' : status;
+
+    let notifTitle = "Prescription Status Updated";
+    let notifMessage = `Your prescription (${fileName}) status has been updated to: ${normalizedStatus}.`;
+    let notifType = "offers";
+    let actionUrl = "/upload-prescription";
+
+    if (normalizedStatus === 'approved') {
+      notifTitle = "Prescription Approved";
+      notifMessage = `Your prescription (${fileName}) has been verified and approved by our licensed pharmacists.`;
+      notifType = "prescription_approved";
+      actionUrl = "/cart";
+    } else if (normalizedStatus === 'rejected') {
+      notifTitle = "Prescription Rejected";
+      notifMessage = `Your prescription (${fileName}) was rejected. Reason: ${reason || "Invalid or unclear prescription document."}`;
+      notifType = "prescription_rejected";
+      actionUrl = "/upload-prescription";
+    } else if (normalizedStatus === 'pending') {
+      notifTitle = "Prescription Under Review";
+      notifMessage = `Your prescription (${fileName}) is currently being reviewed by our pharmacy team.`;
+      notifType = "prescription_pending";
+      actionUrl = "/upload-prescription";
+    }
+
     if (isConfigValid && db) {
       try {
         const docRef = doc(db, 'prescriptions', rxId);
         await updateDoc(docRef, {
-          reviewStatus: status,
-          rejectionReason: reason
+          status: normalizedStatus,
+          reviewStatus: normalizedStatus,
+          rejectionReason: reason,
+          updatedAt: serverTimestamp()
         });
-        showToast(`Prescription status updated to ${status}.`, 'success');
+
+        // Send real-time notification to the patient
+        if (targetUserId && targetUserId !== 'guest') {
+          try {
+            await addDoc(collection(db, 'notifications'), {
+              userId: targetUserId,
+              title: notifTitle,
+              message: notifMessage,
+              type: notifType,
+              isRead: false,
+              createdAt: serverTimestamp(),
+              actionUrl: actionUrl
+            });
+          } catch (notifErr) {
+            console.error("Error creating prescription status notification in Firestore:", notifErr);
+          }
+        }
+
+        if (selectedRx && selectedRx.id === rxId) {
+          setSelectedRx(prev => prev ? { ...prev, status: normalizedStatus, reviewStatus: normalizedStatus, rejectionReason: reason } : prev);
+        }
+
+        setPrescriptions(prev => prev.map(rx => rx.id === rxId ? { ...rx, status: normalizedStatus, reviewStatus: normalizedStatus, rejectionReason: reason } : rx));
+
+        showToast(`Prescription status updated to ${normalizedStatus}. Notification sent to user.`, 'success');
       } catch (err) {
         console.error("Error updating prescription status in Firestore:", err);
         showToast(`Failed to update status in Firestore: ${err.message}`, 'error');
       }
     } else {
       // Local fallback update
-      const updatedList = prescriptions.map(rx => rx.id === rxId ? { ...rx, reviewStatus: status, rejectionReason: reason } : rx);
+      const updatedList = prescriptions.map(rx => rx.id === rxId ? { ...rx, status: normalizedStatus, reviewStatus: normalizedStatus, rejectionReason: reason } : rx);
       setPrescriptions(updatedList);
       localStorage.setItem('mediquick_local_prescriptions', JSON.stringify(updatedList));
-      showToast(`Prescription status updated locally to ${status}.`, 'success');
+
+      if (selectedRx && selectedRx.id === rxId) {
+        setSelectedRx(prev => prev ? { ...prev, status: normalizedStatus, reviewStatus: normalizedStatus, rejectionReason: reason } : prev);
+      }
+
+      // Add to local notifications & sync user prescription
+      if (targetUserId) {
+        const userRxKey = `mediquick_rx_${targetUserId}`;
+        const savedRxStr = localStorage.getItem(userRxKey);
+        if (savedRxStr) {
+          try {
+            const savedRx = JSON.parse(savedRxStr);
+            if (savedRx.id === rxId) {
+              localStorage.setItem(userRxKey, JSON.stringify({
+                ...savedRx,
+                status: normalizedStatus,
+                reviewStatus: normalizedStatus,
+                rejectionReason: reason
+              }));
+            }
+          } catch (_e) {}
+        }
+
+        try {
+          const localNotifs = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
+          localNotifs.unshift({
+            id: `local-${Date.now()}`,
+            userId: targetUserId,
+            title: notifTitle,
+            message: notifMessage,
+            type: notifType,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            actionUrl: actionUrl
+          });
+          localStorage.setItem('mediquick_local_notifications', JSON.stringify(localNotifs));
+        } catch (_e) {}
+      }
+
+      showToast(`Prescription status updated locally to ${normalizedStatus}. Notification saved.`, 'success');
     }
   };
 
@@ -5097,105 +5228,121 @@ Remember that diabetes management is highly individual. Work closely with your h
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-dark/5 text-xs text-left">
-                        {prescriptions.map((rx) => (
-                          <tr key={rx.id} className="hover:bg-background/40 transition-colors">
-                            <td className="px-5 py-4 font-bold text-dark">{rx.id}</td>
-                            <td className="px-5 py-4">
-                              <p className="font-semibold text-dark truncate max-w-[200px]" title={rx.fileName}>{rx.fileName}</p>
-                              <p className="text-[10px] text-dark/45 mt-0.5">{rx.fileSize || 'N/A'}</p>
-                            </td>
-                            <td className="px-5 py-4 font-medium text-dark/85">{rx.userId}</td>
-                            <td className="px-5 py-4 text-dark/60">
-                              {rx.uploadTime ? new Date(rx.uploadTime).toLocaleString() : 'N/A'}
-                            </td>
-                            <td className="px-5 py-4 text-center">
-                              {rx.reviewStatus === 'approved' && (
-                                <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">
-                                  Approved
-                                </span>
-                              )}
-                              {rx.reviewStatus === 'rejected' && (
-                                <div className="space-y-1 inline-block">
-                                  <span className="bg-red-50 text-red-700 font-extrabold text-[9px] px-2 py-0.5 rounded-full border border-red-100 uppercase tracking-wider block">
-                                    Rejected
+                        {prescriptions.map((rx) => {
+                          const displayStatus = (rx.status || rx.reviewStatus || 'pending').toLowerCase();
+                          const displayUrl = rx.downloadUrl || rx.prescriptionUrl || rx.previewUrl || '';
+                          const matchedUser = dbUsers?.find(u => u.uid === rx.userId);
+                          const customerDisplayName = rx.userName || rx.customerName || matchedUser?.displayName || matchedUser?.fullName || 'Customer';
+                          const customerEmail = rx.userEmail || matchedUser?.email || '';
+
+                          return (
+                            <tr key={rx.id || rx.prescriptionId} className="hover:bg-background/40 transition-colors">
+                              <td className="px-5 py-4 font-bold text-dark font-mono text-[11px]">{rx.prescriptionId || rx.id}</td>
+                              <td className="px-5 py-4">
+                                <p className="font-semibold text-dark truncate max-w-[200px]" title={rx.fileName || rx.name}>{rx.fileName || rx.name || 'Prescription'}</p>
+                                <p className="text-[10px] text-dark/45 mt-0.5">{rx.fileSize || rx.size || 'N/A'}</p>
+                              </td>
+                              <td className="px-5 py-4">
+                                <p className="font-bold text-dark/90 leading-tight">{customerDisplayName}</p>
+                                {customerEmail && <p className="text-[10px] text-dark/45 truncate max-w-[160px]">{customerEmail}</p>}
+                                {(rx.productName || rx.medicine_name) && (
+                                  <span className="inline-block mt-1 px-1.5 py-0.5 bg-primary/10 text-primary text-[9px] font-bold rounded">
+                                    💊 {rx.productName || rx.medicine_name}
                                   </span>
-                                  {rx.rejectionReason && (
-                                    <p className="text-[9px] text-red-500 max-w-[120px] truncate" title={rx.rejectionReason}>
-                                      {rx.rejectionReason}
-                                    </p>
+                                )}
+                              </td>
+                              <td className="px-5 py-4 text-dark/60 whitespace-nowrap">
+                                {rx.uploadTime ? new Date(rx.uploadTime).toLocaleString() : 'N/A'}
+                              </td>
+                              <td className="px-5 py-4 text-center">
+                                {displayStatus === 'approved' && (
+                                  <span className="bg-emerald-50 text-emerald-700 font-extrabold text-[9px] px-2.5 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">
+                                    🟢 Approved
+                                  </span>
+                                )}
+                                {displayStatus === 'rejected' && (
+                                  <div className="space-y-1 inline-block">
+                                    <span className="bg-red-50 text-red-700 font-extrabold text-[9px] px-2.5 py-1 rounded-full border border-red-100 uppercase tracking-wider block">
+                                      🔴 Rejected
+                                    </span>
+                                    {rx.rejectionReason && (
+                                      <p className="text-[9px] text-red-500 max-w-[130px] truncate" title={rx.rejectionReason}>
+                                        {rx.rejectionReason}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                {(displayStatus === 'pending' || displayStatus === 'under_review') && (
+                                  <span className="bg-amber-50 text-amber-700 font-extrabold text-[9px] px-2.5 py-1 rounded-full border border-amber-100 uppercase tracking-wider animate-pulse">
+                                    🟡 Pending
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-5 py-4">
+                                <div className="flex justify-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdminUpdatePrescriptionStatus(rx.id, 'pending')}
+                                    className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-extrabold text-[9px] uppercase rounded border border-amber-200 transition-all cursor-pointer"
+                                  >
+                                    Review
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAdminUpdatePrescriptionStatus(rx.id, 'approved')}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[9px] uppercase rounded shadow-sm transition-all cursor-pointer"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const reason = prompt("Enter reason for rejection:", "Image blurred / Missing doctor signature / Invalid prescription");
+                                      if (reason !== null) {
+                                        handleAdminUpdatePrescriptionStatus(rx.id, 'rejected', reason || "Invalid prescription details");
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-extrabold text-[9px] uppercase rounded border border-red-200 transition-all cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <div className="flex justify-end items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenPrescriptionModal(rx)}
+                                    className="px-2.5 py-1.5 bg-primary hover:bg-primary-dark text-white font-extrabold text-[10px] uppercase rounded-lg shadow-sm transition-all cursor-pointer"
+                                  >
+                                    View
+                                  </button>
+                                  {displayUrl ? (
+                                    <>
+                                      <a
+                                        href={displayUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="px-2.5 py-1.5 border border-dark/10 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-lg transition-all"
+                                      >
+                                        Tab
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDownloadFile(displayUrl, rx.fileName || rx.name)}
+                                        className="px-2.5 py-1.5 border border-dark/10 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-lg transition-all cursor-pointer"
+                                      >
+                                        Down
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="text-[10px] text-dark/30 italic">No URL</span>
                                   )}
                                 </div>
-                              )}
-                              {(rx.reviewStatus === 'under_review' || !rx.reviewStatus) && (
-                                <span className="bg-amber-50 text-amber-700 font-extrabold text-[9px] px-2 py-0.5 rounded-full border border-amber-100 uppercase tracking-wider">
-                                  Under Review
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4">
-                              <div className="flex justify-center gap-1.5">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAdminUpdatePrescriptionStatus(rx.id, 'under_review')}
-                                  className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-extrabold text-[9px] uppercase rounded border border-amber-200 transition-all cursor-pointer"
-                                >
-                                  Review
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAdminUpdatePrescriptionStatus(rx.id, 'approved')}
-                                  className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-[9px] uppercase rounded border border-emerald-200 transition-all cursor-pointer"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const reason = prompt("Enter reason for rejection:", "Image blurred / Missing doctor signature / Invalid prescription");
-                                    if (reason !== null) {
-                                      handleAdminUpdatePrescriptionStatus(rx.id, 'rejected', reason || "Invalid prescription details");
-                                    }
-                                  }}
-                                  className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-700 font-extrabold text-[9px] uppercase rounded border border-red-200 transition-all cursor-pointer"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-5 py-4 text-right">
-                              <div className="flex justify-end items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenPrescriptionModal(rx)}
-                                  className="px-2.5 py-1.5 bg-primary hover:bg-primary-dark text-white font-extrabold text-[10px] uppercase rounded-lg shadow-sm transition-all cursor-pointer"
-                                >
-                                  View
-                                </button>
-                                {rx.downloadUrl ? (
-                                  <>
-                                    <a
-                                      href={rx.downloadUrl}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="px-2.5 py-1.5 border border-dark/10 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-lg transition-all"
-                                    >
-                                      Tab
-                                    </a>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDownloadFile(rx.downloadUrl, rx.fileName)}
-                                      className="px-2.5 py-1.5 border border-dark/10 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-lg transition-all cursor-pointer"
-                                    >
-                                      Down
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-[10px] text-dark/30 italic">Mock</span>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -7315,7 +7462,7 @@ Remember that diabetes management is highly individual. Work closely with your h
                 </div>
               )}
 
-              {!selectedRx.downloadUrl ? (
+              {!(selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl) ? (
                 <div className="flex flex-col items-center justify-center text-center p-6 space-y-2 select-none">
                   <MdInfoOutline className="text-amber-500 text-3xl" />
                   <h4 className="font-extrabold text-dark text-xs uppercase tracking-wider">File Link Missing</h4>
@@ -7326,13 +7473,14 @@ Remember that diabetes management is highly individual. Work closely with your h
               ) : (
                 <>
                   {(selectedRx.fileType?.startsWith('image/') || 
-                    selectedRx.fileName?.match(/\.(jpg|jpeg|png|webp)$/i)) ? (
+                    selectedRx.fileName?.match(/\.(jpg|jpeg|png|webp)$/i) ||
+                    (selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl)?.startsWith('data:image')) ? (
                     <div 
                       className="transition-transform duration-150 ease-out select-none flex items-center justify-center"
                       style={{ transform: `scale(${zoomScale})` }}
                     >
                       <img 
-                        src={selectedRx.downloadUrl} 
+                        src={selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl} 
                         alt="Prescription File"
                         className="max-w-full max-h-[55vh] object-contain rounded-xl shadow-soft border border-dark/5 bg-white"
                         onLoad={() => setModalLoading(false)}
@@ -7345,7 +7493,7 @@ Remember that diabetes management is highly individual. Work closely with your h
                   ) : (
                     <div className="w-full h-full rounded-xl overflow-hidden border border-dark/5 bg-white">
                       <iframe 
-                        src={`${selectedRx.downloadUrl}#toolbar=0`}
+                        src={`${selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl}#toolbar=0`}
                         title="PDF Prescription Viewer"
                         className="w-full h-full border-0"
                         onLoad={() => setModalLoading(false)}
@@ -7363,7 +7511,8 @@ Remember that diabetes management is highly individual. Work closely with your h
             {/* Modal Footer Controls */}
             <div className="px-6 py-4 bg-[#F8FCFC] border-t border-dark/5 flex flex-wrap gap-4 items-center justify-between shrink-0 select-none">
               {(selectedRx.fileType?.startsWith('image/') || 
-                selectedRx.fileName?.match(/\.(jpg|jpeg|png|webp)$/i)) && selectedRx.downloadUrl ? (
+                selectedRx.fileName?.match(/\.(jpg|jpeg|png|webp)$/i) ||
+                (selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl)?.startsWith('data:image')) && (selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl) ? (
                 <div className="flex items-center gap-1 bg-white border border-dark/5 p-1 rounded-xl shadow-soft">
                   <button
                     type="button"
@@ -7397,25 +7546,69 @@ Remember that diabetes management is highly individual. Work closely with your h
                 <div />
               )}
 
-              {selectedRx.downloadUrl && (
-                <div className="flex items-center gap-2.5">
-                  <a 
-                    href={selectedRx.downloadUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 border border-dark/15 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-xl transition-all shadow-sm flex items-center gap-1.5"
-                  >
-                    Open in New Tab
-                  </a>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Status Badges & Quick Action in Modal */}
+                <div className="flex items-center gap-1.5 mr-2">
                   <button
                     type="button"
-                    onClick={() => handleDownloadFile(selectedRx.downloadUrl, selectedRx.fileName)}
-                    className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-extrabold text-[10px] uppercase rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                    onClick={() => handleAdminUpdatePrescriptionStatus(selectedRx.id, 'pending')}
+                    className={`px-3 py-1.5 font-extrabold text-[10px] uppercase rounded-xl border transition-all cursor-pointer ${
+                      (selectedRx.status === 'pending' || selectedRx.reviewStatus === 'pending' || selectedRx.reviewStatus === 'under_review')
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-sm' 
+                        : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
+                    }`}
                   >
-                    Download
+                    Pending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAdminUpdatePrescriptionStatus(selectedRx.id, 'approved')}
+                    className={`px-3 py-1.5 font-extrabold text-[10px] uppercase rounded-xl border transition-all cursor-pointer ${
+                      (selectedRx.status === 'approved' || selectedRx.reviewStatus === 'approved')
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm' 
+                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                    }`}
+                  >
+                    ✓ Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const reason = prompt("Enter reason for rejection:", selectedRx.rejectionReason || "Image blurred / Missing doctor signature / Invalid prescription");
+                      if (reason !== null) {
+                        handleAdminUpdatePrescriptionStatus(selectedRx.id, 'rejected', reason || "Invalid prescription details");
+                      }
+                    }}
+                    className={`px-3 py-1.5 font-extrabold text-[10px] uppercase rounded-xl border transition-all cursor-pointer ${
+                      (selectedRx.status === 'rejected' || selectedRx.reviewStatus === 'rejected')
+                        ? 'bg-red-600 text-white border-red-700 shadow-sm' 
+                        : 'bg-red-50 hover:bg-red-100 text-red-700 border-red-200'
+                    }`}
+                  >
+                    ✕ Reject
                   </button>
                 </div>
-              )}
+
+                {(selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl) && (
+                  <div className="flex items-center gap-2">
+                    <a 
+                      href={selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-1.5 border border-dark/15 hover:bg-background text-dark font-extrabold text-[10px] uppercase rounded-xl transition-all shadow-sm flex items-center gap-1"
+                    >
+                      Open in Tab
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadFile(selectedRx.downloadUrl || selectedRx.prescriptionUrl || selectedRx.previewUrl, selectedRx.fileName || selectedRx.name)}
+                      className="px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white font-extrabold text-[10px] uppercase rounded-xl transition-all shadow-md flex items-center gap-1 cursor-pointer"
+                    >
+                      Download
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
           </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import MedicineImage from '../components/MedicineImage';
@@ -17,6 +17,8 @@ import {
 } from 'react-icons/md';
 import { useProducts } from '../context/ProductsContext';
 import { useWishlist } from '../context/WishlistContext';
+import { db, isConfigValid } from '../firebase/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 function Highlight({ text, search }) {
   if (!search || !search.trim()) return <span>{text}</span>;
@@ -82,6 +84,49 @@ export default function Medicines() {
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
+
+  const [allOrders, setAllOrders] = useState([]);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isConfigValid && db) {
+      const ordersRef = collection(db, 'orders');
+      const unsubscribe = onSnapshot(ordersRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((doc) => {
+          list.push({ ...doc.data(), orderId: doc.id });
+        });
+        setAllOrders(list);
+      }, (error) => {
+        console.error("Error listening to all orders in Medicines:", error);
+      });
+      return unsubscribe;
+    } else {
+      const fetchLocalOrders = () => {
+        const stored = localStorage.getItem('mediquick_local_orders');
+        if (stored) {
+          setAllOrders(JSON.parse(stored));
+        } else {
+          setAllOrders([]);
+        }
+      };
+      fetchLocalOrders();
+      const handleStorage = (e) => {
+        if (e.key === 'mediquick_local_orders') {
+          fetchLocalOrders();
+        }
+      };
+      window.addEventListener('storage', handleStorage);
+      return () => window.removeEventListener('storage', handleStorage);
+    }
+  }, []);
 
   // Filters state
   const [selectedCategories, setSelectedCategories] = useState(() => {
@@ -330,9 +375,57 @@ export default function Medicines() {
       case "Price High to Low":
         result.sort((a, b) => b.price - a.price);
         break;
-      case "Best Selling":
-        result.sort((a, b) => b.stock - a.stock); // higher stock indicates popularity variation
+      case "Best Selling": {
+        const counts30Days = {};
+        const countsAllTime = {};
+        const lastOrderDates = {};
+        
+        const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+        const cutoffTime = Date.now() - THIRTY_DAYS_MS;
+
+        allOrders.forEach(order => {
+          if (order.status === 'Cancelled') return;
+
+          const orderTime = new Date(order.orderDate).getTime();
+          const isWithin30Days = orderTime >= cutoffTime;
+          const items = order.items || [];
+          
+          items.forEach(item => {
+            if (!item.id) return;
+            if (isWithin30Days) {
+              counts30Days[item.id] = (counts30Days[item.id] || 0) + (item.quantity || 0);
+            }
+            countsAllTime[item.id] = (countsAllTime[item.id] || 0) + (item.quantity || 0);
+
+            if (!lastOrderDates[item.id] || orderTime > lastOrderDates[item.id]) {
+              lastOrderDates[item.id] = orderTime;
+            }
+          });
+        });
+
+        result.sort((a, b) => {
+          const countA30 = counts30Days[a.id] || 0;
+          const countB30 = counts30Days[b.id] || 0;
+          if (countB30 !== countA30) {
+            return countB30 - countA30;
+          }
+
+          const countAAll = countsAllTime[a.id] || 0;
+          const countBAll = countsAllTime[b.id] || 0;
+          if (countBAll !== countAAll) {
+            return countBAll - countAAll;
+          }
+
+          const lastTimeA = lastOrderDates[a.id] || 0;
+          const lastTimeB = lastOrderDates[b.id] || 0;
+          if (lastTimeB !== lastTimeA) {
+            return lastTimeB - lastTimeA;
+          }
+
+          return 0;
+        });
         break;
+      }
       case "Discount":
         result.sort((a, b) => b.discount_percentage - a.discount_percentage);
         break;
@@ -346,7 +439,7 @@ export default function Medicines() {
     }
 
     return result;
-  }, [searchQuery, selectedCategories, selectedSubcategories, selectedBrands, maxPrice, rxOption, stockOption, sortBy, activeCategory, productsData]);
+  }, [searchQuery, selectedCategories, selectedSubcategories, selectedBrands, maxPrice, rxOption, stockOption, sortBy, activeCategory, productsData, allOrders, tick]);
 
 
 
@@ -420,7 +513,7 @@ export default function Medicines() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* 🛡️ SIDEBAR FILTERS (DESKTOP) */}
-          <aside className="hidden lg:block bg-white border border-dark/5 px-6 py-4 rounded-[24px] shadow-soft space-y-4 h-fit sticky top-24 select-none max-h-[calc(100vh-140px)] overflow-y-auto overscroll-y-contain scrollbar-thin">
+          <aside className="hidden lg:block bg-white border border-dark/5 px-6 py-4 rounded-[24px] shadow-soft space-y-4 h-fit sticky top-24 select-none max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-thin">
             <div className="flex items-center justify-between border-b border-dark/5 pb-2">
               <h3 className="font-bold text-dark flex items-center gap-1.5">
                 <MdFilterList className="text-primary text-xl" /> Filters
@@ -565,7 +658,7 @@ export default function Medicines() {
           </aside>
 
           {/* 🧪 PRODUCT LIST SECTION */}
-          <main className="lg:col-span-3 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:overscroll-y-contain scrollbar-thin lg:pr-2">
+          <main className="lg:col-span-3">
             
             {/* 🏷️ HORIZONTAL CATEGORY QUICK-NAV */}
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none select-none -mx-4 px-4 sm:mx-0 sm:px-0">

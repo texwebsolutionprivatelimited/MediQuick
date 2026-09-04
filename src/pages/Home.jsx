@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
@@ -32,6 +32,8 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import MedicineImage from '../components/MedicineImage';
 import { useWishlist } from '../context/WishlistContext';
+import { db, isConfigValid } from '../firebase/firebase';
+import { collection, onSnapshot, collectionGroup } from 'firebase/firestore';
 
 // Data sets matching the requested 10 categories
 const CATEGORIES = [
@@ -115,32 +117,6 @@ const glassCardVariants = {
   }
 };
 
-const TESTIMONIALS = [
-  {
-    id: 't1',
-    name: 'Anjali Sharma',
-    location: 'Hyderabad, Telangana',
-    text: 'MediQuick delivered my mother\'s blood pressure medicines in under 20 minutes! The packaging was secure and billing was completely transparent.',
-    rating: 5,
-    avatarBg: 'bg-emerald-500'
-  },
-  {
-    id: 't2',
-    name: 'Rohan Mehta',
-    location: 'Secunderabad, Telangana',
-    text: 'Uploading prescription was seamless. The pharmacist called me back within 5 minutes to confirm the dosage, and the delivery was incredibly fast.',
-    rating: 5,
-    avatarBg: 'bg-primary-dark'
-  },
-  {
-    id: 't3',
-    name: 'Dr. Priya Nair',
-    location: 'Gachibowli, Hyderabad',
-    text: 'I recommend my patients to use MediQuick. Their sourcing is 100% genuine and the 1-hour local shipping is a lifecycle saver for urgent requirements.',
-    rating: 5,
-    avatarBg: 'bg-secondary-dark'
-  }
-];
 
 const FAQS = [
   {
@@ -165,7 +141,7 @@ const FAQS = [
   }
 ];
 
-function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false, customCount }) {
+function ProductSection({ title, products, addToCart: propAddToCart, navigate, addingProductId, setAddingProductId, viewMoreUrl, alwaysShowViewMore = false, customCount, limitCount, hideCount = false, children }) {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { cartItems, addToCart, updateQuantity } = useCart();
 
@@ -182,7 +158,7 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
 
   if (!products || products.length === 0) return null;
   
-  const limit = isSmallMobile ? 4 : 10;
+  const limit = limitCount || (isSmallMobile ? 4 : 10);
   const displayedProducts = products.slice(0, limit);
   
   return (
@@ -190,7 +166,9 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8 max-[320px]:mb-4 flex-wrap gap-2">
           <h2 className="text-xl sm:text-2xl font-bold text-dark text-left">{title}</h2>
-          <span className="text-xs font-semibold text-dark/45">{customCount ? customCount : `${products.length} Products`}</span>
+          {!hideCount && (
+            <span className="text-xs font-semibold text-dark/45">{customCount ? customCount : `${products.length} Products`}</span>
+          )}
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-6 pb-4 select-none">
@@ -320,6 +298,12 @@ function ProductSection({ title, products, addToCart: propAddToCart, navigate, a
           </div>
         )}
 
+        {children && (
+          <div className="flex justify-center mt-4">
+            {children}
+          </div>
+        )}
+
       </div>
     </section>
   );
@@ -359,28 +343,196 @@ export default function Home() {
     setMouseCoords({ x: 0, y: 0 });
   };
 
-  // Filter products by category/subcategory dynamically
-  const featured = productsData.slice(0, 10);
-  const bestSellers = productsData.filter(p => p.category === "Medicines" || p.category === "OTC Medicines").slice(10);
-  const diabetes = productsData.filter(p => p.category === "Diabetes Care");
-  const heart = productsData.filter(p => p.category === "Heart Care");
-  const baby = productsData.filter(p => p.category === "Baby Care");
-  const personal = productsData.filter(p => p.category === "Personal Care");
-  const ayurveda = productsData.filter(p => p.category === "Ayurveda");
-  const vitamins = productsData.filter(p => p.category === "Vitamins");
-  const devices = productsData.filter(p => p.category === "Medical Devices");
-  const otc = productsData.filter(p => p.category === "OTC Medicines");
-  const painRelief = productsData.filter(p => p.subcategory === "Pain Relief");
-  const womensHealth = productsData.filter(p => p.category === "Women's Health");
-  const mensHealth = productsData.filter(p => p.category === "Men's Health");
-  const skinCare = productsData.filter(p => p.category === "Skin Care");
+  const [allOrders, setAllOrders] = useState([]);
+
+  useEffect(() => {
+    if (isConfigValid && db) {
+      const ordersRef = collection(db, 'orders');
+      const unsubscribe = onSnapshot(ordersRef, (snapshot) => {
+        const list = [];
+        snapshot.forEach((doc) => {
+          list.push({ ...doc.data(), orderId: doc.id });
+        });
+        setAllOrders(list);
+      }, (error) => {
+        console.error("Error listening to all orders:", error);
+      });
+      return unsubscribe;
+    } else {
+      const fetchLocalOrders = () => {
+        const stored = localStorage.getItem('mediquick_local_orders');
+        if (stored) {
+          setAllOrders(JSON.parse(stored));
+        } else {
+          setAllOrders([]);
+        }
+      };
+      fetchLocalOrders();
+      const handleStorage = (e) => {
+        if (e.key === 'mediquick_local_orders') {
+          fetchLocalOrders();
+        }
+      };
+      window.addEventListener('storage', handleStorage);
+      return () => window.removeEventListener('storage', handleStorage);
+    }
+  }, []);
+
+  // Filter products by category dynamically
+  const activeCategories = (categories || []).filter(cat => cat.status !== 'inactive');
+  const firstTwoCategories = activeCategories.slice(0, 2);
+
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTick(t => t + 1);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Dynamic Best Selling Products logic based on rolling 30-day sales window
+  const bestSellingProducts = useMemo(() => {
+    const counts30Days = {};
+    const countsAllTime = {};
+    const lastOrderDates = {};
+    
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - THIRTY_DAYS_MS;
+
+    allOrders.forEach(order => {
+      if (order.status === 'Cancelled') return;
+
+      const orderTime = new Date(order.orderDate).getTime();
+      const isWithin30Days = orderTime >= cutoffTime;
+      const items = order.items || [];
+      
+      items.forEach(item => {
+        if (!item.id) return;
+        
+        // Cumulative count in rolling 30-day window
+        if (isWithin30Days) {
+          counts30Days[item.id] = (counts30Days[item.id] || 0) + (item.quantity || 0);
+        }
+        
+        // Cumulative count overall (for tie-breaking/fillers)
+        countsAllTime[item.id] = (countsAllTime[item.id] || 0) + (item.quantity || 0);
+
+        if (!lastOrderDates[item.id] || orderTime > lastOrderDates[item.id]) {
+          lastOrderDates[item.id] = orderTime;
+        }
+      });
+    });
+
+    const sorted = [...productsData].map(p => {
+      const count30 = counts30Days[p.id] || 0;
+      const countAll = countsAllTime[p.id] || 0;
+      const lastOrderTime = lastOrderDates[p.id] || 0;
+      return { product: p, count30, countAll, lastOrderTime };
+    });
+
+    sorted.sort((a, b) => {
+      // 1. Sort by 30-day sales descending
+      if (b.count30 !== a.count30) {
+        return b.count30 - a.count30;
+      }
+      // 2. Tie-break/fill by all-time sales descending
+      if (b.countAll !== a.countAll) {
+        return b.countAll - a.countAll;
+      }
+      // 3. Sort by most recent purchase date descending
+      if (b.lastOrderTime !== a.lastOrderTime) {
+        return b.lastOrderTime - a.lastOrderTime;
+      }
+      return 0;
+    });
+
+    return sorted.map(s => s.product);
+  }, [allOrders, productsData, tick]);
   
   // Custom Location Permission Popup State
   const [showLocationPopup, setShowLocationPopup] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
 
+  const [allReviews, setAllReviews] = useState([]);
+
+  useEffect(() => {
+    if (isConfigValid && db) {
+      try {
+        const reviewsRef = collectionGroup(db, 'reviews');
+        const unsubscribe = onSnapshot(reviewsRef, (snapshot) => {
+          const list = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            list.push({ id: docSnap.id, productId: docSnap.ref.parent.parent?.id, ...data });
+          });
+          setAllReviews(list);
+        }, (error) => {
+          console.error("Error listening to all reviews via collectionGroup:", error);
+        });
+        return unsubscribe;
+      } catch (e) {
+        console.error("Error setting up collectionGroup reviews listener:", e);
+      }
+    } else {
+      const fetchLocalReviews = () => {
+        const list = [];
+        productsData.forEach((prod) => {
+          const local = localStorage.getItem(`mediquick_reviews_${prod.id}`);
+          if (local) {
+            try {
+              const parsed = JSON.parse(local);
+              parsed.forEach(r => {
+                list.push({ ...r, productId: prod.id });
+              });
+            } catch (e) {
+              console.error("Error parsing local reviews in Home page:", e);
+            }
+          }
+        });
+        setAllReviews(list);
+      };
+
+      fetchLocalReviews();
+      const interval = setInterval(fetchLocalReviews, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [productsData]);
+
+  const activeReviews = useMemo(() => {
+    const list = allReviews.filter(r => r.status !== 'hidden' && r.review && r.review.trim() !== '');
+    list.sort((a, b) => {
+      const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt).getTime();
+      const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+    return list;
+  }, [allReviews]);
+
+
+
   // Testimonials Carousel auto-slide index
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  // Stable list of products for testimonials (memoized and changes on activeTestimonial)
+  const stableProducts = useMemo(() => {
+    if (!productsData || productsData.length === 0) return [];
+    return [...productsData].sort((a, b) => a.id.localeCompare(b.id));
+  }, [productsData]);
+
+  const selectedTestimonialProducts = useMemo(() => {
+    if (stableProducts.length === 0) return [];
+    const result = [];
+    const offset = activeTestimonial % stableProducts.length;
+    for (let i = 0; i < stableProducts.length; i++) {
+      const p = stableProducts[(offset + i) % stableProducts.length];
+      if (!result.includes(p)) {
+        result.push(p);
+      }
+      if (result.length === 6) break;
+    }
+    return result;
+  }, [stableProducts, activeTestimonial]);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [openFaq, setOpenFaq] = useState(null);
@@ -416,11 +568,12 @@ export default function Home() {
 
   // Auto-slide Testimonials Carousel every 5 seconds
   useEffect(() => {
+    if (activeReviews.length <= 1) return;
     const timer = setInterval(() => {
-      setActiveTestimonial(prev => (prev + 1) % TESTIMONIALS.length);
+      setActiveTestimonial(prev => (prev + 1) % activeReviews.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeReviews.length]);
 
   // Scroll visibility
   useEffect(() => {
@@ -626,18 +779,11 @@ export default function Home() {
 
                 @media (min-width: 451px) {
                   .hero-badge-wrap {
-                    opacity: 0;
-                    transform: scale(0.9) translateY(4px);
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
                     transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1), transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
                   }
                   .hb-pos-5 {
-                    transform: translateX(-50%) scale(0.9) translateY(4px);
-                  }
-                  .hero-doctor-card-container:hover .hero-badge-wrap {
-                    opacity: 1;
-                    transform: scale(1) translateY(0);
-                  }
-                  .hero-doctor-card-container:hover .hb-pos-5 {
                     transform: translateX(-50%) scale(1) translateY(0);
                   }
                 }
@@ -686,8 +832,8 @@ export default function Home() {
                     position: absolute !important;
                     pointer-events: auto !important;
                     z-index: 20 !important;
-                    opacity: 0 !important;
-                    transform: scale(0.85) translateY(3px) !important;
+                    opacity: 1 !important;
+                    transform: scale(1) translateY(0) !important;
                     transition: opacity 200ms ease, transform 200ms ease !important;
                   }
                   .hb-pos-1 { 
@@ -721,7 +867,7 @@ export default function Home() {
                   .hb-pos-5 { 
                     bottom: 4% !important; 
                     left: 50% !important; 
-                    transform: translateX(-50%) scale(0.85) translateY(3px) !important; 
+                    transform: translateX(-50%) scale(1) translateY(0) !important; 
                     top: auto !important; 
                     right: auto !important; 
                   }
@@ -746,13 +892,6 @@ export default function Home() {
                   .hero-badge-subtitle {
                     font-size: 4.5px !important;
                     margin-top: 0px !important;
-                  }
-                  .hero-doctor-card-container:hover .hero-badge-wrap {
-                    opacity: 1 !important;
-                    transform: scale(1) translateY(0) !important;
-                  }
-                  .hero-doctor-card-container:hover .hb-pos-5 {
-                    transform: translateX(-50%) scale(1) translateY(0) !important;
                   }
                 }
               `}</style>
@@ -990,125 +1129,341 @@ export default function Home() {
           </div>
         </div>
       </section>
-
       {/* 💊 DYNAMIC HOMEPAGE PRODUCT SECTIONS */}
-      <ProductSection title="Featured Medicines" products={featured} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" alwaysShowViewMore={true} customCount="10+ products" />
-      <ProductSection title="Best Selling Medicines" products={bestSellers} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines" customCount="40+ products" />
-      <ProductSection title="Diabetes Care" products={diabetes} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=diabetes" customCount="10+ products" />
-      <ProductSection title="Heart Care" products={heart} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=heart" customCount="10+ products" />
-      <ProductSection title="Baby Care" products={baby} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=babycare" customCount="15+ products" />
-      <ProductSection title="Personal Care" products={personal} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=personalcare" customCount="25+ products" />
-      <ProductSection title="Ayurvedic Products" products={ayurveda} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=ayurvedic" customCount="10+ products" />
-      <ProductSection title="Vitamins & Supplements" products={vitamins} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=supplements" />
-      <ProductSection title="Medical Devices" products={devices} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=devices" customCount="10+ products" />
-      <ProductSection title="OTC Medicines" products={otc} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=healthcare" customCount="25+ products" />
-      <ProductSection title="Pain Relief" products={painRelief} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?subcategory=Pain Relief" />
-      <ProductSection title="Women's Health" products={womensHealth} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=Women's Health" />
-      <ProductSection title="Men's Health" products={mensHealth} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=Men's Health" />
-      <ProductSection title="Skin Care" products={skinCare} addToCart={addToCart} navigate={navigate} addingProductId={addingProductId} setAddingProductId={setAddingProductId} viewMoreUrl="/medicines?category=Skin Care" />
+      {/* Best Selling Products Section */}
+      <ProductSection
+        title="Best Selling Medicines"
+        products={bestSellingProducts}
+        addToCart={addToCart}
+        navigate={navigate}
+        addingProductId={addingProductId}
+        setAddingProductId={setAddingProductId}
+        viewMoreUrl="/best-sellers"
+        limitCount={6}
+        hideCount={true}
+      />
+
+      {/* Category-wise Product Sections */}
+      {firstTwoCategories.map((cat, idx) => {
+        let title = cat.name;
+        let catProducts = productsData.filter(
+          (p) => p.category.toLowerCase() === cat.name.toLowerCase()
+        );
+        let customCount = undefined;
+        let viewMoreUrl = `/medicines?category=${encodeURIComponent(cat.name)}`;
+        let children = null;
+
+        if (idx === 0) {
+          // Medicines Section
+          customCount = "15+ Products";
+        } else if (idx === 1) {
+          // Replace OTC Medicines showcase with Skincare
+          title = "Skincare";
+          catProducts = productsData.filter(
+            (p) => p.category.toLowerCase() === "personal care"
+          );
+          viewMoreUrl = "/medicines?category=Personal%20Care";
+
+          // Render ALL CATEGORIES button below the 2nd category section
+          children = (
+            <Link to="/categories" className="block w-full sm:w-auto">
+              <Button
+                variant="primary"
+                icon={MdKeyboardArrowRight}
+                iconPosition="right"
+                className="w-full sm:w-auto bg-primary hover:bg-primary-dark shadow-md hover:shadow-primary/20 text-xs py-3.5 px-8 rounded-xl font-bold uppercase tracking-wider transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]"
+              >
+                All Categories
+              </Button>
+            </Link>
+          );
+        }
+
+        return (
+          <ProductSection
+            key={cat.id || cat.name}
+            title={title}
+            products={catProducts}
+            addToCart={addToCart}
+            navigate={navigate}
+            addingProductId={addingProductId}
+            setAddingProductId={setAddingProductId}
+            viewMoreUrl={viewMoreUrl}
+            customCount={customCount}
+          >
+            {children}
+          </ProductSection>
+        );
+      })}
 
 
 
       {/* 🛡️ 10. WHY CHOOSE MEDIQUICK */}
-      <section className="py-16 bg-white border-t border-dark/5 select-none">
+      <section className="py-12 sm:py-16 bg-white border-t border-dark/5 select-none">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl font-bold text-dark mb-10">Why Choose MediQuick?</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-dark mb-8 sm:mb-10">Why Choose MediQuick?</h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 shadow-soft flex items-center justify-center text-xl">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-6">
+            <div className="flex flex-col items-center space-y-2.5 sm:space-y-3 bg-background/30 p-4 sm:p-5 rounded-2xl border border-dark/5 text-center w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-50 text-emerald-600 shadow-soft flex items-center justify-center text-lg sm:text-xl shrink-0">
                 ✔️
               </div>
-              <h4 className="font-bold text-dark text-sm">Genuine Medicines</h4>
-              <p className="text-[11px] text-dark/55 leading-relaxed font-light">100% genuine pharmaceutical stock batches.</p>
+              <h4 className="font-bold text-dark text-xs sm:text-sm">Genuine Medicines</h4>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 leading-relaxed font-light">100% genuine pharmaceutical stock batches.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 shadow-soft flex items-center justify-center text-xl">
+            <div className="flex flex-col items-center space-y-2.5 sm:space-y-3 bg-background/30 p-4 sm:p-5 rounded-2xl border border-dark/5 text-center w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-50 text-blue-600 shadow-soft flex items-center justify-center text-lg sm:text-xl shrink-0">
                 🛡️
               </div>
-              <h4 className="font-bold text-dark text-sm">Licensed Pharmacy</h4>
-              <p className="text-[11px] text-dark/55 leading-relaxed font-light">Operated by registered medical pharmacists.</p>
+              <h4 className="font-bold text-dark text-xs sm:text-sm">Licensed Pharmacy</h4>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 leading-relaxed font-light">Operated by registered medical pharmacists.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
-              <div className="w-12 h-12 rounded-full bg-cyan-50 text-cyan-600 shadow-soft flex items-center justify-center text-xl">
+            <div className="flex flex-col items-center space-y-2.5 sm:space-y-3 bg-background/30 p-4 sm:p-5 rounded-2xl border border-dark/5 text-center w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-cyan-50 text-cyan-600 shadow-soft flex items-center justify-center text-lg sm:text-xl shrink-0">
                 ⚡
               </div>
-              <h4 className="font-bold text-dark text-sm">Fast Delivery</h4>
-              <p className="text-[11px] text-dark/55 leading-relaxed font-light">Lightning priority shipping under 1 hour.</p>
+              <h4 className="font-bold text-dark text-xs sm:text-sm">Fast Delivery</h4>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 leading-relaxed font-light">Lightning priority shipping under 1 hour.</p>
             </div>
 
-            <div className="flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
-              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 shadow-soft flex items-center justify-center text-xl">
+            <div className="flex flex-col items-center space-y-2.5 sm:space-y-3 bg-background/30 p-4 sm:p-5 rounded-2xl border border-dark/5 text-center w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-50 text-amber-600 shadow-soft flex items-center justify-center text-lg sm:text-xl shrink-0">
                 🔒
               </div>
-              <h4 className="font-bold text-dark text-sm">Secure Payment</h4>
-              <p className="text-[11px] text-dark/55 leading-relaxed font-light">Fully encrypted checkouts and UPI options.</p>
+              <h4 className="font-bold text-dark text-xs sm:text-sm">Secure Payment</h4>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 leading-relaxed font-light">Fully encrypted checkouts and UPI options.</p>
             </div>
 
-            <div className="sm:col-span-2 md:col-span-1 lg:col-span-1 flex flex-col items-center space-y-3 bg-background/30 p-5 rounded-2xl border border-dark/5 text-center w-full">
-              <div className="w-12 h-12 rounded-full bg-purple-50 text-purple-600 shadow-soft flex items-center justify-center text-xl">
+            <div className="col-span-1 sm:col-span-2 md:col-span-1 lg:col-span-1 flex flex-col items-center space-y-2.5 sm:space-y-3 bg-background/30 p-4 sm:p-5 rounded-2xl border border-dark/5 text-center w-full">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-50 text-purple-600 shadow-soft flex items-center justify-center text-lg sm:text-xl shrink-0">
                 📞
               </div>
-              <h4 className="font-bold text-dark text-sm">24x7 Support</h4>
-              <p className="text-[11px] text-dark/55 leading-relaxed font-light">On-call pharmacists available at any hour.</p>
+              <h4 className="font-bold text-dark text-xs sm:text-sm">24x7 Support</h4>
+              <p className="text-[10px] sm:text-[11px] text-dark/55 leading-relaxed font-light">On-call pharmacists available at any hour.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* 🗣️ 11. TESTIMONIALS (Carousel Slider Auto-slides every 5s) */}
-      <section className="py-16 bg-[#F8FCFC] border-t border-dark/5 select-none">
-        <div className="container mx-auto px-4 max-w-xl text-center">
+      <section className="pt-12 pb-12 bg-[#F8FCFC] border-t border-dark/5 select-none overflow-hidden">
+        <div className="container mx-auto px-4 max-w-7xl text-center">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-dark">Customer Testimonials</h2>
             <p className="text-xs text-dark/45 font-light mt-1">Check verified patient reviews</p>
           </div>
 
-          <div className="relative min-h-[220px]">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTestimonial}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.35 }}
-                className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft text-left flex flex-col justify-between h-52 relative"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-center gap-0.5 text-amber-500">
-                    {[...Array(TESTIMONIALS[activeTestimonial].rating)].map((_, i) => (
-                      <MdStar key={i} className="text-base" />
-                    ))}
-                  </div>
-                  <p className="text-xs text-dark/70 italic leading-relaxed font-light line-clamp-4">
-                    "{TESTIMONIALS[activeTestimonial].text}"
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 pt-3 border-t border-dark/5">
-                  <div className={`w-8 h-8 rounded-full ${TESTIMONIALS[activeTestimonial].avatarBg} text-white flex items-center justify-center font-bold text-xs uppercase`}>
-                    {TESTIMONIALS[activeTestimonial].name[0]}
-                  </div>
-                  <div className="overflow-hidden leading-tight">
-                    <span className="text-xs font-bold text-dark block truncate">{TESTIMONIALS[activeTestimonial].name}</span>
-                    <span className="text-[10px] text-dark/40 font-medium block truncate">{TESTIMONIALS[activeTestimonial].location}</span>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Navigation Dots */}
-          <div className="flex justify-center gap-1.5 mt-6">
-            {TESTIMONIALS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTestimonial(i)}
-                className={`w-2 h-2 rounded-full transition-all outline-none ${activeTestimonial === i ? 'bg-primary w-5' : 'bg-dark/20'}`}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative w-full">
+            {/* 📦 LEFT SIDE: Staggered Floating Products (Desktop/Laptop only) */}
+            <div className="hidden lg:flex lg:col-span-3 h-80 relative w-full select-none">
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[0]}
+                fallbackProducts={stableProducts}
+                className="absolute top-4 left-6 xl:left-12 w-24 h-24 xl:w-28 xl:h-28 bg-white p-3 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
               />
-            ))}
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[1]}
+                fallbackProducts={stableProducts}
+                className="absolute top-24 right-4 xl:right-10 w-28 h-28 xl:w-32 xl:h-32 bg-white p-4 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                badge={(p) => (
+                  <div className="absolute -top-2.5 -right-2.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-emerald-100 flex items-center gap-0.5 shadow-sm">
+                    ⭐ 5.0
+                  </div>
+                )}
+              />
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[2]}
+                fallbackProducts={stableProducts}
+                className="absolute bottom-4 left-8 xl:left-14 w-24 h-24 xl:w-28 xl:h-28 bg-white p-3 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+              />
+            </div>
+
+            {/* CENTER: Main Testimonial Card */}
+            <div className="col-span-12 lg:col-span-6 flex flex-col items-center justify-center">
+              {/* 📦 Mobile/Tablet Product Row (Hidden on Desktop) */}
+              <div className="flex lg:hidden justify-center items-center gap-4 md:gap-6 mb-8 select-none">
+                <TestimonialProductCard
+                  initialProduct={selectedTestimonialProducts[0]}
+                  fallbackProducts={stableProducts}
+                  className="w-16 h-16 md:w-20 md:h-20 bg-white p-2.5 rounded-xl border border-primary/10 shadow-[0_4px_20px_rgba(0,150,136,0.04)] flex items-center justify-center"
+                />
+                <TestimonialProductCard
+                  initialProduct={selectedTestimonialProducts[1]}
+                  fallbackProducts={stableProducts}
+                  className="w-16 h-16 md:w-20 md:h-20 bg-white p-2.5 rounded-xl border border-primary/10 shadow-[0_4px_20px_rgba(0,150,136,0.04)] flex items-center justify-center"
+                />
+                <TestimonialProductCard
+                  initialProduct={selectedTestimonialProducts[2]}
+                  fallbackProducts={stableProducts}
+                  className="w-16 h-16 md:w-20 md:h-20 bg-white p-2.5 rounded-xl border border-primary/10 shadow-[0_4px_20px_rgba(0,150,136,0.04)] flex items-center justify-center"
+                />
+                <TestimonialProductCard
+                  initialProduct={selectedTestimonialProducts[3]}
+                  fallbackProducts={stableProducts}
+                  className="hidden sm:flex w-16 h-16 md:w-20 md:h-20 bg-white p-2.5 rounded-xl border border-primary/10 shadow-[0_4px_20px_rgba(0,150,136,0.04)] items-center justify-center"
+                />
+              </div>
+
+              <div className="w-full max-w-xl">
+                {activeReviews.length === 0 ? (
+                  <div className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft text-center py-12">
+                    <p className="text-xs text-dark/50 italic font-light">
+                      No verified reviews available at the moment. Be the first to purchase and write a review!
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative min-h-[220px]">
+                      <AnimatePresence mode="wait">
+                        {(() => {
+                          const currentActiveIndex = activeReviews.length > 0 ? activeTestimonial % activeReviews.length : 0;
+                          const currentReview = activeReviews[currentActiveIndex];
+                          if (!currentReview) return null;
+
+                          const getAvatarBg = (idx) => {
+                            const bgs = ['bg-emerald-500', 'bg-primary-dark', 'bg-secondary-dark', 'bg-blue-500', 'bg-purple-500'];
+                            return bgs[idx % bgs.length];
+                          };
+
+                          const reviewImg = currentReview.imageUrl || currentReview.image || (Array.isArray(currentReview.images) && currentReview.images[0]);
+
+                          return (
+                            <motion.div
+                              key={currentReview.id}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              transition={{ duration: 0.35 }}
+                              className="bg-white border border-dark/5 p-6 rounded-[24px] shadow-soft text-left flex flex-col justify-between h-52 relative"
+                            >
+                              {reviewImg ? (
+                                <div className="grid grid-cols-3 gap-4 h-full w-full">
+                                  <div className="col-span-2 flex flex-col justify-between h-full">
+                                    <div className="space-y-3">
+                                      <div className="flex items-center gap-0.5 text-amber-500">
+                                        {[...Array(Number(currentReview.rating || 5))].map((_, i) => (
+                                          <MdStar key={i} className="text-base" />
+                                        ))}
+                                      </div>
+                                      {currentReview.title && (
+                                        <h4 className="text-xs font-bold text-dark truncate leading-none">
+                                          {currentReview.title}
+                                        </h4>
+                                      )}
+                                      <p className="text-xs text-dark/70 italic leading-relaxed font-light line-clamp-3">
+                                        "{currentReview.review}"
+                                      </p>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 pt-3 border-t border-dark/5">
+                                      <div className={`w-8 h-8 rounded-full ${getAvatarBg(currentActiveIndex)} text-white flex items-center justify-center font-bold text-xs uppercase shrink-0`}>
+                                        {(currentReview.userName || 'C')[0]}
+                                      </div>
+                                      <div className="overflow-hidden leading-tight text-left">
+                                        <span className="text-xs font-bold text-dark block truncate">
+                                          {currentReview.userName || 'Verified Customer'}
+                                        </span>
+                                        {currentReview.location && (
+                                          <span className="text-[10px] text-dark/40 font-medium block truncate">
+                                            {currentReview.location}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="col-span-1 h-full w-full rounded-2xl overflow-hidden border border-dark/5 bg-background select-none">
+                                    <img
+                                      src={reviewImg}
+                                      alt="Customer review photo"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col justify-between h-full w-full">
+                                  <div className="space-y-3">
+                                    <div className="flex items-center gap-0.5 text-amber-500">
+                                      {[...Array(Number(currentReview.rating || 5))].map((_, i) => (
+                                        <MdStar key={i} className="text-base" />
+                                      ))}
+                                    </div>
+                                    {currentReview.title && (
+                                      <h4 className="text-xs font-bold text-dark truncate leading-none">
+                                        {currentReview.title}
+                                      </h4>
+                                    )}
+                                    <p className="text-xs text-dark/70 italic leading-relaxed font-light line-clamp-4">
+                                      "{currentReview.review}"
+                                    </p>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 pt-3 border-t border-dark/5">
+                                    <div className={`w-8 h-8 rounded-full ${getAvatarBg(currentActiveIndex)} text-white flex items-center justify-center font-bold text-xs uppercase shrink-0`}>
+                                      {(currentReview.userName || 'C')[0]}
+                                    </div>
+                                    <div className="overflow-hidden leading-tight text-left">
+                                      <span className="text-xs font-bold text-dark block truncate">
+                                        {currentReview.userName || 'Verified Customer'}
+                                      </span>
+                                      {currentReview.location && (
+                                        <span className="text-[10px] text-dark/40 font-medium block truncate">
+                                          {currentReview.location}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })()}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Navigation Dots */}
+                    {activeReviews.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-4">
+                        {activeReviews.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setActiveTestimonial(i)}
+                            className={`w-2 h-2 rounded-full transition-all outline-none cursor-pointer ${
+                              (activeTestimonial % activeReviews.length) === i ? 'bg-primary w-5' : 'bg-dark/20'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 📦 RIGHT SIDE: Staggered Floating Products (Desktop/Laptop only) */}
+            <div className="hidden lg:flex lg:col-span-3 h-80 relative w-full select-none">
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[3]}
+                fallbackProducts={stableProducts}
+                className="absolute top-4 right-6 xl:right-12 w-24 h-24 xl:w-28 xl:h-28 bg-white p-3 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+              />
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[4]}
+                fallbackProducts={stableProducts}
+                className="absolute top-24 left-4 xl:left-10 w-28 h-28 xl:w-32 xl:h-32 bg-white p-4 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                badge={(p) => (
+                  <div className="absolute -bottom-2 -left-2 bg-[#E2F3F0] text-[#009688] text-[9px] font-bold px-2 py-0.5 rounded-full border border-primary/10 flex items-center gap-1 shadow-sm">
+                    <span>💬</span> Reviewed
+                  </div>
+                )}
+              />
+              <TestimonialProductCard
+                initialProduct={selectedTestimonialProducts[5]}
+                fallbackProducts={stableProducts}
+                className="absolute bottom-4 right-8 xl:right-14 w-24 h-24 xl:w-28 xl:h-28 bg-white p-3 rounded-2xl border border-primary/10 shadow-[0_8px_30px_rgba(0,150,136,0.06)] hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -1293,6 +1648,67 @@ export default function Home() {
         <FaWhatsapp className="text-2xl" />
       </button>
 
+    </div>
+  );
+}
+
+// 📦 Dynamic review helper card with self-healing product fallback on error
+function TestimonialProductCard({ initialProduct, fallbackProducts, className, badge }) {
+  const [currentProduct, setCurrentProduct] = useState(initialProduct);
+  const [attemptedIds, setAttemptedIds] = useState(new Set());
+
+  useEffect(() => {
+    if (initialProduct) {
+      setCurrentProduct(initialProduct);
+      setAttemptedIds(new Set([initialProduct.id]));
+    } else {
+      setCurrentProduct(null);
+      setAttemptedIds(new Set());
+    }
+  }, [initialProduct]);
+
+  if (!currentProduct) return null;
+
+  const handleImageError = () => {
+    // Find a fallback product that we haven't tried yet
+    const nextProduct = fallbackProducts.find(p => p && p.id && !attemptedIds.has(p.id));
+    if (nextProduct) {
+      setAttemptedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.add(nextProduct.id);
+        return newSet;
+      });
+      setCurrentProduct(nextProduct);
+    } else {
+      // Out of fallbacks, hide slot
+      setCurrentProduct(null);
+    }
+  };
+
+  const getProductImgUrl = (p) => {
+    if (p.image_url && p.image_url.trim() !== '' && p.image_url !== '/images/default-medicine.png') {
+      return p.image_url;
+    }
+    // Dynamic fallback to the local SVGs under public/images/medicines/
+    const slug = p.medicine_name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return `/images/medicines/${p.id}-${slug}.svg`;
+  };
+
+  const imgUrl = getProductImgUrl(currentProduct);
+
+  return (
+    <div className={className}>
+      <img
+        src={imgUrl}
+        alt={currentProduct.medicine_name}
+        className="w-full h-full object-contain"
+        onError={handleImageError}
+      />
+      {badge && badge(currentProduct)}
     </div>
   );
 }

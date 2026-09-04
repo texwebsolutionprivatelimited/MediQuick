@@ -28,6 +28,10 @@ export default function Cart() {
     removeCoupon,
     prescriptionRequired,
     prescriptionUploaded,
+    prescriptionStatus,
+    prescriptionApproved,
+    prescriptionPending,
+    prescriptionRejected,
     prescriptionFile
   } = useCart();
 
@@ -47,6 +51,8 @@ export default function Cart() {
   // Bypassed location-based delivery restriction to match Buy Now behavior
   const isDeliveryUnavailable = false;
 
+  const isCheckoutDisabled = (prescriptionRequired && !prescriptionApproved) || isStoreClosed || isDeliveryUnavailable;
+
   const handleCouponSubmit = (e) => {
     e.preventDefault();
     setCouponError("");
@@ -65,7 +71,7 @@ export default function Cart() {
   const handleCheckout = () => {
     if (isStoreClosed) return;
     if (isDeliveryUnavailable) return;
-    if (prescriptionRequired && !prescriptionUploaded) {
+    if (prescriptionRequired && !prescriptionApproved) {
       navigate('/upload-prescription');
     } else {
       navigate('/checkout');
@@ -160,26 +166,71 @@ export default function Cart() {
             
             {/* Prescription warnings */}
             {prescriptionRequired && (
-              <Card hoverable={false} padding="p-5" className="bg-white border-l-4 border-l-red-500 border border-dark/5 shadow-soft rounded-[20px]">
+              <Card hoverable={false} padding="p-5" className={`bg-white border-l-4 shadow-soft rounded-[20px] ${
+                prescriptionApproved 
+                  ? 'border-l-emerald-500 border border-dark/5' 
+                  : prescriptionRejected 
+                    ? 'border-l-red-500 border border-dark/5' 
+                    : 'border-l-amber-500 border border-dark/5'
+              }`}>
                 <div className="flex items-start gap-3 text-left">
-                  <div className="text-red-500 text-lg shrink-0 mt-0.5"><MdInfoOutline /></div>
-                  <div className="space-y-1">
-                    <h4 className="font-bold text-xs text-dark uppercase tracking-wider">Prescription Required</h4>
-                    <p className="text-[10px] text-dark/50 leading-relaxed font-light">
-                      This cart contains items requiring prescription. Please upload your prescription.
-                    </p>
-                    {prescriptionUploaded ? (
-                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold pt-1.5">
-                        <MdCheckCircle className="text-sm" />
-                        <span>Uploaded: {prescriptionFile?.name}</span>
+                  <div className="text-lg shrink-0 mt-0.5">
+                    {prescriptionApproved ? (
+                      <MdCheckCircle className="text-emerald-500" />
+                    ) : prescriptionRejected ? (
+                      <MdClose className="text-red-500" />
+                    ) : (
+                      <MdInfoOutline className="text-amber-500" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5 w-full">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-bold text-xs text-dark uppercase tracking-wider">
+                        {prescriptionApproved 
+                          ? "Prescription Approved" 
+                          : prescriptionRejected 
+                            ? "Prescription Rejected" 
+                            : prescriptionPending 
+                              ? "Prescription Pending Approval" 
+                              : "Prescription Required"}
+                      </h4>
+                      {prescriptionApproved && <span className="bg-emerald-50 text-emerald-700 text-[8px] font-black uppercase px-1.5 py-0.5 rounded">Ready</span>}
+                      {prescriptionPending && <span className="bg-amber-50 text-amber-700 text-[8px] font-black uppercase px-1.5 py-0.5 rounded animate-pulse">Under Review</span>}
+                      {prescriptionRejected && <span className="bg-red-50 text-red-700 text-[8px] font-black uppercase px-1.5 py-0.5 rounded">Rejected</span>}
+                    </div>
+
+                    {prescriptionApproved ? (
+                      <p className="text-[10px] text-emerald-700 leading-relaxed font-medium">
+                        Uploaded document ({prescriptionFile?.name}) has been verified. You can now proceed to checkout.
+                      </p>
+                    ) : prescriptionPending ? (
+                      <p className="text-[10px] text-amber-800 leading-relaxed font-medium">
+                        Uploaded ({prescriptionFile?.name}). Our pharmacists are verifying your prescription. Checkout will unlock automatically upon approval.
+                      </p>
+                    ) : prescriptionRejected ? (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-red-700 leading-relaxed font-bold">
+                          Reason: {prescriptionFile?.rejectionReason || "Invalid or unclear document."}
+                        </p>
+                        <button 
+                          onClick={() => navigate('/upload-prescription')}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-[9px] font-bold uppercase rounded-lg transition-all cursor-pointer"
+                        >
+                          Upload New Prescription
+                        </button>
                       </div>
                     ) : (
-                      <button 
-                        onClick={() => navigate('/upload-prescription')}
-                        className="mt-2.5 px-4 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary text-[10px] font-bold uppercase rounded-lg transition-all flex items-center gap-1 select-none"
-                      >
-                        <MdUploadFile className="text-xs" /> Upload Now
-                      </button>
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-dark/50 leading-relaxed font-light">
+                          This cart contains Rx medicines. Please upload a valid prescription to proceed.
+                        </p>
+                        <button 
+                          onClick={() => navigate('/upload-prescription')}
+                          className="mt-1 px-4 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white border border-primary/20 hover:border-primary text-[10px] font-bold uppercase rounded-lg transition-all flex items-center gap-1 select-none cursor-pointer"
+                        >
+                          <MdUploadFile className="text-xs" /> Upload Now
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -276,9 +327,9 @@ export default function Cart() {
 
               <button 
                 onClick={handleCheckout}
-                disabled={(prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable}
+                disabled={isCheckoutDisabled}
                 className={`w-full py-4 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 select-none ${
-                  (prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable
+                  isCheckoutDisabled
                     ? 'bg-dark/10 text-dark/30 border border-dark/5 cursor-not-allowed shadow-none'
                     : 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95'
                 }`}
@@ -287,10 +338,25 @@ export default function Cart() {
                 <MdArrowForward className="text-base" />
               </button>
               
-              {prescriptionRequired && !prescriptionUploaded && (
-                <p className="text-[9px] text-red-500 font-semibold text-center mt-2">
-                  * Upload prescription to unlock the Checkout button.
-                </p>
+              {prescriptionRequired && !prescriptionApproved && (
+                <div className="text-center mt-2">
+                  {!prescriptionUploaded && (
+                    <p className="text-[9px] text-red-500 font-semibold">
+                      * Upload prescription and await approval to unlock checkout.
+                    </p>
+                  )}
+                  {prescriptionPending && (
+                    <p className="text-[9px] text-amber-600 font-bold flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                      Prescription under review. Checkout unlocks automatically upon approval.
+                    </p>
+                  )}
+                  {prescriptionRejected && (
+                    <p className="text-[9px] text-red-600 font-bold">
+                      * Prescription was rejected. Please upload a new prescription.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -308,9 +374,9 @@ export default function Cart() {
           </div>
           <button 
             onClick={handleCheckout}
-            disabled={(prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable}
+            disabled={isCheckoutDisabled}
             className={`px-6 py-3 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 select-none ${
-              (prescriptionRequired && !prescriptionUploaded) || isStoreClosed || isDeliveryUnavailable
+              isCheckoutDisabled
                 ? 'bg-dark/10 text-dark/30 border border-dark/5 cursor-not-allowed shadow-none'
                 : 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95'
             }`}

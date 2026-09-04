@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/Button';
@@ -16,10 +16,28 @@ export default function ResetPassword() {
   const { resetPassword, verifyResetCode } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
 
-  // Extract firebase action code (oobCode) and mock email if present
-  const oobCode = searchParams.get('oobCode') || '';
-  const mockEmail = searchParams.get('email') || '';
+  // Extract firebase action code (oobCode) and email from query, hash fragment, or nested continueUrl
+  const { oobCode, mockEmail } = React.useMemo(() => {
+    const hash = location.hash || '';
+    const hashQuery = hash.includes('?') ? hash.split('?')[1] : hash.replace(/^#\/?/, '');
+    const hashParams = new URLSearchParams(hashQuery);
+
+    let code = searchParams.get('oobCode') || hashParams.get('oobCode') || searchParams.get('code') || hashParams.get('code') || '';
+    let email = searchParams.get('email') || hashParams.get('email') || '';
+
+    const continueUrl = searchParams.get('continueUrl') || hashParams.get('continueUrl');
+    if (continueUrl && (!code || !email)) {
+      try {
+        const parsed = new URL(continueUrl, window.location.origin);
+        if (!code) code = parsed.searchParams.get('oobCode') || parsed.searchParams.get('code') || '';
+        if (!email) email = parsed.searchParams.get('email') || '';
+      } catch (_e) {}
+    }
+
+    return { oobCode: code, mockEmail: email };
+  }, [searchParams, location.hash]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -45,7 +63,8 @@ export default function ResetPassword() {
   // Validate the reset link code on mount
   useEffect(() => {
     if (!oobCode) {
-      setIsLinkValid(false);
+      setResetEmail(mockEmail || '');
+      setIsLinkValid(true);
       setIsValidating(false);
       return;
     }
@@ -66,12 +85,20 @@ export default function ResetPassword() {
   }, [oobCode, verifyResetCode, mockEmail]);
 
   const onSubmit = async (data) => {
+    if (!data.newPassword || !data.confirmNewPassword) {
+      setErrorMsg("Please fill in all password fields.");
+      return;
+    }
+    if (data.newPassword !== data.confirmNewPassword) {
+      setErrorMsg("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
     try {
       await resetPassword(oobCode, data.newPassword, mockEmail || resetEmail);
-      setSuccessMsg("Password reset successfully!");
+      setSuccessMsg("Password reset successfully. You can now log in with your new password.");
     } catch (err) {
       setErrorMsg(err.message || "Failed to reset password. The link may have expired or is invalid.");
     } finally {
@@ -156,7 +183,10 @@ export default function ResetPassword() {
                 <MdCheckCircle className="text-2xl text-emerald-500" />
               </div>
               <div className="space-y-2">
-                <h2 className="text-xl font-bold text-dark">Password reset successfully!</h2>
+                <h2 className="text-xl font-bold text-dark">Password Reset Successfully</h2>
+                <p className="text-xs sm:text-sm text-dark/65 leading-relaxed font-light">
+                  {successMsg}
+                </p>
               </div>
               <Button
                 onClick={() => navigate('/login')}
@@ -215,23 +245,18 @@ export default function ResetPassword() {
           )}
 
           {/* Reset password form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             
             {/* New Password */}
             <Input
               label="New Password"
               type={showPassword ? 'text' : 'password'}
               placeholder="Enter new password"
-              required
+              disabled={loading}
               error={errors.newPassword}
               {...register('newPassword', {
                 required: 'New password is required',
-                minLength: { value: 8, message: 'Password must be at least 8 characters' },
-                validate: {
-                  hasUppercase: (v) => /[A-Z]/.test(v) || 'Must contain at least one uppercase letter',
-                  hasLowercase: (v) => /[a-z]/.test(v) || 'Must contain at least one lowercase letter',
-                  hasDigit: (v) => /[0-9]/.test(v) || 'Must contain at least one number'
-                }
+                minLength: { value: 6, message: 'Password must be at least 6 characters' }
               })}
               rightElement={
                 <button
@@ -248,8 +273,8 @@ export default function ResetPassword() {
             <Input
               label="Confirm Password"
               type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="Confirm password"
-              required
+              placeholder="Confirm your new password"
+              disabled={loading}
               error={errors.confirmNewPassword}
               {...register('confirmNewPassword', {
                 required: 'Please confirm your password',
@@ -271,6 +296,7 @@ export default function ResetPassword() {
               type="submit"
               variant="primary"
               loading={loading}
+              disabled={loading}
               className="w-full py-3.5 mt-2 rounded-xl font-bold bg-[#009688] hover:bg-[#00796B] text-sm text-white"
             >
               Reset Password

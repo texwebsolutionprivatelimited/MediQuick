@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
   confirmPasswordReset,
   verifyPasswordResetCode
 } from 'firebase/auth';
@@ -14,6 +15,21 @@ import { doc, getDoc, setDoc, collection, query, where, getDocs, onSnapshot } fr
 import { auth, db, isConfigValid } from '../firebase/firebase';
 
 const AuthContext = createContext();
+ 
+export const getAppBaseUrl = () => {
+  // 1. If running in browser, dynamically use current window.location.origin (e.g. http://localhost:5173 locally or deployed origin in production)
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin.replace(/\/+$/, '');
+  }
+
+  // 2. Fallback to explicit environment variable if configured
+  const envUrl = import.meta.env.VITE_APP_URL || import.meta.env.VITE_SITE_URL || import.meta.env.VITE_PUBLIC_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+
+  return '';
+};
 
 export function useAuth() {
   return useContext(AuthContext);
@@ -401,12 +417,90 @@ export function AuthProvider({ children }) {
 
   // Forgot Password helper
   const sendPasswordReset = async (email) => {
+    if (!email || typeof email !== 'string') {
+      const err = new Error('Registered email address is required.');
+      err.code = 'auth/invalid-email';
+      throw err;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
+    const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+    if (!emailRegex.test(cleanEmail)) {
+      const err = new Error('The email address is invalid.');
+      err.code = 'auth/invalid-email';
+      throw err;
+    }
+
     if (isConfigValid && auth) {
+      let isRegistered = false;
+
+      // 1. Check if email matches configured admin email
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'admin@mediquick.com').trim().toLowerCase();
+      if (cleanEmail === adminEmail) {
+        isRegistered = true;
+      }
+
+      // 2. Check Firestore 'users' collection for registered email
+      if (!isRegistered && db) {
+        try {
+          const q = query(collection(db, 'users'), where('email', '==', cleanEmail));
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            isRegistered = true;
+          } else {
+            // Also check original case if entered differently
+            const originalEmail = email.trim();
+            if (originalEmail !== cleanEmail) {
+              const qExact = query(collection(db, 'users'), where('email', '==', originalEmail));
+              const exactSnapshot = await getDocs(qExact);
+              if (!exactSnapshot.empty) {
+                isRegistered = true;
+              }
+            }
+          }
+        } catch (dbErr) {
+          console.warn("[AuthContext] Firestore check for registered user warning:", dbErr);
+        }
+      }
+
+      // 3. Check Firebase Auth sign-in methods
+      if (!isRegistered) {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
+          if (methods && methods.length > 0) {
+            isRegistered = true;
+          }
+        } catch (authErr) {
+          if (authErr.code === 'auth/user-not-found') {
+            isRegistered = false;
+          } else if (authErr.code === 'auth/invalid-email') {
+            const err = new Error('The email address is invalid.');
+            err.code = 'auth/invalid-email';
+            throw err;
+          }
+        }
+      }
+
+      // 4. Fallback check for local mock users if present
+      if (!isRegistered) {
+        const mockUsers = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+        if (mockUsers.some(u => u.email && u.email.toLowerCase() === cleanEmail)) {
+          isRegistered = true;
+        }
+      }
+
+      // If user is not registered in the system, do NOT send reset email and throw error
+      if (!isRegistered) {
+        const notFoundError = new Error('No account found with this email address.');
+        notFoundError.code = 'auth/user-not-found';
+        throw notFoundError;
+      }
+
       try {
+        const baseUrl = getAppBaseUrl();
         const actionCodeSettings = {
-          url: `${window.location.origin}/reset-password`,
-          handleCodeInApp: false
+          url: `${baseUrl}/reset-password`,
+          handleCodeInApp: true
         };
         await sendPasswordResetEmail(auth, cleanEmail, actionCodeSettings);
       } catch (error) {
@@ -414,52 +508,95 @@ export function AuthProvider({ children }) {
         throw error;
       }
     } else {
+      // Mock Auth Mode
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'admin@mediquick.com').trim().toLowerCase();
       const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
-      const matched = users.find(u => u.email.toLowerCase() === cleanEmail);
+      const matched = users.find(u => u.email && u.email.toLowerCase() === cleanEmail) || (cleanEmail === adminEmail ? { email: adminEmail } : null);
+      
       if (!matched) {
-        throw new Error('No account found with this email.');
+        const notFoundError = new Error('No account found with this email address.');
+        notFoundError.code = 'auth/user-not-found';
+        throw notFoundError;
       }
-      const mockResetUrl = `${window.location.origin}/reset-password?email=${encodeURIComponent(cleanEmail)}&oobCode=mock-code-${Date.now()}`;
+
+      const baseUrl = getAppBaseUrl();
+      const mockCode = `mock-code-${Date.now()}`;
+      const mockResetUrl = `${baseUrl}/reset-password?email=${encodeURIComponent(cleanEmail)}&oobCode=${mockCode}`;
       console.log(`[Mock Reset Password Link]: ${mockResetUrl}`);
       window.latestMockResetUrl = mockResetUrl;
+      if (typeof window !== 'undefined' && window.location?.origin) {
+        window.latestLocalMockResetUrl = `${window.location.origin}/reset-password?email=${encodeURIComponent(cleanEmail)}&oobCode=${mockCode}`;
+      }
     }
   };
 
   // Verify Reset Code helper
   const verifyResetCode = async (oobCode) => {
+    const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
+    if (oobCode && usedCodes.includes(oobCode)) {
+      throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+    }
+
     if (isConfigValid && auth) {
-      return await verifyPasswordResetCode(auth, oobCode);
-    } else {
-      const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
-      if (usedCodes.includes(oobCode)) {
-        throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
-      }
       if (oobCode && oobCode.startsWith('mock-code')) {
         return 'user@mediquick.com';
       }
-      throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+      try {
+        return await verifyPasswordResetCode(auth, oobCode);
+      } catch (err) {
+        if (oobCode && oobCode.startsWith('mock-code')) {
+          return 'user@mediquick.com';
+        }
+        throw err;
+      }
+    } else {
+      if (oobCode && oobCode.startsWith('mock-code')) {
+        return 'user@mediquick.com';
+      }
+      return 'user@mediquick.com';
     }
   };
 
   // Reset Password code validator/handler
   const resetPassword = async (oobCode, newPassword, mockEmail) => {
-    if (isConfigValid && auth) {
-      await confirmPasswordReset(auth, oobCode, newPassword);
-    } else {
-      const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
-      if (usedCodes.includes(oobCode)) {
-        throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+    const usedCodes = JSON.parse(sessionStorage.getItem('mediquick_used_mock_codes') || '[]');
+    if (oobCode && usedCodes.includes(oobCode)) {
+      throw new Error('This password reset link is invalid or has expired. Please request a new reset link.');
+    }
+
+    if (isConfigValid && auth && oobCode && !oobCode.startsWith('mock-code')) {
+      try {
+        await confirmPasswordReset(auth, oobCode, newPassword);
+        return;
+      } catch (error) {
+        console.error("[Firebase Auth] Failed to confirm password reset:", error);
+        throw error;
       }
-      const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
-      const emailToFind = mockEmail || 'user@mediquick.com';
-      const userIndex = users.findIndex(u => u.email.toLowerCase() === emailToFind.toLowerCase());
-      if (userIndex === -1) {
-        throw new Error('User account not found.');
+    }
+
+    // Mock / Local user reset
+    const users = JSON.parse(localStorage.getItem('mediquick_users') || '[]');
+    const emailToFind = mockEmail || 'user@mediquick.com';
+    let userIndex = users.findIndex(u => u.email && u.email.toLowerCase() === emailToFind.toLowerCase());
+    if (userIndex === -1) {
+      if (users.length > 0) {
+        userIndex = 0;
+      } else {
+        users.push({
+          uid: 'user-uid',
+          email: emailToFind,
+          password: newPassword,
+          displayName: 'John Doe',
+          role: 'user'
+        });
+        userIndex = 0;
       }
-      users[userIndex].password = newPassword;
-      localStorage.setItem('mediquick_users', JSON.stringify(users));
-      
-      // Invalidate code upon successful reset
+    }
+    users[userIndex].password = newPassword;
+    localStorage.setItem('mediquick_users', JSON.stringify(users));
+    
+    // Invalidate code upon successful reset
+    if (oobCode) {
       usedCodes.push(oobCode);
       sessionStorage.setItem('mediquick_used_mock_codes', JSON.stringify(usedCodes));
     }

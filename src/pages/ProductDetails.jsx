@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -33,21 +34,37 @@ import { FaWhatsapp, FaTelegramPlane, FaFacebookF } from 'react-icons/fa';
 import { useProducts } from '../context/ProductsContext';
 import { useWishlist } from '../context/WishlistContext';
 import { db, isConfigValid } from '../firebase/firebase';
-import { collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, onSnapshot, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { getCouponForProduct } from '../utils/couponMatcher';
+import { uploadToImageKit } from '../utils/imageUpload';
+import { submitPrescriptionRequest } from '../utils/prescriptionService';
 
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
-  const { cartItems, addToCart, updateQuantity, prescriptionUploaded, setPrescriptionFile, availableCoupons } = useCart();
+  const { 
+    cartItems, 
+    addToCart, 
+    updateQuantity, 
+    prescriptionFile, 
+    setPrescriptionFile, 
+    prescriptionUploaded, 
+    prescriptionStatus, 
+    prescriptionApproved, 
+    prescriptionPending, 
+    prescriptionRejected, 
+    availableCoupons 
+  } = useCart();
   const { products: productsData, updateProductStats } = useProducts();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const cartItem = cartItems.find((item) => item.id === id);
   const quantity = cartItem ? cartItem.quantity : 0;
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadingRx, setUploadingRx] = useState(false);
+  const [rxUploadError, setRxUploadError] = useState("");
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
@@ -62,6 +79,32 @@ export default function ProductDetails() {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [hasPurchased, setHasPurchased] = useState(false);
   const [purchaseLoading, setPurchaseLoading] = useState(true);
+
+  // Prevent scrolling behind modal when open
+  useEffect(() => {
+    if (showPrescriptionModal || showReviewModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPrescriptionModal, showReviewModal]);
+
+  // Press ESC to close open modals
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowPrescriptionModal(false);
+        setShowReviewModal(false);
+      }
+    };
+    if (showPrescriptionModal || showReviewModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPrescriptionModal, showReviewModal]);
 
   // Find product in dataset
   const product = productsData.find(p => p.id === id);
@@ -524,7 +567,7 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       return;
     }
 
-    if (product.prescription_required && !prescriptionUploaded) {
+    if (product.prescription_required && !prescriptionApproved) {
       setShowPrescriptionModal(true);
     } else {
       const existingItem = cartItems.find(i => i.id === product.id);
@@ -533,40 +576,81 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       } else if (existingItem.quantity !== targetQty) {
         updateQuantity(product.id, targetQty);
       }
-      navigate('/checkout', { state: { buyNowProduct: product } }); // Proceed straight to checkout with state
+      navigate('/checkout', { state: { buyNowProduct: product } });
     }
   };
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setRxUploadError("");
+      const lowerName = file.name.toLowerCase();
+      const ext = '.' + lowerName.split('.').pop();
+      if (!['.pdf', '.jpg', '.jpeg', '.png'].includes(ext)) {
+        setRxUploadError("Please upload a valid PDF, JPG, or PNG document.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setRxUploadError("File size exceeds 5MB limit.");
+        return;
+      }
+
       setSelectedFile({
+        rawFile: file,
         name: file.name,
-        size: (file.size / 1024).toFixed(1) + " KB",
+        size: (file.size / 1024 / 1024 >= 1 ? (file.size / 1024 / 1024).toFixed(2) + " MB" : (file.size / 1024).toFixed(1) + " KB"),
         type: file.type
       });
     }
   };
 
-  const handleConfirmPrescription = () => {
-    if (selectedFile) {
-      setPrescriptionFile(selectedFile);
-      setShowPrescriptionModal(false);
-      const targetQty = quantity || 1;
-      const latestProduct = productsData?.find(p => p.id === product.id) || product;
-      const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
-      if (targetQty > currentStock) {
-        alert(`Only ${currentStock} items available`);
-        return;
-      }
-      const existingItem = cartItems.find(i => i.id === product.id);
-      if (!existingItem) {
-        addToCart(product, targetQty);
-      } else if (existingItem.quantity !== targetQty) {
-        updateQuantity(product.id, targetQty);
-      }
-      navigate('/checkout', { state: { buyNowProduct: product } });
+  const handleSubmitPrescription = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedFile) return;
+
+    if (!currentUser || !currentUser.uid) {
+      setRxUploadError("Please log in to submit your prescription for approval.");
+      navigate('/login', { state: { from: location } });
+      return;
     }
+
+    setUploadingRx(true);
+    setRxUploadError("");
+
+    try {
+      const savedRx = await submitPrescriptionRequest({
+        file: selectedFile.rawFile,
+        currentUser: currentUser,
+        product: product
+      });
+
+      setPrescriptionFile(savedRx);
+      setSelectedFile(null);
+    } catch (err) {
+      console.error("Prescription submission failed in ProductDetails:", err);
+      setRxUploadError(err.message || "Prescription submission failed. Please try again.");
+    } finally {
+      setUploadingRx(false);
+    }
+  };
+
+  const handleContinueBuyAfterApproval = () => {
+    if (!prescriptionApproved) return;
+    setShowPrescriptionModal(false);
+    const targetQty = quantity || 1;
+    const latestProduct = productsData?.find(p => p.id === product.id) || product;
+    const currentStock = Number(latestProduct.stock !== undefined ? latestProduct.stock : 0);
+    if (targetQty > currentStock) {
+      alert(`Only ${currentStock} items available`);
+      return;
+    }
+    const existingItem = cartItems.find(i => i.id === product.id);
+    if (!existingItem) {
+      addToCart(product, targetQty);
+    } else if (existingItem.quantity !== targetQty) {
+      updateQuantity(product.id, targetQty);
+    }
+    navigate('/checkout', { state: { buyNowProduct: product } });
   };
 
   return (
@@ -812,79 +896,245 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
 
         </div>
       {/* 🚀 PRESCRIPTION UPLOAD MODAL POPUP */}
-      <AnimatePresence>
-        {showPrescriptionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 space-y-5"
-            >
-              <div className="flex items-center justify-between border-b border-dark/5 pb-3">
-                <h3 className="font-bold text-dark flex items-center gap-1.5 text-sm uppercase tracking-wider">
-                  <MdLocalPharmacy className="text-primary text-xl" /> Upload Rx Prescription
-                </h3>
-                <button 
-                  onClick={() => setShowPrescriptionModal(false)}
-                  className="text-dark/50 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors"
-                >
-                  <MdClose className="text-xl" />
-                </button>
-              </div>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showPrescriptionModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowPrescriptionModal(false)}
+                className="absolute inset-0 bg-dark/60 backdrop-blur-sm cursor-pointer"
+              />
 
-              <div className="bg-red-50 border border-red-100 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-red-800">
-                <MdInfoOutline className="text-lg shrink-0 mt-0.5" />
-                <p className="leading-relaxed font-medium">
-                  {product.medicine_name} is a prescription drug. A valid medical prescription must be uploaded to continue.
-                </p>
-              </div>
+              {/* Modal Container */}
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                transition={{ type: 'spring', duration: 0.35 }}
+                className="relative w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 space-y-5 z-10 text-left"
+              >
+                <div className="flex items-center justify-between border-b border-dark/5 pb-3">
+                  <h3 className="font-bold text-dark flex items-center gap-1.5 text-sm uppercase tracking-wider">
+                    <MdLocalPharmacy className="text-primary text-xl" /> Rx Prescription Verification
+                  </h3>
+                  <button 
+                    onClick={() => setShowPrescriptionModal(false)}
+                    className="text-dark/50 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors cursor-pointer"
+                  >
+                    <MdClose className="text-xl" />
+                  </button>
+                </div>
 
-              {/* Upload Selector */}
-              <div className="space-y-3">
-                <label className="border-2 border-dashed border-dark/15 hover:border-primary rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-primary/5 bg-background/50">
-                  <input 
-                    type="file" 
-                    accept="image/*,application/pdf"
-                    onChange={handleFileChange}
-                    className="hidden" 
-                  />
-                  <MdUploadFile className="text-3xl text-dark/35 mb-2" />
-                  <span className="text-xs font-bold text-dark/70">Click to upload doctor's slip</span>
-                  <span className="text-[10px] text-dark/40 mt-1">PDF, JPG, PNG accepted (Max 5MB)</span>
-                </label>
-
-                {selectedFile && (
-                  <div className="bg-[#E2F3F0]/40 border border-primary/10 p-3 rounded-xl flex items-center justify-between text-xs">
-                    <div className="truncate text-left pr-2">
-                      <span className="font-bold text-dark block truncate">{selectedFile.name}</span>
-                      <span className="text-[10px] text-dark/45 font-medium">{selectedFile.size}</span>
+                {/* SCENARIO 1: PRESCRIPTION APPROVED */}
+                {prescriptionApproved ? (
+                  <div className="space-y-4">
+                    <div className="bg-emerald-50 border border-emerald-200/60 p-4 rounded-2xl flex items-start gap-3 text-xs text-emerald-900">
+                      <MdCheckCircle className="text-xl text-emerald-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-emerald-800 text-sm">Prescription Approved</span>
+                          <span className="bg-emerald-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full">Verified</span>
+                        </div>
+                        <p className="text-emerald-800/85 leading-relaxed font-medium">
+                          Your prescription ({prescriptionFile?.name}) has been reviewed and approved by our licensed pharmacists. You are clear to proceed with your order.
+                        </p>
+                      </div>
                     </div>
-                    <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md">Ready</span>
+
+                    <div className="flex gap-2 pt-2 border-t border-dark/5">
+                      <button 
+                        type="button"
+                        onClick={() => setShowPrescriptionModal(false)}
+                        className="w-1/3 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleContinueBuyAfterApproval}
+                        className="w-2/3 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+                      >
+                        <span>Continue Buy</span>
+                        <MdFlashOn className="text-base" />
+                      </button>
+                    </div>
+                  </div>
+                ) : prescriptionRejected ? (
+                  /* SCENARIO 2: PRESCRIPTION REJECTED */
+                  <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-200/60 p-4 rounded-2xl flex items-start gap-3 text-xs text-red-900">
+                      <MdClose className="text-xl text-red-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-red-800 text-sm">Prescription Rejected</span>
+                          <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full">Rejected</span>
+                        </div>
+                        <p className="text-red-800/90 leading-relaxed font-bold">
+                          Reason: {prescriptionFile?.rejectionReason || "Prescription is unclear, missing doctor signature, or invalid."}
+                        </p>
+                        <p className="text-red-700/80 text-[11px] font-medium pt-1">
+                          Please upload a clear, valid prescription showing the doctor's registration and patient details.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-dark/5">
+                      <button 
+                        type="button"
+                        onClick={() => setShowPrescriptionModal(false)}
+                        className="w-1/3 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setPrescriptionFile(null);
+                          setSelectedFile(null);
+                        }}
+                        className="w-2/3 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md bg-red-600 hover:bg-red-700 text-white cursor-pointer active:scale-95"
+                      >
+                        Upload New Prescription
+                      </button>
+                    </div>
+                  </div>
+                ) : prescriptionPending ? (
+                  /* SCENARIO 3: PRESCRIPTION PENDING APPROVAL */
+                  <div className="space-y-4">
+                    <div className="bg-amber-50 border border-amber-200/60 p-4 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
+                      <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin shrink-0 mt-0.5" />
+                      <div className="space-y-1 text-left">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-amber-800 text-sm">Prescription Submitted Successfully</span>
+                          <span className="bg-amber-500 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full animate-pulse">Pending Review</span>
+                        </div>
+                        <p className="text-amber-800/90 leading-relaxed font-semibold">
+                          Waiting for approval...
+                        </p>
+                        <p className="text-amber-700/90 text-xs leading-relaxed font-medium">
+                          Your prescription ({prescriptionFile?.name || "Uploaded document"}) has been submitted to our licensed pharmacists. You will be notified once it is approved or rejected.
+                        </p>
+                        <p className="text-amber-700/70 text-[10px] font-bold pt-1">
+                          ⏳ Verification usually takes 5–15 minutes. This screen will automatically update when approved.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-dark/50 pt-1">
+                      <span>Need to upload a different slip?</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPrescriptionFile(null);
+                          setSelectedFile(null);
+                        }}
+                        className="text-primary font-bold hover:underline bg-transparent border-0 cursor-pointer"
+                      >
+                        Replace Document →
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-dark/5">
+                      <button 
+                        type="button"
+                        onClick={() => setShowPrescriptionModal(false)}
+                        className="w-full py-3 bg-dark/5 hover:bg-dark/10 text-dark/80 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                      >
+                        Close & Wait for Approval
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* SCENARIO 4: NO PRESCRIPTION YET - UPLOAD FORM */
+                  <div className="space-y-4">
+                    <div className="bg-red-50 border border-red-100 p-3.5 rounded-xl flex items-start gap-2.5 text-xs text-red-800">
+                      <MdInfoOutline className="text-lg shrink-0 mt-0.5" />
+                      <p className="leading-relaxed font-medium">
+                        {product.medicine_name} is a prescription drug. A valid medical prescription must be uploaded and approved by our team before purchase.
+                      </p>
+                    </div>
+
+                    {/* Upload Selector */}
+                    <div className="space-y-3">
+                      <label className="border-2 border-dashed border-dark/15 hover:border-primary rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-primary/5 bg-background/50">
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf"
+                          onChange={handleFileChange}
+                          className="hidden" 
+                        />
+                        <MdUploadFile className="text-3xl text-dark/35 mb-2" />
+                        <span className="text-xs font-bold text-dark/70">Click to upload doctor's slip</span>
+                        <span className="text-[10px] text-dark/40 mt-1">PDF, JPG, PNG accepted (Max 5MB)</span>
+                      </label>
+
+                      {selectedFile && (
+                        <div className="bg-[#E2F3F0]/40 border border-primary/10 p-3 rounded-xl flex items-center justify-between text-xs">
+                          <div className="truncate text-left pr-2">
+                            <span className="font-bold text-dark block truncate">{selectedFile.name}</span>
+                            <span className="text-[10px] text-dark/45 font-medium">{selectedFile.size}</span>
+                          </div>
+                          <span className="bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md">Ready</span>
+                        </div>
+                      )}
+
+                      {rxUploadError && (
+                        <p className="text-xs text-red-600 font-bold text-center bg-red-50 p-2.5 rounded-xl border border-red-100">{rxUploadError}</p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-dark/50 pt-1">
+                      <span>Want to manage all uploads?</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPrescriptionModal(false);
+                          navigate('/upload-prescription');
+                        }}
+                        className="text-primary font-bold hover:underline bg-transparent border-0 cursor-pointer"
+                      >
+                        Full Upload Page →
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-dark/5">
+                      <button 
+                        type="button"
+                        onClick={() => setShowPrescriptionModal(false)}
+                        disabled={uploadingRx}
+                        className="w-1/2 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleSubmitPrescription}
+                        disabled={!selectedFile || uploadingRx}
+                        className={`w-1/2 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md flex items-center justify-center gap-2 ${selectedFile && !uploadingRx ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95' : 'bg-dark/10 text-dark/35 cursor-not-allowed shadow-none'}`}
+                      >
+                        {uploadingRx ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>UPLOADING...</span>
+                          </>
+                        ) : (
+                          "Submit for Approval"
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div>
 
-              <div className="flex gap-2 pt-2 border-t border-dark/5">
-                <button 
-                  onClick={() => setShowPrescriptionModal(false)}
-                  className="w-1/2 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleConfirmPrescription}
-                  disabled={!selectedFile}
-                  className={`w-1/2 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md ${selectedFile ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95' : 'bg-dark/10 text-dark/35 cursor-not-allowed shadow-none'}`}
-                >
-                  Continue Buy
-                </button>
-              </div>
-
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
       </div>
 
       {/* 📊 REVIEWS SECTION */}
@@ -1146,99 +1396,113 @@ ${product?.description ? product.description.substring(0, 100) + '...' : ''}`;
       )}
 
       {/* 🚀 REVIEW FORM MODAL POPUP */}
-      <AnimatePresence>
-        {showReviewModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 space-y-5 text-left"
-            >
-              <div className="flex items-center justify-between border-b border-dark/5 pb-3">
-                <h3 className="font-bold text-dark flex items-center gap-1.5 text-sm uppercase tracking-wider">
-                  <MdRateReview className="text-primary text-xl" /> 
-                  {editingReviewId ? "Edit My Review" : "Write a Review"}
-                </h3>
-                <button 
-                  onClick={() => setShowReviewModal(false)}
-                  className="text-dark/50 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors cursor-pointer"
-                >
-                  <MdClose className="text-xl" />
-                </button>
-              </div>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {showReviewModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowReviewModal(false)}
+                className="absolute inset-0 bg-dark/60 backdrop-blur-sm cursor-pointer"
+              />
 
-              <form onSubmit={handleSubmitReview} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Your Rating *</label>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => {
-                      const isHighlighted = hoveredRating >= star || (!hoveredRating && reviewRating >= star);
-                      return (
-                        <button
-                          key={star}
-                          type="button"
-                          onMouseEnter={() => setHoveredRating(star)}
-                          onMouseLeave={() => setHoveredRating(0)}
-                          onClick={() => setReviewRating(star)}
-                          className="text-2xl transition-all duration-150 transform hover:scale-110 cursor-pointer text-amber-400 p-0.5 bg-transparent border-0"
-                        >
-                          {isHighlighted ? <MdStar /> : <MdStarBorder />}
-                        </button>
-                      );
-                    })}
-                    {reviewRating > 0 && (
-                      <span className="text-xs font-bold text-dark/50 ml-2">
-                        {reviewRating === 5 ? "Excellent" : reviewRating === 4 ? "Good" : reviewRating === 3 ? "Average" : reviewRating === 2 ? "Below Average" : "Poor"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Title (Optional)</label>
-                  <input
-                    type="text"
-                    value={reviewTitle}
-                    onChange={(e) => setReviewTitle(e.target.value)}
-                    placeholder="e.g. Excellent medicine, highly recommend"
-                    className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Text *</label>
-                  <textarea
-                    rows={4}
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    placeholder="Write your review here. What did you like or dislike?"
-                    className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium resize-none leading-relaxed"
-                    required
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4 border-t border-dark/5">
+              {/* Modal Container */}
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 15 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                transition={{ type: 'spring', duration: 0.35 }}
+                className="relative w-full max-w-md bg-white p-6 rounded-[28px] shadow-premium border border-dark/5 space-y-5 text-left z-10"
+              >
+                <div className="flex items-center justify-between border-b border-dark/5 pb-3">
+                  <h3 className="font-bold text-dark flex items-center gap-1.5 text-sm uppercase tracking-wider">
+                    <MdRateReview className="text-primary text-xl" /> 
+                    {editingReviewId ? "Edit My Review" : "Write a Review"}
+                  </h3>
                   <button 
-                    type="button"
                     onClick={() => setShowReviewModal(false)}
-                    className="w-1/2 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                    className="text-dark/50 hover:text-red-500 rounded-full hover:bg-background p-1.5 transition-colors cursor-pointer"
                   >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit"
-                    disabled={reviewRating < 1 || !reviewText.trim()}
-                    className={`w-1/2 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md ${reviewRating >= 1 && reviewText.trim() ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95' : 'bg-dark/10 text-dark/35 cursor-not-allowed shadow-none'}`}
-                  >
-                    {editingReviewId ? "Update Review" : "Submit Review"}
+                    <MdClose className="text-xl" />
                   </button>
                 </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Your Rating *</label>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const isHighlighted = hoveredRating >= star || (!hoveredRating && reviewRating >= star);
+                        return (
+                          <button
+                            key={star}
+                            type="button"
+                            onMouseEnter={() => setHoveredRating(star)}
+                            onMouseLeave={() => setHoveredRating(0)}
+                            onClick={() => setReviewRating(star)}
+                            className="text-2xl transition-all duration-150 transform hover:scale-110 cursor-pointer text-amber-400 p-0.5 bg-transparent border-0"
+                          >
+                            {isHighlighted ? <MdStar /> : <MdStarBorder />}
+                          </button>
+                        );
+                      })}
+                      {reviewRating > 0 && (
+                        <span className="text-xs font-bold text-dark/50 ml-2">
+                          {reviewRating === 5 ? "Excellent" : reviewRating === 4 ? "Good" : reviewRating === 3 ? "Average" : reviewRating === 2 ? "Below Average" : "Poor"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Title (Optional)</label>
+                    <input
+                      type="text"
+                      value={reviewTitle}
+                      onChange={(e) => setReviewTitle(e.target.value)}
+                      placeholder="e.g. Excellent medicine, highly recommend"
+                      className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-dark/65 uppercase tracking-wider block">Review Text *</label>
+                    <textarea
+                      rows={4}
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      placeholder="Write your review here. What did you like or dislike?"
+                      className="w-full px-3 py-2 bg-background border border-dark/5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-dark font-medium resize-none leading-relaxed"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-dark/5">
+                    <button 
+                      type="button"
+                      onClick={() => setShowReviewModal(false)}
+                      className="w-1/2 py-3 border border-dark/10 hover:bg-background text-dark/60 font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={reviewRating < 1 || !reviewText.trim()}
+                      className={`w-1/2 py-3 font-bold text-xs uppercase rounded-xl transition-all shadow-md ${reviewRating >= 1 && reviewText.trim() ? 'bg-primary hover:bg-primary-dark text-white cursor-pointer active:scale-95' : 'bg-dark/10 text-dark/35 cursor-not-allowed shadow-none'}`}
+                    >
+                      {editingReviewId ? "Update Review" : "Submit Review"}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
     </div>
   );

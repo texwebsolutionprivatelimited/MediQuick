@@ -9,6 +9,7 @@ const Register = lazy(() => import('../pages/Register'));
 const About = lazy(() => import('../pages/About'));
 const Medicines = lazy(() => import('../pages/Medicines'));
 const Categories = lazy(() => import('../pages/Categories'));
+const BestSellers = lazy(() => import('../pages/BestSellers'));
 const ProductDetails = lazy(() => import('../pages/ProductDetails'));
 const Cart = lazy(() => import('../pages/Cart'));
 const Checkout = lazy(() => import('../pages/Checkout'));
@@ -85,6 +86,9 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/resetpassword" element={<ResetPassword />} />
+        <Route path="/auth/action" element={<ResetPassword />} />
+        <Route path="/__/auth/action" element={<ResetPassword />} />
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -97,6 +101,7 @@ export default function AppRoutes() {
         <Route path="/careers" element={<Careers />} />
         <Route path="/medicines" element={<Medicines />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/best-sellers" element={<BestSellers />} />
         <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
         <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />

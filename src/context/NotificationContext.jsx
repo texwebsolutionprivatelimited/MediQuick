@@ -179,8 +179,9 @@ export function NotificationProvider({ children }) {
   };
 
   const addNotification = async (notif) => {
+    const targetUserId = notif.userId || currentUser?.uid || 'all';
     const payload = {
-      userId: currentUser?.uid || 'anonymous',
+      userId: targetUserId,
       title: notif.title,
       message: notif.message,
       type: notif.type || 'offers',
@@ -189,7 +190,7 @@ export function NotificationProvider({ children }) {
       actionUrl: notif.actionUrl || ''
     };
 
-    if (currentUser && isConfigValid && db) {
+    if (isConfigValid && db) {
       try {
         await addDoc(collection(db, 'notifications'), payload);
       } catch (err) {
@@ -198,7 +199,7 @@ export function NotificationProvider({ children }) {
     } else {
       const newNotif = {
         id: `local-${Date.now()}`,
-        userId: currentUser?.uid || 'anonymous',
+        userId: targetUserId,
         title: notif.title,
         message: notif.message,
         type: notif.type || 'offers',
@@ -207,6 +208,11 @@ export function NotificationProvider({ children }) {
         actionUrl: notif.actionUrl || ''
       };
       setNotifications(prev => [newNotif, ...prev]);
+      try {
+        const local = JSON.parse(localStorage.getItem('mediquick_local_notifications') || '[]');
+        local.unshift(newNotif);
+        localStorage.setItem('mediquick_local_notifications', JSON.stringify(local));
+      } catch (_e) {}
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { db, isConfigValid } from '../firebase/firebase';
 import { isCouponApplicableToCart, calculateEligibleDiscount } from '../utils/couponMatcher';
 import { useAuth } from './AuthContext';
@@ -59,9 +59,19 @@ export function CartProvider({ children }) {
   }, [rawCartItems, products]);
 
   const [coupon, setCoupon] = useState(null);
-  const [prescriptionFile, setPrescriptionFile] = useState(null); // stores { name, size, type, dataUrl or firebaseStorageUrl }
+  const [prescriptionFile, setPrescriptionFile] = useState(() => {
+    try {
+      const storedUser = localStorage.getItem('mediquick_current_user');
+      const user = storedUser ? JSON.parse(storedUser) : null;
+      const key = user?.uid ? `mediquick_rx_${user.uid}` : 'mediquick_rx_guest';
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : null;
+    } catch (_e) {
+      return null;
+    }
+  });
 
-  // Load user-specific cart from LocalStorage when currentUser changes
+  // Load user-specific cart and prescription from LocalStorage when currentUser changes
   useEffect(() => {
     if (loading) return;
 
@@ -78,6 +88,14 @@ export function CartProvider({ children }) {
       } else {
         setRawCartItems([]);
       }
+
+      const userRxKey = `mediquick_rx_${currentUser.uid}`;
+      const savedRx = localStorage.getItem(userRxKey);
+      if (savedRx) {
+        try {
+          setPrescriptionFile(JSON.parse(savedRx));
+        } catch (_e) {}
+      }
     } else {
       setRawCartItems([]);
       setCoupon(null);
@@ -93,6 +111,42 @@ export function CartProvider({ children }) {
       localStorage.setItem(userCartKey, JSON.stringify(rawCartItems));
     }
   }, [rawCartItems, currentUser, loading]);
+
+  // Save user-specific prescription to LocalStorage when changed
+  useEffect(() => {
+    const rxKey = currentUser?.uid ? `mediquick_rx_${currentUser.uid}` : 'mediquick_rx_guest';
+    if (prescriptionFile) {
+      localStorage.setItem(rxKey, JSON.stringify(prescriptionFile));
+    } else {
+      localStorage.removeItem(rxKey);
+    }
+  }, [prescriptionFile, currentUser]);
+
+  // Real-time Firestore sync for prescription review status
+  useEffect(() => {
+    if (prescriptionFile?.id && isConfigValid && db) {
+      const docRef = doc(db, 'prescriptions', prescriptionFile.id);
+      const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const newStatus = data.reviewStatus || 'pending';
+          const newReason = data.rejectionReason || '';
+          setPrescriptionFile(prev => {
+            if (!prev || prev.id !== prescriptionFile.id) return prev;
+            if (prev.reviewStatus === newStatus && prev.rejectionReason === newReason) return prev;
+            return {
+              ...prev,
+              reviewStatus: newStatus,
+              rejectionReason: newReason
+            };
+          });
+        }
+      }, (err) => {
+        console.warn("Firestore prescription sync error in CartContext:", err);
+      });
+      return unsubscribe;
+    }
+  }, [prescriptionFile?.id]);
 
   const addToCart = (item, qty = 1) => {
     if (!currentUser) {
@@ -248,9 +302,14 @@ export function CartProvider({ children }) {
     setCoupon(null);
   };
 
-  // Prescription Checking
+  // Prescription Checking & Status Evaluation
   const prescriptionRequired = cartItems.some(item => item.requiresPrescription || item.prescription_required);
   const prescriptionUploaded = !!prescriptionFile;
+  const rawStatus = (prescriptionFile?.reviewStatus || (prescriptionFile ? 'pending' : null))?.toLowerCase();
+  const prescriptionStatus = rawStatus === 'under_review' ? 'pending' : rawStatus;
+  const prescriptionApproved = !!prescriptionFile && (prescriptionStatus === 'approved');
+  const prescriptionPending = !!prescriptionFile && (prescriptionStatus === 'pending');
+  const prescriptionRejected = !!prescriptionFile && (prescriptionStatus === 'rejected');
 
   // Price Calculations
   const getSubtotal = (items = cartItems) => {
@@ -277,6 +336,10 @@ export function CartProvider({ children }) {
     setPrescriptionFile,
     prescriptionRequired,
     prescriptionUploaded,
+    prescriptionStatus,
+    prescriptionApproved,
+    prescriptionPending,
+    prescriptionRejected,
     addToCart,
     removeFromCart,
     updateQuantity,

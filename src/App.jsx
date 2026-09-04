@@ -28,7 +28,25 @@ function AppContent() {
   const { addToCart } = useCart();
   const { toggleWishlist } = useWishlist();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
+
+  // Auto redirect Firebase action links to reset-password
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const hash = location.hash || '';
+    const hashQuery = hash.includes('?') ? hash.split('?')[1] : hash.replace(/^#\/?/, '');
+    const hashParams = new URLSearchParams(hashQuery);
+
+    const mode = searchParams.get('mode') || hashParams.get('mode');
+    const oobCode = searchParams.get('oobCode') || hashParams.get('oobCode');
+
+    if ((mode === 'resetPassword' || oobCode) && 
+        !['/reset-password', '/resetpassword'].includes(pathname)) {
+      const query = location.search || (hashQuery ? `?${hashQuery}` : '');
+      navigate(`/reset-password${query}`, { replace: true });
+    }
+  }, [pathname, location.search, location.hash, navigate]);
 
   // Recovery effect for global guest actions after logging in
   useEffect(() => {
@@ -43,13 +61,19 @@ function AppContent() {
           } else if (pending.type === 'TOGGLE_WISHLIST') {
             localStorage.removeItem('mediquick_pending_action');
             toggleWishlist(pending.payload.product);
+          } else if (pending.type === 'BUY_NOW') {
+            localStorage.removeItem('mediquick_pending_action');
+            if (pending.payload?.product) {
+              addToCart(pending.payload.product, pending.payload.quantity || 1);
+              navigate('/checkout', { state: { buyNowProduct: pending.payload.product } });
+            }
           }
         } catch (e) {
           console.error("Error executing pending action in AppContent:", e);
         }
       }
     }
-  }, [currentUser, addToCart, toggleWishlist]);
+  }, [currentUser, addToCart, toggleWishlist, navigate]);
 
   const isAdmin = currentUser?.role === 'admin';
   const isMaintenance = systemSettings?.maintenanceMode && !isAdmin;

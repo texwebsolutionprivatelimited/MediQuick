@@ -135,10 +135,15 @@ export default function Login() {
     setForgotLoading(true);
     setForgotError(null);
     setForgotSuccess(null);
-    const email = data.forgotEmail.trim().toLowerCase();
+    const email = data.forgotEmail?.trim().toLowerCase();
+    if (!email) {
+      setForgotError('Registered email address is required.');
+      setForgotLoading(false);
+      return;
+    }
     try {
       await sendPasswordReset(email);
-      setForgotSuccess("Password reset link has been sent successfully. Please check your inbox.");
+      setForgotSuccess("Password reset link has been sent to your email address.");
       setTimeout(() => {
         // Close modal and reset form
         setForgotModalOpen(false);
@@ -148,12 +153,10 @@ export default function Login() {
     } catch (error) {
       console.error(error);
       const getForgotPassErrorMessage = (err) => {
-        if (!err.code) {
-          return err.message || 'Failed to send password reset email. Please try again.';
+        if (err.code === 'auth/user-not-found' || err.message?.includes('No account found')) {
+          return 'No account found with this email address.';
         }
         switch (err.code) {
-          case 'auth/user-not-found':
-            return 'No account found with this email.';
           case 'auth/invalid-email':
             return 'The email address is invalid.';
           case 'auth/network-request-failed':
@@ -592,7 +595,14 @@ export default function Login() {
       {/* Centered Forgot Password Modal */}
       <Modal
         isOpen={forgotModalOpen}
-        onClose={() => setForgotModalOpen(false)}
+        onClose={() => {
+          if (!forgotLoading) {
+            setForgotModalOpen(false);
+            setForgotSuccess(null);
+            setForgotError(null);
+            resetForgotForm();
+          }
+        }}
         title="Forgot Password"
         size="sm"
       >
@@ -615,12 +625,12 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleForgotSubmit(onForgotSubmit)} className="space-y-4">
+          <form onSubmit={handleForgotSubmit(onForgotSubmit)} noValidate className="space-y-4">
             <Input
               label="Registered Email Address"
               type="email"
               placeholder="name@example.com"
-              required
+              disabled={forgotLoading}
               error={forgotErrors.forgotEmail}
               {...registerForgot('forgotEmail', {
                 required: 'Registered email address is required',
@@ -634,7 +644,12 @@ export default function Login() {
 
             <div className="flex items-center justify-end gap-3.5 pt-2">
               <Button
-                onClick={() => setForgotModalOpen(false)}
+                onClick={() => {
+                  setForgotModalOpen(false);
+                  setForgotSuccess(null);
+                  setForgotError(null);
+                  resetForgotForm();
+                }}
                 variant="ghost"
                 disabled={forgotLoading}
                 className="px-4 py-2 text-xs font-semibold rounded-lg"
@@ -645,6 +660,7 @@ export default function Login() {
                 type="submit"
                 variant="primary"
                 loading={forgotLoading}
+                disabled={forgotLoading}
                 className="px-5 py-2 text-xs font-semibold rounded-lg bg-primary text-white"
               >
                 Send Reset Link

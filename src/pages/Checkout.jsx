@@ -23,7 +23,18 @@ import { isCouponApplicableToCart, getCouponForProduct } from '../utils/couponMa
 export default function Checkout() {
   const navigate = useNavigate();
   const routerLocation = useRouterLocation();
-  const { cartItems, getSubtotal, getDiscount, clearCart, coupon, applyCoupon, removeCoupon, availableCoupons } = useCart();
+  const { 
+    cartItems, 
+    getSubtotal, 
+    getDiscount, 
+    clearCart, 
+    coupon, 
+    applyCoupon, 
+    removeCoupon, 
+    availableCoupons, 
+    prescriptionFile, 
+    prescriptionApproved 
+  } = useCart();
   const { address, detectLocation, loading: locLoading, error: locError, distance, deliveryType, calculateDeliveryFee } = useLocation();
   const { systemSettings, deliverySettings } = useSettings();
   const { currentUser } = useAuth();
@@ -39,6 +50,14 @@ export default function Checkout() {
     }
     return cartItems;
   }, [buyNowProduct, cartItems]);
+
+  const prescriptionRequired = checkoutItems.some(item => item.prescription_required || item.requiresPrescription);
+
+  React.useEffect(() => {
+    if (prescriptionRequired && !prescriptionApproved) {
+      navigate('/cart');
+    }
+  }, [prescriptionRequired, prescriptionApproved, navigate]);
 
   const subtotal = getSubtotal(checkoutItems);
   const totalMSRP = checkoutItems.reduce((sum, item) => sum + (item.mrp || item.price || 0) * item.quantity, 0);
@@ -354,6 +373,12 @@ export default function Checkout() {
       return;
     }
 
+    if (prescriptionRequired && !prescriptionApproved) {
+      alert("A verified and approved medical prescription is required before placing an order containing Rx products.");
+      navigate('/cart');
+      return;
+    }
+
     setIsPlacing(true);
 
     const orderId = 'MQ-' + Math.floor(10000 + Math.random() * 90000);
@@ -371,8 +396,13 @@ export default function Checkout() {
         medicine_name: item.medicine_name,
         price: item.price || item.mrp || 0,
         quantity: item.quantity,
-        brand: item.brand || 'Generic'
+        brand: item.brand || 'Generic',
+        prescription_required: !!item.prescription_required
       })),
+      prescriptionRequired: prescriptionRequired,
+      prescriptionId: prescriptionFile?.id || null,
+      prescriptionUrl: prescriptionFile?.downloadUrl || prescriptionFile?.previewUrl || '',
+      prescriptionStatus: prescriptionFile?.reviewStatus || 'approved',
       totalQuantity: checkoutItems.reduce((sum, item) => sum + item.quantity, 0),
       subtotal: subtotal,
       discount: discount,
